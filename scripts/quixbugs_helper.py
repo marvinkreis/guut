@@ -90,11 +90,19 @@ def extract_comment(code: str) -> str:
     return ''.join(comment_lines)
 
 
-def print_code_context(problem: Problem) -> None:
+def construct_better_correct_file(problem: Problem) -> str:
     code = extract_code(problem.get_correct_file().read_text())
+
     # Extract comment from the buggy file, since the correct file comments are useless.
     comment = extract_comment(problem.get_buggy_file().read_text())
-    print_code(problem.get_correct_file().name, code + comment, print_linenumbers=True)
+
+    return code + comment
+
+
+def print_code_context(problem: Problem) -> None:
+    print_code(problem.get_correct_file().name,
+               construct_better_correct_file(problem),
+               print_linenumbers=True)
 
     for path in problem.get_dependencies():
         print_code(path.name, path.read_text())

@@ -28,3 +28,5 @@ def remove_restarts(log: str) -> str:
         lambda line: 'The program finished and will be restarted' not in line,
         log.splitlines(keepends=True))
     return ''.join(new_lines)
+
+# TODO: add functions to doctor file names and remove other unnecessary output
