@@ -3,7 +3,7 @@
 import inspect
 import itertools
 from pathlib import Path
-from subprocess import run, PIPE
+from subprocess import run, TimeoutExpired
 from typing import List
 
 import debugger_wrapper
@@ -13,10 +13,15 @@ def run_debugger(target: Path, debugger_commands: List[str], cwd: Path = None) -
     process_input = ''.join(command + '\n' for command in debugger_commands)
     process_command = ['python', inspect.getfile(debugger_wrapper), str(target)]
 
-    result = run(process_command, input=process_input.encode(), cwd=cwd or target.parent,
-                 check=True, capture_output=True, timeout=2)
+    try:
+        result = run(process_command, input=process_input.encode(), cwd=cwd or target.parent,
+                     check=True, capture_output=True, timeout=2)
+        output = result.stdout
+    except TimeoutExpired as e:
+        output = e.stdout
+        pass
 
-    return result.stdout.decode()
+    return output.decode()
 
 
 def remove_restarts(log: str) -> str:

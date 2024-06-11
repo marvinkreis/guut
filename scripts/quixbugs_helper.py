@@ -148,7 +148,7 @@ def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str],
             copyfile(dep, Path(tempdir) / dep.name)
 
         # run
-        output = run_debugger(test_path, debugger_script, cwd=tempdir)
+        output = run_debugger(test_path, debugger_script, cwd=Path(tempdir))
         return shorten_paths(output, tempdir)
 
 
