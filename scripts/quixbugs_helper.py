@@ -8,7 +8,10 @@ from pathlib import Path
 from subprocess import Popen, PIPE
 from tempfile import TemporaryDirectory
 from typing import List
+from shutil import copyfile
 import math
+
+from debugger_helper import run_debugger, shorten_paths
 
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
@@ -66,9 +69,9 @@ def compute_diff(problem) -> str:
 
     with TemporaryDirectory() as tempdir:
         correct_file = Path(tempdir) / f'{problem.name}.py'
-        correct_file.write_text(correct_code.strip())
+        correct_file.write_text(correct_code.strip() + '\n')
         buggy_file = Path(tempdir) / f'{problem.name}_mutant.py'
-        buggy_file.write_text(buggy_code.strip())
+        buggy_file.write_text(buggy_code.strip() + '\n')
 
         process = Popen(['git', 'diff', '--no-index', '--', correct_file.name, buggy_file.name], stdout=PIPE, cwd=tempdir)
         (output, err) = process.communicate()
@@ -125,6 +128,30 @@ def print_code(display_name, code, language='python', print_linenumbers=False) -
 {code}
 ```
 ''')
+
+
+def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str], use_buggy_version=False):
+    with TemporaryDirectory() as tempdir:
+        # write test file
+        test_path = Path(tempdir) / 'test.py'
+        test_path.write_text(test_code)
+
+        # copy program under test
+        if use_buggy_version:
+            copyfile(problem.get_buggy_file(), Path(tempdir) / problem.get_buggy_file().name)
+        else:
+            copyfile(problem.get_correct_file(), Path(tempdir) / problem.get_correct_file().name)
+
+        # copy dependencies
+        for dep in problem.get_dependencies():
+            copyfile(dep, Path(tempdir) / dep.name)
+
+        # run
+        output = run_debugger(test_path, debugger_script)
+        return shorten_paths(output, tempdir)
+
+
+# TODO: run_test_on_problem
 
 
 def main() -> None:
