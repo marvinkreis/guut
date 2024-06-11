@@ -3,25 +3,20 @@
 import inspect
 import itertools
 from pathlib import Path
-from subprocess import Popen, PIPE, CalledProcessError
+from subprocess import run, PIPE
 from typing import List
 
 import debugger_wrapper
 
 
-# TODO: add timeout
 def run_debugger(target: Path, debugger_commands: List[str], cwd: Path = None) -> str:
     process_input = ''.join(command + '\n' for command in debugger_commands)
     process_command = ['python', inspect.getfile(debugger_wrapper), str(target)]
 
-    process = Popen(process_command, stdout=PIPE, stdin=PIPE, cwd=cwd or target.parent)
-    (output, err) = process.communicate(input=process_input.encode('UTF-8'))
-    exit_code = process.wait()
+    result = run(process_command, input=process_input.encode(), cwd=cwd or target.parent,
+                 check=True, capture_output=True, timeout=2)
 
-    if exit_code != 0:
-        raise CalledProcessError(exit_code, process_command)
-
-    return output.decode()
+    return result.stdout.decode()
 
 
 def remove_restarts(log: str) -> str:

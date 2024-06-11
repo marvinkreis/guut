@@ -5,7 +5,7 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from subprocess import Popen, PIPE
+from subprocess import run, PIPE
 from tempfile import TemporaryDirectory
 from typing import List
 from shutil import copyfile
@@ -73,10 +73,11 @@ def compute_diff(problem) -> str:
         buggy_file = Path(tempdir) / f'{problem.name}_mutant.py'
         buggy_file.write_text(buggy_code.strip() + '\n')
 
-        process = Popen(['git', 'diff', '--no-index', '--', correct_file.name, buggy_file.name], stdout=PIPE, cwd=tempdir)
-        (output, err) = process.communicate()
-        exit_code = process.wait()
-        return output.decode()
+        result = run(['git', 'diff', '--no-index', '--', correct_file.name, buggy_file.name],
+                     cwd=tempdir, capture_output=True, timeout=2)
+        # Can't use check=True here, because --no-index implies --exit-code, which will exit with 1 if the files differ
+
+        return result.stdout.decode()
 
 
 def extract_code(code: str) -> str:
@@ -147,7 +148,7 @@ def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str],
             copyfile(dep, Path(tempdir) / dep.name)
 
         # run
-        output = run_debugger(test_path, debugger_script)
+        output = run_debugger(test_path, debugger_script, cwd=tempdir)
         return shorten_paths(output, tempdir)
 
 
