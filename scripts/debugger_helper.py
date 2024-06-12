@@ -3,22 +3,50 @@
 import inspect
 import itertools
 from pathlib import Path
-from subprocess import run, TimeoutExpired
+from subprocess import run, TimeoutExpired, STDOUT, Popen, PIPE
 from typing import List
 
 import debugger_wrapper
 
 
 def run_debugger(target: Path, debugger_commands: List[str], cwd: Path = None) -> str:
-    process_input = ''.join(command + '\n' for command in debugger_commands)
+    process_input = ''.join(command.strip() + '\n' for command in debugger_commands)
     process_command = ['python', inspect.getfile(debugger_wrapper), str(target)]
+    process_cwd = cwd or target.parent
 
     try:
-        result = run(process_command, input=process_input.encode(), cwd=cwd or target.parent,
-                     check=True, capture_output=True, timeout=2)
-        output = result.stdout
+        # TODO: try preexec_fun
+        # TODO: give encoding here
+        process = Popen(process_command, cwd=process_cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
+        output, _ = process.communicate(input=process_input.encode(), timeout=2)
+        returncode = process.returncode
     except TimeoutExpired as e:
         output = e.stdout
+        returncode = 1
+        pass
+
+    return output.decode()
+
+
+def run_script(script: Path, stdin: str = None, cwd: Path = None) -> str:
+    if stdin:
+        if stdin.endswith('\n'):
+            process_input = stdin.encode()
+        else:
+            process_input = (stdin + '\n').encode()
+    else:
+        process_input = None
+
+    process_command = ['python', script]
+    process_cwd = cwd or script.parent
+
+    try:
+        process = Popen(process_command, cwd=process_cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
+        output, _ = process.communicate(input=process_input, timeout=2)
+        returncode = process.returncode
+    except TimeoutExpired as e:
+        output = e.stdout
+        returncode = 1
         pass
 
     return output.decode()

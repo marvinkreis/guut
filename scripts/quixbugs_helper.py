@@ -11,8 +11,7 @@ from typing import List
 from shutil import copyfile
 import math
 
-from debugger_helper import run_debugger, shorten_paths
-
+from debugger_helper import run_debugger, shorten_paths, run_script
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -152,7 +151,25 @@ def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str],
         return shorten_paths(output, tempdir)
 
 
-# TODO: run_test_on_problem
+def run_test_on_problem(problem, test_code: str, stdin: str = None, use_buggy_version=False):
+    with TemporaryDirectory() as tempdir:
+        # write test file
+        test_path = Path(tempdir) / 'test.py'
+        test_path.write_text(test_code)
+
+        # copy program under test
+        if use_buggy_version:
+            copyfile(problem.get_buggy_file(), Path(tempdir) / problem.get_buggy_file().name)
+        else:
+            copyfile(problem.get_correct_file(), Path(tempdir) / problem.get_correct_file().name)
+
+        # copy dependencies
+        for dep in problem.get_dependencies():
+            copyfile(dep, Path(tempdir) / dep.name)
+
+        # run
+        output = run_script(test_path, stdin=stdin, cwd=Path(tempdir))
+        return shorten_paths(output, tempdir)
 
 
 def main() -> None:
