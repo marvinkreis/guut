@@ -10,8 +10,8 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 from typing import List
 
-from debugger_helper import run_debugger, shorten_paths, run_script
-from scripts.formatting import format_code, format_diff, Snippet, format_code_context
+from execution import run_debugger, run_script
+from scripts.formatting import Snippet, format_code_context, format_code, shorten_paths
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -117,8 +117,9 @@ def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str],
             copyfile(dep, Path(tempdir) / dep.name)
 
         # run
-        output = run_debugger(test_path, debugger_script, cwd=Path(tempdir))
-        return shorten_paths(output, tempdir)
+        result = run_debugger(test_path, debugger_script, cwd=Path(tempdir))
+        result.output = shorten_paths(result.output, tempdir)
+        return result
 
 
 def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_version=False):
@@ -136,8 +137,9 @@ def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_versio
             copyfile(dep, Path(tempdir) / dep.name)
 
         # run
-        output = run_script(test_path, stdin=stdin, cwd=Path(tempdir))
-        return shorten_paths(output, tempdir)
+        result = run_script(test_path, stdin=stdin, cwd=Path(tempdir))
+        result.output = shorten_paths(result.output, tempdir)
+        return result
 
 
 def format_problem_context(problem: Problem) -> str:
@@ -163,7 +165,7 @@ def main() -> None:
         problem = Problem(sys.argv[1])
         if problem.validate():
             print(format_problem_context(problem))
-            print(format_diff(problem))
+            print(format_code(Snippet('Bug Diff', problem.compute_diff())))
 
 
 if __name__ == '__main__':

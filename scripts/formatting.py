@@ -1,6 +1,6 @@
+import itertools
 import math
 from dataclasses import dataclass
-
 from typing import List
 
 
@@ -31,5 +31,14 @@ def format_code_context(snippets: List[Snippet]) -> str:
     return '\n'.join(format_code(snippet) for snippet in snippets)
 
 
-def format_diff(diff: str) -> str:
-    return format_code(Snippet('Bug Diff', diff), language='diff')
+def remove_restarts_from_pdb_output(log: str) -> str:
+    new_lines = itertools.takewhile(
+        lambda line: 'The program finished and will be restarted' not in line,
+        log.splitlines(keepends=True))
+    return ''.join(new_lines)
+
+
+def shorten_paths(log: str, path_to_omit: str) -> str:
+    if not path_to_omit.endswith('/'):
+        path_to_omit += '/'
+    return log.replace(path_to_omit, '')
