@@ -1,7 +1,9 @@
 import itertools
 import math
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List
+import os
 
 
 @dataclass
@@ -38,7 +40,11 @@ def remove_restarts_from_pdb_output(log: str) -> str:
     return ''.join(new_lines)
 
 
-def shorten_paths(log: str, path_to_omit: str) -> str:
-    if not path_to_omit.endswith('/'):
-        path_to_omit += '/'
+def shorten_paths(log: str, path_to_omit: str | Path) -> str:
+    if isinstance(path_to_omit, Path):
+        path_to_omit = str(path_to_omit)
+
+    if not path_to_omit.endswith(os.sep):
+        path_to_omit += os.sep
+
     return log.replace(path_to_omit, '')

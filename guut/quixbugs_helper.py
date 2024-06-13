@@ -10,8 +10,8 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 from typing import List
 
-from execution import run_debugger, run_script
-from scripts.formatting import Snippet, format_code_context, format_code, shorten_paths
+from execution import run_debugger, run_script, ExecutionResult
+from formatting import Snippet, format_code_context, format_code, shorten_paths
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -102,7 +102,7 @@ def list_problems() -> List[Problem]:
     return [Problem(program.stem) for program in programs]
 
 
-def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str], buggy_version=False):
+def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str], buggy_version=False) -> ExecutionResult:
     with TemporaryDirectory() as tempdir:
         # write test file
         test_path = Path(tempdir) / 'test.py'
@@ -118,11 +118,10 @@ def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str],
 
         # run
         result = run_debugger(test_path, debugger_script, cwd=Path(tempdir))
-        result.output = shorten_paths(result.output, tempdir)
         return result
 
 
-def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_version=False):
+def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_version=False) -> ExecutionResult:
     with TemporaryDirectory() as tempdir:
         # write test file
         test_path = Path(tempdir) / 'test.py'
@@ -137,17 +136,13 @@ def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_versio
             copyfile(dep, Path(tempdir) / dep.name)
 
         # run
-        result = run_script(test_path, stdin=stdin, cwd=Path(tempdir))
-        result.output = shorten_paths(result.output, tempdir)
-        return result
+        return run_script(test_path, stdin=stdin, cwd=Path(tempdir))
 
 
 def format_problem_context(problem: Problem) -> str:
-    snippets = []
-
-    snippets.append(Snippet(problem.get_correct_file().name,
-                            problem.construct_normalized_code(buggy_version=False),
-                            linenos=True))
+    snippets = [Snippet(problem.get_correct_file().name,
+                        problem.construct_normalized_code(buggy_version=False),
+                        linenos=True)]
 
     for path in problem.get_dependencies():
         snippets.append(Snippet(path.name, path.read_text()))
