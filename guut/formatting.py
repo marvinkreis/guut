@@ -48,3 +48,14 @@ def shorten_paths(log: str, path_to_omit: str | Path) -> str:
         path_to_omit += os.sep
 
     return log.replace(path_to_omit, '')
+
+
+def limit_text(text: str, character_limit: int = 2000):
+    num_chars = 0
+    lines = []
+    for line in text.splitlines(keepends=True):
+        num_chars += len(line)
+        if num_chars > character_limit:
+            return ''.join(lines) + '...'
+        lines.append(line)
+    return text
