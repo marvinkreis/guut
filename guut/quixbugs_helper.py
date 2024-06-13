@@ -1,3 +1,4 @@
+import errno
 import itertools
 import os
 import sys
@@ -9,7 +10,7 @@ from tempfile import TemporaryDirectory
 from typing import List
 
 from execution import run_debugger, run_script, ExecutionResult
-from formatting import Snippet, format_code_context, format_code, shorten_paths
+from formatting import Snippet, format_code_context, format_code
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -79,12 +80,10 @@ class Problem:
         else:
             return []
 
-    def validate(self) -> bool:
+    def validate(self):
         for path in [self.get_correct_file(), self.get_buggy_file(), *self.get_dependencies()]:
             if not path.is_file():
-                print(f"Couldn't find file '{path}'.")
-                return False
-        return True
+                raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(path))
 
 
 def list_problems() -> List[Problem]:
@@ -156,9 +155,9 @@ def main() -> None:
     else:
         # Print selected problem
         problem = Problem(sys.argv[1])
-        if problem.validate():
-            print(format_problem_context(problem))
-            print(format_code(Snippet('Bug Diff', problem.compute_diff())))
+        problem.validate()
+        print(format_problem_context(problem))
+        print(format_code(Snippet('Bug Diff', problem.compute_diff())))
 
 
 if __name__ == '__main__':

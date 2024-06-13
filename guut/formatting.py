@@ -24,9 +24,8 @@ def format_code(snippet: Snippet, language='python') -> str:
 
     return f'''{snippet.name}:
 ```{language}
-{content}
-```
-'''
+{content.rstrip()}
+```'''
 
 
 def format_code_context(snippets: List[Snippet]) -> str:

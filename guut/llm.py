@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, List
 from loguru import logger
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, OpenAI
 
 JSON = Any  # good enough for now
 
@@ -66,6 +66,9 @@ class Message:
 
 
 class Conversation(list):
+    def __init__(self, messages: List[Message] = None):
+        super().__init__(messages)
+
     def to_openai_api(self):
         """Converts the conversation into JSON for the OpenAI API."""
         return [msg.to_openai_api() for msg in self]
@@ -77,7 +80,23 @@ class Conversation(list):
         return '\n'.join(msg.content for msg in self)
 
 
-class ChatGPTEndpoint:
+class OpenAIEndpoint:
+    def __init__(self, client: OpenAI):
+        self.model = 'gpt-3.5-turbo-0125'
+        self.client = client
+
+    def complete(self, conversation: Conversation, **kwargs):
+        logger.info(f'''Requesting completion:
+    args: {kwargs}
+    conversation: {conversation.to_openai_api()}''')
+        response = self.client.chat.completions.create(
+            model=self.model,
+            messages=conversation.to_openai_api(),
+            **kwargs)
+        return Message.from_openai_api(response)
+
+
+class AsyncOpenAIEndpoint:
     def __init__(self, client: AsyncOpenAI):
         self.model = 'gpt-3.5-turbo-0125'
         self.client = client
@@ -86,7 +105,8 @@ class ChatGPTEndpoint:
         logger.info(f'''Requesting completion:
     args: {kwargs}
     conversation: {conversation.to_openai_api()}''')
-        return await self.client.chat.completions.create(
+        response = await self.client.chat.completions.create(
             model=self.model,
             messages=conversation.to_openai_api(),
             **kwargs)
+        return Message.from_openai_api(response)
