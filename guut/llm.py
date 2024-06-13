@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional, List
+from typing import Any, List
 
 from llama_cpp import Llama, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessage, \
-    ChatCompletionRequestAssistantMessage
+    ChatCompletionRequestAssistantMessage, CreateChatCompletionResponse
 from loguru import logger
 from openai import OpenAI
-
-JSON = Any  # good enough for now
+from openai.types.chat import ChatCompletion
 
 
 class Role(Enum):
@@ -24,15 +23,19 @@ class Role(Enum):
 
 
 @dataclass
+class Usage:
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
+@dataclass
 class Message:
     # The type of message (system, user, assistant).
     role: Role
 
     # Text content of the message.
     content: str
-
-    # The full response object from the API. Only LLM-generated messages.
-    response: Optional[Any] = None
 
     def to_openai_api(self):
         """Converts the message into JSON for the OpenAI API."""
@@ -43,45 +46,63 @@ class Message:
 
     def to_llamacpp_api(self):
         """Converts the message into JSON for the llama.cpp API."""
-        if self.role == Role.SYSTEM:
-            return ChatCompletionRequestSystemMessage(content=self.content, role='system')
-        elif self.role == Role.USER:
-            return ChatCompletionRequestUserMessage(content=self.content, role='user')
-        elif self.role == Role.ASSISTANT:
-            return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
-        else:
-            raise Exception('Unknown message role: ' + self.role.name)
+        raise Exception("Can't convert base message to llama.cpp API.")
 
     def __str__(self):
         return self.content
 
     def __repr__(self):
-        return f'''Message({self.role.name},
-{self.content})'''
+        content = ''.join(['    ' + line for line in self.content.splitlines(keepends=True)])
+        return f'Message({self.role.name},\n{content})'
+
+
+class SystemMessage(Message):
+    def __init__(self, content):
+        self.role = Role.SYSTEM
+        self.content = content
+
+    def to_llamacpp_api(self):
+        return ChatCompletionRequestSystemMessage(content=self.content, role='system')
+
+
+class UserMessage(Message):
+    def __init__(self, content):
+        self.role = Role.USER
+        self.content = content
+
+    def to_llamacpp_api(self):
+        return ChatCompletionRequestUserMessage(content=self.content, role='user')
+
+
+class AssistantMessage(Message):
+    # The full response object from the API.
+    response: Any
+
+    # The token usage to generate this message.
+    usage: Usage
+
+    def __init__(self, content: str, response: Any, usage: Usage):
+        self.role = Role.ASSISTANT
+        self.content = content
+        self.response = response
+        self.usage = usage
 
     @staticmethod
-    def system(content: str):
-        return Message(Role.SYSTEM, content)
-
-    @staticmethod
-    def user(content: str):
-        return Message(Role.USER, content)
-
-    @staticmethod
-    def assistant(content: str = None, response=None):
-        return Message(Role.ASSISTANT, content, response)
-
-    @staticmethod
-    def from_openai_api(response: JSON):
+    def from_openai_api(response: ChatCompletion):
         message = response['choices'][0]['message']
         content = message.get('content')
-        return Message(Role.ASSISTANT, content, response=response)
+        usage = Usage(**response['usage'])
+        return AssistantMessage(content, response, usage)
 
-    @staticmethod
-    def from_llamacpp_api(response: JSON):
+    @classmethod
+    def from_llamacpp_api(cls, response: CreateChatCompletionResponse):
         message = response['choices'][0]['message']
         content = message.get('content')
-        return Message(Role.ASSISTANT, content, response=response)
+        usage = Usage(**response['usage'])
+        return AssistantMessage(content, response, usage)
+
+    def to_llamacpp_api(self):
+        return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
 
 
 class Conversation(list):
@@ -121,7 +142,7 @@ class OpenAIEndpoint(LLMEndpoint):
             model=self.model,
             messages=conversation.to_openai_api(),
             **kwargs)
-        return Message.from_openai_api(response)
+        return AssistantMessage.from_openai_api(response)
 
 
 class LlamacppEndpoint(LLMEndpoint):
@@ -135,5 +156,5 @@ class LlamacppEndpoint(LLMEndpoint):
         response = self.client.create_chat_completion(
             messages=conversation.to_llamacpp_api(),
             **kwargs)
-        return Message.from_llamacpp_api(response)
+        return AssistantMessage.from_llamacpp_api(response)
 
