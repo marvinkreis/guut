@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional
+from loguru import logger
 
 from openai import AsyncOpenAI
 
@@ -82,7 +83,7 @@ class ChatGPTEndpoint:
         self.client = client
 
     async def complete(self, conversation: Conversation, **kwargs):
-        print(f'''Requesting completion:
+        logger.info(f'''Requesting completion:
     args: {kwargs}
     conversation: {conversation.to_openai_api()}''')
         return await self.client.chat.completions.create(
