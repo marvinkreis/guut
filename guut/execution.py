@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import inspect
 from dataclasses import dataclass
 from pathlib import Path
