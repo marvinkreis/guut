@@ -1,9 +1,11 @@
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Optional, List
-from loguru import logger
 
-from openai import AsyncOpenAI, OpenAI
+from llama_cpp import Llama, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessage, \
+    ChatCompletionRequestAssistantMessage
+from loguru import logger
+from openai import OpenAI
 
 JSON = Any  # good enough for now
 
@@ -39,6 +41,17 @@ class Message:
             'content': self.content
         }
 
+    def to_llamacpp_api(self):
+        """Converts the message into JSON for the llama.cpp API."""
+        if self.role == Role.SYSTEM:
+            return ChatCompletionRequestSystemMessage(content=self.content, role='system')
+        elif self.role == Role.USER:
+            return ChatCompletionRequestUserMessage(content=self.content, role='user')
+        elif self.role == Role.ASSISTANT:
+            return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
+        else:
+            raise Exception('Unknown message role: ' + self.role.name)
+
     def __str__(self):
         return self.content
 
@@ -64,6 +77,12 @@ class Message:
         content = message.get('content')
         return Message(Role.ASSISTANT, content, response=response)
 
+    @staticmethod
+    def from_llamacpp_api(response: JSON):
+        message = response['choices'][0]['message']
+        content = message.get('content')
+        return Message(Role.ASSISTANT, content, response=response)
+
 
 class Conversation(list):
     def __init__(self, messages: List[Message] = None):
@@ -73,6 +92,10 @@ class Conversation(list):
         """Converts the conversation into JSON for the OpenAI API."""
         return [msg.to_openai_api() for msg in self]
 
+    def to_llamacpp_api(self):
+        """Converts the conversation into JSON for the llama.cpp API."""
+        return [msg.to_llamacpp_api() for msg in self]
+
     def __repr__(self):
         return '\n'.join(repr(msg) for msg in self)
 
@@ -80,10 +103,15 @@ class Conversation(list):
         return '\n'.join(msg.content for msg in self)
 
 
-class OpenAIEndpoint:
-    def __init__(self, client: OpenAI):
-        self.model = 'gpt-3.5-turbo-0125'
+class LLMEndpoint:
+    def complete(self, conversation: Conversation, **kwargs):
+        pass
+
+
+class OpenAIEndpoint(LLMEndpoint):
+    def __init__(self, client: OpenAI, model: str):
         self.client = client
+        self.model = model
 
     def complete(self, conversation: Conversation, **kwargs):
         logger.info(f'''Requesting completion:
@@ -96,17 +124,16 @@ class OpenAIEndpoint:
         return Message.from_openai_api(response)
 
 
-class AsyncOpenAIEndpoint:
-    def __init__(self, client: AsyncOpenAI):
-        self.model = 'gpt-3.5-turbo-0125'
+class LlamacppEndpoint(LLMEndpoint):
+    def __init__(self, client: Llama):
         self.client = client
 
-    async def complete(self, conversation: Conversation, **kwargs):
+    def complete(self, conversation: Conversation, **kwargs):
         logger.info(f'''Requesting completion:
     args: {kwargs}
-    conversation: {conversation.to_openai_api()}''')
-        response = await self.client.chat.completions.create(
-            model=self.model,
-            messages=conversation.to_openai_api(),
+    conversation: {conversation.to_llamacpp_api()}''')
+        response = self.client.create_chat_completion(
+            messages=conversation.to_llamacpp_api(),
             **kwargs)
-        return Message.from_openai_api(response)
+        return Message.from_llamacpp_api(response)
+
