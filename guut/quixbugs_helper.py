@@ -56,7 +56,22 @@ class Problem:
 
         return ''.join(comment_lines).strip() + '\n'
 
-    def compute_diff(self) -> str:
+    def compute_fix_diff(self) -> str:
+        buggy_code = self.construct_normalized_code(buggy_version=True)
+        correct_code = self.construct_normalized_code(buggy_version=False)
+
+        with TemporaryDirectory() as tempdir:
+            buggy_file = Path(tempdir) / f'{self.name}_bug.py'
+            buggy_file.write_text(buggy_code.strip() + '\n')
+            correct_file = Path(tempdir) / f'{self.name}.py'
+            correct_file.write_text(correct_code.strip() + '\n')
+
+            # Can't use check=True here, because --no-index implies --exit-code, which exits with 1 if the files differ
+            result = run(['git', 'diff', '--no-index', '--', buggy_file.name, correct_file.name],
+                         cwd=tempdir, capture_output=True, timeout=2)
+            return result.stdout.decode()
+
+    def compute_mutant_diff(self) -> str:
         correct_code = self.construct_normalized_code(buggy_version=False)
         buggy_code = self.construct_normalized_code(buggy_version=True)
 
@@ -137,8 +152,8 @@ def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_versio
 
 
 def format_problem_context(problem: Problem) -> str:
-    snippets = [Snippet(problem.get_correct_file().name,
-                        problem.construct_normalized_code(buggy_version=False),
+    snippets = [Snippet(problem.get_buggy_file().name,
+                        problem.construct_normalized_code(buggy_version=True),
                         linenos=True)]
 
     for path in problem.get_dependencies():
@@ -157,7 +172,7 @@ def main() -> None:
         problem = Problem(sys.argv[1])
         problem.validate()
         print(format_problem_context(problem))
-        print(format_code(Snippet('Bug Diff', problem.compute_diff())))
+        print(format_code(Snippet('Bug Diff', problem.compute_fix_diff())))
 
 
 if __name__ == '__main__':
