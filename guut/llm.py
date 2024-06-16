@@ -1,3 +1,4 @@
+from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List
@@ -29,8 +30,7 @@ class Usage:
     total_tokens: int
 
 
-@dataclass
-class Message:
+class Message(ABC):
     # The type of message (system, user, assistant).
     role: Role
 
@@ -39,14 +39,11 @@ class Message:
 
     def to_openai_api(self):
         """Converts the message into JSON for the OpenAI API."""
-        return {
-            'role': self.role.value,
-            'content': self.content
-        }
+        raise Exception("Can't convert base message.")
 
     def to_llamacpp_api(self):
         """Converts the message into JSON for the llama.cpp API."""
-        raise Exception("Can't convert base message to llama.cpp API.")
+        raise Exception("Can't convert base message.")
 
     def __str__(self):
         return self.content
@@ -61,6 +58,9 @@ class SystemMessage(Message):
         self.role = Role.SYSTEM
         self.content = content
 
+    def to_openai_api(self):
+        return {'role': 'system', 'content': self.content}
+
     def to_llamacpp_api(self):
         return ChatCompletionRequestSystemMessage(content=self.content, role='system')
 
@@ -69,6 +69,9 @@ class UserMessage(Message):
     def __init__(self, content):
         self.role = Role.USER
         self.content = content
+
+    def to_openai_api(self):
+        return {'role': 'user', 'content': self.content}
 
     def to_llamacpp_api(self):
         return ChatCompletionRequestUserMessage(content=self.content, role='user')
@@ -100,6 +103,9 @@ class AssistantMessage(Message):
         content = message.get('content')
         usage = Usage(**response['usage'])
         return AssistantMessage(content, response, usage)
+
+    def to_openai_api(self):
+        return {'role': 'assistant', 'content': self.content}
 
     def to_llamacpp_api(self):
         return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
