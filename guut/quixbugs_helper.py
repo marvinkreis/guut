@@ -9,8 +9,8 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 from typing import List
 
-from execution import run_debugger, run_script, ExecutionResult
-from formatting import Snippet, format_code_context, format_code
+from guut.execution import run_debugger, run_script, ExecutionResult
+from guut.formatting import Snippet, format_code_context, format_code
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'

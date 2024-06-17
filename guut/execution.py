@@ -4,7 +4,7 @@ from pathlib import Path
 from subprocess import TimeoutExpired, STDOUT, Popen, PIPE
 from typing import List
 
-import debugger_wrapper
+import guut.debugger_wrapper as debugger_wrapper
 
 
 @dataclass
