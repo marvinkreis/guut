@@ -14,14 +14,7 @@ class Snippet:
 
 
 def format_code(snippet: Snippet, language='python') -> str:
-    if snippet.linenos:
-        lines = snippet.content.splitlines(keepends=True)
-        digits = math.floor(math.log10(len(lines))) + 1
-        format_str = '{:0' + str(digits) + 'd}'
-        content = ''.join(f'{format_str.format(i+1)}   {line}' for i, line in enumerate(lines))
-    else:
-        content = snippet.content
-
+    content = add_line_numbers(snippet.content) if snippet.linenos else snippet.content
     return f'''{snippet.name}:
 ```{language}
 {content.rstrip()}
@@ -58,3 +51,27 @@ def limit_text(text: str, character_limit: int = 2000):
             return ''.join(lines) + '...'
         lines.append(line)
     return text
+
+
+def indent_block(text: str, width: int = 4):
+    def indent_line(line: str):
+        if not line or line.isspace():
+            return line
+        else:
+            return (' ' * width) + line
+
+    return '\n'.join(indent_line(line) for line in text.splitlines())
+
+
+def add_line_numbers(code: str):
+    lines = code.splitlines()
+    digits = math.floor(math.log10(len(lines))) + 1
+    format_str = '{:0' + str(digits) + 'd}'
+
+    def add_line_number(line: str, number: int):
+        if not line or line.isspace():
+            return format_str.format(number)
+        else:
+            return f'{format_str.format(number)}  {line}'
+
+    return '\n'.join(add_line_number(line, i+1) for i, line in enumerate(lines))

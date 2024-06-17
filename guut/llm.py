@@ -9,6 +9,8 @@ from loguru import logger
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
 
+from guut.formatting import indent_block
+
 
 class Role(Enum):
     """Represents the type of message in a LLM conversation."""
@@ -49,8 +51,7 @@ class Message(ABC):
         return self.content
 
     def __repr__(self):
-        content = ''.join(['    ' + line for line in self.content.splitlines(keepends=True)])
-        return f'Message({self.role.name},\n{content})'
+        return f'{self.role.name} MESSAGE:\n{indent_block(self.content)})'
 
 
 class SystemMessage(Message):
