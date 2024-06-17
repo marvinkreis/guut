@@ -92,16 +92,19 @@ class AssistantMessage(Message):
 
     @staticmethod
     def from_openai_api(response: ChatCompletion):
-        message = response['choices'][0]['message']
-        content = message.get('content')
-        usage = Usage(**response['usage'])
+        content = response.choices[0].message.content
+        usage = Usage(completion_tokens=response.usage.completion_tokens,
+                      prompt_tokens=response.usage.prompt_tokens,
+                      total_tokens=response.usage.total_tokens)
         return AssistantMessage(content, response, usage)
 
     @classmethod
     def from_llamacpp_api(cls, response: CreateChatCompletionResponse):
         message = response['choices'][0]['message']
         content = message.get('content')
-        usage = Usage(**response['usage'])
+        usage = Usage(completion_tokens=response['usage']['completion_tokens'],
+                      prompt_tokens=response['usage']['prompt_tokens'],
+                      total_tokens=response['usage']['total_tokens'])
         return AssistantMessage(content, response, usage)
 
     def to_openai_api(self):
