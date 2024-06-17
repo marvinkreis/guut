@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 from typing import List
 
 from guut.execution import run_debugger, run_script, ExecutionResult
-from guut.formatting import Snippet, format_code_context, format_code
+from guut.formatting import format_code
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -19,6 +19,10 @@ NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
 @dataclass
 class Problem:
     name: str
+
+    @property
+    def filename(self) -> str:
+        return f'{self.name}.py'
 
     def get_correct_file(self) -> Path:
         return QUIXBUGS_PATH / 'correct_python_programs' / f'{self.name}.py'
@@ -43,18 +47,18 @@ class Problem:
 
         code_lines = itertools.takewhile(
             lambda line: '"""' not in line,
-            code.splitlines(keepends=True))
+            code.splitlines())
 
-        return ''.join(code_lines).strip() + '\n'
+        return '\n'.join(code_lines).strip() + '\n'
 
     def extract_comment(self) -> str:
         code = self.get_buggy_file().read_text()
 
         comment_lines = itertools.dropwhile(
             lambda line: '"""' not in line,
-            code.splitlines(keepends=True))
+            code.splitlines())
 
-        return ''.join(comment_lines).strip() + '\n'
+        return '\n'.join(comment_lines).strip() + '\n'
 
     def compute_fix_diff(self) -> str:
         buggy_code = self.construct_normalized_code(buggy_version=True)
@@ -151,15 +155,18 @@ def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_versio
         return run_script(test_path, stdin=stdin, cwd=Path(tempdir))
 
 
-def format_problem_context(problem: Problem) -> str:
-    snippets = [Snippet(problem.get_buggy_file().name,
-                        problem.construct_normalized_code(buggy_version=True),
-                        linenos=True)]
+def format_problem(problem: Problem) -> str:
+    code_blocks = [format_code(problem.filename,
+                               problem.construct_normalized_code(buggy_version=True),
+                               linenos=True,
+                               language='python')]
 
     for path in problem.get_dependencies():
-        snippets.append(Snippet(path.name, path.read_text()))
+        code_blocks.append(format_code(path.name, path.read_text(), language='python'))
 
-    return format_code_context(snippets)
+    code_blocks.append(format_code('Fix Diff', problem.compute_fix_diff(), language='diff'))
+
+    return '\n\n'.join(code_blocks)
 
 
 def main() -> None:
@@ -171,8 +178,7 @@ def main() -> None:
         # Print selected problem
         problem = Problem(sys.argv[1])
         problem.validate()
-        print(format_problem_context(problem))
-        print(format_code(Snippet('Bug Diff', problem.compute_fix_diff())))
+        print(format_problem(problem))
 
 
 if __name__ == '__main__':
