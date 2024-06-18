@@ -92,7 +92,7 @@ class AssistantMessage(Message):
         self.usage = usage
 
     @staticmethod
-    def from_openai_api(response: ChatCompletion):
+    def from_openai_api(response: ChatCompletion) -> 'AssistantMessage':
         content = response.choices[0].message.content
         usage = Usage(completion_tokens=response.usage.completion_tokens,
                       prompt_tokens=response.usage.prompt_tokens,
@@ -100,7 +100,7 @@ class AssistantMessage(Message):
         return AssistantMessage(content, response, usage)
 
     @classmethod
-    def from_llamacpp_api(cls, response: CreateChatCompletionResponse):
+    def from_llamacpp_api(cls, response: CreateChatCompletionResponse) -> 'AssistantMessage':
         message = response['choices'][0]['message']
         content = message.get('content')
         usage = Usage(completion_tokens=response['usage']['completion_tokens'],
@@ -135,7 +135,7 @@ class Conversation(list):
 
 
 class LLMEndpoint:
-    def complete(self, conversation: Conversation, **kwargs):
+    def complete(self, conversation: Conversation, **kwargs) -> AssistantMessage:
         pass
 
 
@@ -144,7 +144,7 @@ class OpenAIEndpoint(LLMEndpoint):
         self.client = client
         self.model = model
 
-    def complete(self, conversation: Conversation, **kwargs):
+    def complete(self, conversation: Conversation, **kwargs) -> AssistantMessage:
         logger.info(f'''Requesting completion:
     args: {kwargs}
     conversation: {conversation.to_openai_api()}''')
@@ -159,7 +159,7 @@ class LlamacppEndpoint(LLMEndpoint):
     def __init__(self, client: Llama):
         self.client = client
 
-    def complete(self, conversation: Conversation, **kwargs):
+    def complete(self, conversation: Conversation, **kwargs) -> AssistantMessage:
         logger.info(f'''Requesting completion:
     args: {kwargs}
     conversation: {conversation.to_llamacpp_api()}''')

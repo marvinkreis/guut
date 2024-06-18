@@ -29,7 +29,7 @@ def shorten_paths(log: str, path_to_omit: str | Path) -> str:
     return log.replace(path_to_omit, '')
 
 
-def limit_text(text: str, character_limit: int = 2000):
+def limit_text(text: str, character_limit: int = 2000) -> str:
     num_chars = 0
     lines = []
     for line in text.splitlines():

@@ -24,7 +24,7 @@ def get_logfile_path(timestamp: str, suffix: str) -> Path:
     return path
 
 
-def log_conversation(conversation: Conversation):
+def log_conversation(conversation: Conversation) -> None:
     timestamp = format_timestamp()
 
     pickle_path = get_logfile_path(timestamp, '.pickle')

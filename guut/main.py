@@ -34,7 +34,7 @@ def get_problem() -> Problem:
     return problem
 
 
-def prepare_conversation(problem: Problem):
+def prepare_conversation(problem: Problem) -> Conversation:
     prompt_instance = f'{prompt}\n{format_problem(problem)}'
 
     return Conversation([
@@ -42,7 +42,7 @@ def prepare_conversation(problem: Problem):
     ])
 
 
-def get_llama_endpoint():
+def get_llama_endpoint() -> LlamacppEndpoint:
     llama_path = os.environ['LLAMA_PATH']
     client = Llama(
         model_path=llama_path,
@@ -53,6 +53,6 @@ def get_llama_endpoint():
     return LlamacppEndpoint(client)
 
 
-def get_openai_endpoint():
+def get_openai_endpoint() -> OpenAIEndpoint:
     client = OpenAI()
     return OpenAIEndpoint(client, 'gpt-3.5-turbo-0125')
