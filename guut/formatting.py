@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 
-def format_code(name: str, content: str, linenos: bool = False, language: str = '') -> str:
+def format_code_block(name: str, content: str, linenos: bool = False, language: str = '') -> str:
     content = add_line_numbers(content) if linenos else content
     return f'''{name}:
 ```{language}

@@ -1,4 +1,4 @@
-def extract_code(response: str, language: str) -> str:
+def extract_code_block(response: str, language: str) -> str:
     taking_lines = False
     code_lines = []
 

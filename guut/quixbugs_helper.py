@@ -10,7 +10,7 @@ from tempfile import TemporaryDirectory
 from typing import List
 
 from guut.execution import run_debugger, run_script, ExecutionResult
-from guut.formatting import format_code
+from guut.formatting import format_code_block
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -156,15 +156,15 @@ def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_versio
 
 
 def format_problem(problem: Problem) -> str:
-    code_blocks = [format_code(problem.filename,
-                               problem.construct_normalized_code(buggy_version=True),
-                               linenos=True,
-                               language='python')]
+    code_blocks = [format_code_block(problem.filename,
+                                     problem.construct_normalized_code(buggy_version=True),
+                                     linenos=True,
+                                     language='python')]
 
     for path in problem.get_dependencies():
-        code_blocks.append(format_code(path.name, path.read_text(), language='python'))
+        code_blocks.append(format_code_block(path.name, path.read_text(), language='python'))
 
-    code_blocks.append(format_code('Fix Diff', problem.compute_fix_diff(), language='diff'))
+    code_blocks.append(format_code_block('Fix Diff', problem.compute_fix_diff(), language='diff'))
 
     return '\n\n'.join(code_blocks)
 
