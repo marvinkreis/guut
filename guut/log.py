@@ -32,5 +32,5 @@ def log_conversation(conversation: Conversation) -> None:
     text_path = get_logfile_path(timestamp, '.txt')
 
     pickle_path.write_bytes(pickle.dumps(conversation))
-    json_path.write_text(json.dumps(conversation.to_openai_api()))
+    json_path.write_text(json.dumps(conversation.to_json()))
     text_path.write_text(repr(conversation))
