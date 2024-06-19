@@ -62,3 +62,21 @@ def add_line_numbers(code: str):
             return f'{format_str.format(number)}  {line}'
 
     return '\n'.join(add_line_number(line, i+1) for i, line in enumerate(lines))
+
+
+def extract_code_block(response: str, language: str) -> str:
+    taking_lines = False
+    code_lines = []
+
+    for line in response.splitlines():
+        if line.strip() == f'```{language}':
+            taking_lines = True
+            continue
+
+        if taking_lines and line.strip() == '```':
+            break
+
+        if taking_lines:
+            code_lines.append(line)
+
+    return '\n'.join(code_lines)
