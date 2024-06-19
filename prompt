@@ -1,65 +1,65 @@
 Below, you will find a python function containing a bug, and a diff containing the fix for the bug. Your task is to use scientific debugging to understand how the bug affects the function. We will then ask you to write a unit test that can detect the bug. It is important that you follow the following steps correctly and in order:
 
 1. Hypothesis
-    - Hypotheses provide a potential explanation for the buggy behavior based on your current understanding and previous hypotheses.
-    - Hypotheses are the key aspect of this approach, and should be as detailed as possible.
+- Hypotheses provide a potential explanation for the buggy behavior based on your current understanding and previous hypotheses.
+- Hypotheses are the key aspect of this approach, and should be as detailed as possible.
 
-    - Example hypothesis 1: "Given that [information], the method [erroneous behavior]. Specifically, in the buggy version of `example.py`, `c > b` on line 12 never evaluates to True, so the body of the if-condition is never executed. Because of this, [erroneous behavior].
-    - Example hypothesis 2: "As the previous hypothesis was rejected, we now that the body of the if-condition is sometimes executed. Seeing that the fix changes `c > b` to `c >= b`, perhaps the loop has an off-by-one error instead, this means that [desired behavior], but instead [erroneous behavior]."
-    - Example hypothesis 3: "It seems the previous experiment ended in an error. Perhaps the experiment can be refined by [new experiment]."
+- Example hypothesis 1: "Given that [information], the method [erroneous behavior]. Specifically, in the buggy version of `example.py`, `c > b` on line 12 never evaluates to True, so the body of the if-condition is never executed. Because of this, [erroneous behavior].
+- Example hypothesis 2: "As the previous hypothesis was rejected, we now that the body of the if-condition is sometimes executed. Seeing that the fix changes `c > b` to `c >= b`, perhaps the loop has an off-by-one error instead, this means that [desired behavior], but instead [erroneous behavior]."
+- Example hypothesis 3: "It seems the previous experiment ended in an error. Perhaps the experiment can be refined by [new experiment]."
 
 2. Prediction
-    - Predictions describe a specific symptom that would be observed if the hypothesis is correct.
-    - Depending on the hypothesis, one may make the prediction that:
-        - A test case would pass on fixed version but fail on the buggy version.
-        - Running a debugger on the buggy version and the fixed version would show different behaviour.
-    - Your prediction MUST contain a *verifying condition*, meaning a boolean expression that helps you decide whether the prediction is correct.
+- Predictions describe a specific symptom that would be observed if the hypothesis is correct.
+- Depending on the hypothesis, one may make the prediction that:
+    - A test case would pass on fixed version but fail on the buggy version.
+    - Running a debugger on the buggy version and the fixed version would show different behaviour.
+- Your prediction MUST contain a *verifying condition*, meaning a boolean expression that helps you decide whether the prediction is correct.
 
-    - Example prediction 1: If I call the function with [bug-revealing input], then the buggy version will return [erroneous output], while the fixed version will return [correct output]. Therefore, I will add an assertion that checks [condition].
-    - Example prediction 2: If I use the debugger to stop at line 13, the list will not be initialized yet, since the if condition never evaluates to True in the buggy version. I will check if the list is still empty here.
-    - Example prediction 3: If I let the debugger stop at line 24 and print [expr], while given the input and its intended role indicates that its value should be [correct value], it will instead be [erroneous value].
+- Example prediction 1: If I call the function with [bug-revealing input], then the buggy version will return [erroneous output], while the fixed version will return [correct output]. Therefore, I will add an assertion that checks [condition].
+- Example prediction 2: If I use the debugger to stop at line 13, the list will not be initialized yet, since the if condition never evaluates to True in the buggy version. I will check if the list is still empty here.
+- Example prediction 3: If I let the debugger stop at line 24 and print [expr], while given the input and its intended role indicates that its value should be [correct value], it will instead be [erroneous value].
 
 3. Experiment
-    - Experiments exist to test your predictions.
-    - Each experiment will contain a test case that calls the investigated function.
-    - The test case will be ran against both the buggy version and the correct version, and you'll be given the output of both runs to draw a conclusion from.
-    - Additionally, you should provide a python debugger (pdb) script. The test case will then be executed in the debugger with your script.
-    - It is imperative to include an assertion that checks your *verifying condition*. Without an assertion, your test case will not be accepted. In the debugger script, make sure to print the *verifying condition*.
-    - Printing the output of the function is encouraged, since it aids in understanding the bug.
+- Experiments exist to test your predictions.
+- Each experiment will contain a test case that calls the investigated function.
+- The test case will be ran against both the buggy version and the correct version, and you'll be given the output of both runs to draw a conclusion from.
+- Additionally, you should provide a python debugger (pdb) script. The test case will then be executed in the debugger with your script.
+- It is imperative to include an assertion that checks your *verifying condition*. Without an assertion, your test case will not be accepted. In the debugger script, make sure to print the *verifying condition*.
+- Printing the output of the function is encouraged, since it aids in understanding the bug.
 
-    - Example experiment 1 (test code):
+- Example experiment 1 (test code):
 ```python
-    from example import example
+from example import example
 
-    result = example.foo([1,2,3])
-    print(result)
-    assert 4 not in result  # verifying condition
+result = example.foo([1,2,3])
+print(result)
+assert 4 not in result  # verifying condition
 ```
-    - Example experiment 2 (test code):
+- Example experiment 2 (test code):
 ```python
-    from example import example
+from example import example
 
-    user = example.bar('user', 'password', 123)
-    print(user)
-    assert user.name == 'user'  # verifying condition
+user = example.bar('user', 'password', 123)
+print(user)
+assert user.name == 'user'  # verifying condition
 ```
-    - Example experiment 3 (pdb script):
+- Example experiment 3 (pdb script):
 ```debugger
-    b example.py:12
-    c
-    print vals
-    print len(vals) > 5  # verifying condition
+b example.py:12
+c
+print vals
+print len(vals) > 5  # verifying condition
 ```
-    - Example experiment 4 (pdb script):
+- Example experiment 4 (pdb script):
 ```debugger
-    b example.py:5, n > 7
-    c
-    print n
-    print p
-    c
-    print n
-    print p
-    print p < 0  # verifying condition
+b example.py:5, n > 7
+c
+print n
+print p
+c
+print n
+print p
+print p < 0  # verifying condition
 ```
 
 4. Experiment Result
@@ -105,11 +105,11 @@ Below, you will find a python function containing a bug, and a diff containing t
 Output all code in markdown code blocks, and use the language to specify if the code is a test case or a debugger script. For example:
 
 ```python
-    // python code here
+// python code here
 ```
 
 ```debugger
-    // debugger script here
+// debugger script here
 ```
 
 Make sure to import all necessary functions in the code.
