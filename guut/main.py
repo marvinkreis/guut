@@ -17,7 +17,7 @@ def main():
 
     print(repr(conversation))
 
-    response = endpoint.complete(conversation)
+    response = endpoint.complete(conversation, stop=['Experiment Result:', '<DEBUGGING DONE>'])
     conversation.append(response)
 
     print(repr(response))
@@ -35,7 +35,7 @@ def get_problem() -> Problem:
 
 
 def prepare_conversation(problem: Problem) -> Conversation:
-    prompt_instance = f'{prompt}\n{format_problem(problem)}'
+    prompt_instance = prompt.replace('{problem}', format_problem(problem))
 
     return Conversation([
         UserMessage(prompt_instance)
