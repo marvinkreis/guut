@@ -1,7 +1,7 @@
 from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, List
+from typing import Any, List, cast
 
 from llama_cpp import Llama, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessage, \
     ChatCompletionRequestAssistantMessage, CreateChatCompletionResponse
@@ -46,6 +46,12 @@ class Message(ABC):
     # Text content of the message.
     content: str
 
+    # Any additional data.
+    tag: Any
+
+    def __init__(self):
+        self.tag = None
+
     def to_openai_api(self):
         """Converts the message into JSON for the OpenAI API."""
         raise Exception("Can't convert base message.")
@@ -67,6 +73,7 @@ class Message(ABC):
 
 class SystemMessage(Message):
     def __init__(self, content):
+        super().__init__()
         self.role = Role.SYSTEM
         self.content = content
 
@@ -82,6 +89,7 @@ class SystemMessage(Message):
 
 class UserMessage(Message):
     def __init__(self, content):
+        super().__init__()
         self.role = Role.USER
         self.content = content
 
@@ -103,6 +111,7 @@ class AssistantMessage(Message):
     usage: Usage
 
     def __init__(self, content: str, response: Any = None, usage: Usage = None):
+        super().__init__()
         self.role = Role.ASSISTANT
         self.content = content
         self.response = response
@@ -140,7 +149,10 @@ class AssistantMessage(Message):
 
 class Conversation(list):
     def __init__(self, messages: List[Message] = None):
-        super().__init__(messages)
+        if messages:
+            super().__init__(messages)
+        else:
+            super().__init__()
 
     def to_openai_api(self):
         """converts the conversation into json for the openai api."""
@@ -159,6 +171,9 @@ class Conversation(list):
 
     def __str__(self):
         return '\n'.join(msg.content for msg in self)
+
+    def copy(self) -> 'Conversation':
+        return Conversation([*self])
 
 
 class LLMEndpoint:

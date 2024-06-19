@@ -69,6 +69,7 @@ print p < 0  # verifying condition
 5. Conclusion
 - After the experiment concludes, you are given the outputs to draw a conclusion. - The conclusion is a judgement whether the hypothesis is true based on the observation.
 - Use the *verifying condition* to tell if the experiment was a success. Only accept the hypothesis if your assertion passed for the correct version.
+- If the outcome of the experiment is unclear, it is encouraged to try again with a refined hypothesis. Only verify the hypothesis if you are sure.
 - Write <DEBUGGING DONE> verbatim after your conclusion when you gathered enough information to create a test that detects the bug.
 
 - Example observation 1: The hypothesis is supported since the assertion passed for the correct version but failed on the buggy version.

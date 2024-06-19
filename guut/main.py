@@ -4,25 +4,33 @@ import sys
 from llama_cpp import Llama
 from openai import OpenAI
 
-from guut.llm import OpenAIEndpoint, Conversation, LlamacppEndpoint, UserMessage
+from guut.llm import OpenAIEndpoint, Conversation, LlamacppEndpoint, UserMessage, LLMEndpoint, AssistantMessage
 from guut.log import log_conversation
+from guut.loop import Loop
 from guut.prompts import prompt
 from guut.quixbugs_helper import Problem, format_problem
 
 
-def main():
+def main2():
     problem = get_problem()
     conversation = prepare_conversation(problem)
     endpoint = get_openai_endpoint()
 
     print(repr(conversation))
 
-    response = endpoint.complete(conversation, stop=['Experiment Result:', '<DEBUGGING DONE>'])
+    response = None # endpoint.complete(conversation, stop=['Experiment Result:', '<DEBUGGING DONE>'])
     conversation.append(response)
 
     print(repr(response))
 
     log_conversation(conversation)
+
+def main():
+    loop = Loop(Problem('sieve'), MockLLMEndpoint())
+    loop.perform_next_step()
+    loop.perform_next_step()
+    loop.perform_next_step()
+    loop.perform_next_step()
 
 
 def get_problem() -> Problem:
@@ -56,3 +64,13 @@ def get_llama_endpoint() -> LlamacppEndpoint:
 def get_openai_endpoint() -> OpenAIEndpoint:
     client = OpenAI()
     return OpenAIEndpoint(client, 'gpt-3.5-turbo-0125')
+
+
+class MockLLMEndpoint(LLMEndpoint):
+    def complete(self, conversation: Conversation, **kwargs) -> AssistantMessage:
+        print(repr(conversation))
+        value = ''
+        print("\nEnter test code, end with a single 'x':")
+        while (line := input()) != 'x':
+            value += (line + '\n')
+        return AssistantMessage(content=value)

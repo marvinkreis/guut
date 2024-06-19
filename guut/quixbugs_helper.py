@@ -137,7 +137,7 @@ def run_debugger_on_problem(problem, test_code: str, debugger_script: List[str],
         return result
 
 
-def run_test_on_problem(problem, test_code: str, stdin: str = None, buggy_version=False) -> ExecutionResult:
+def run_test_on_problem(problem: Problem, test_code: str, stdin: str = None, buggy_version=False) -> ExecutionResult:
     with TemporaryDirectory() as tempdir:
         # write test file
         test_path = Path(tempdir) / 'test.py'
