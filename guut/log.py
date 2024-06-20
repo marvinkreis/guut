@@ -4,8 +4,6 @@ from datetime import datetime
 import pickle
 from pathlib import Path
 
-from guut.llm import Conversation
-
 LOGGING_PATH = Path(os.environ['LOGGING_PATH'])
 
 
@@ -24,7 +22,7 @@ def get_logfile_path(timestamp: str, suffix: str) -> Path:
     return path
 
 
-def log_conversation(conversation: Conversation) -> None:
+def log_conversation(conversation: 'Conversation') -> None:
     timestamp = format_timestamp()
 
     pickle_path = get_logfile_path(timestamp, '.pickle')

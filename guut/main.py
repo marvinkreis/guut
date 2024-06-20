@@ -1,53 +1,20 @@
 import os
-import sys
 
 from llama_cpp import Llama
 from openai import OpenAI
 
-from guut.llm import OpenAIEndpoint, Conversation, LlamacppEndpoint, UserMessage, LLMEndpoint, AssistantMessage
-from guut.log import log_conversation
-from guut.loop import Loop
-from guut.prompts import prompt
-from guut.quixbugs_helper import Problem, format_problem
+from guut.llm import OpenAIEndpoint, LlamacppEndpoint, LoggingLLMEndpoint, SafeLLMEndpoint
+from guut.loop import Loop, LoopState
+from guut.quixbugs_helper import Problem
 
-
-def main2():
-    problem = get_problem()
-    conversation = prepare_conversation(problem)
-    endpoint = get_openai_endpoint()
-
-    print(repr(conversation))
-
-    response = None # endpoint.complete(conversation, stop=['Experiment Result:', '<DEBUGGING DONE>'])
-    conversation.append(response)
-
-    print(repr(response))
-
-    log_conversation(conversation)
 
 def main():
-    loop = Loop(Problem('sieve'), MockLLMEndpoint())
-    loop.perform_next_step()
-    loop.perform_next_step()
-    loop.perform_next_step()
+    endpoint = LoggingLLMEndpoint(SafeLLMEndpoint(get_openai_endpoint()))
+    loop = Loop(Problem('detect_cycle'), endpoint)
     loop.perform_next_step()
 
-
-def get_problem() -> Problem:
-    if len(sys.argv) != 2:
-        print("Please provide a QuixBugs problem name")
-
-    problem = Problem(sys.argv[1])
-    problem.validate()
-    return problem
-
-
-def prepare_conversation(problem: Problem) -> Conversation:
-    prompt_instance = prompt.replace('{problem}', format_problem(problem))
-
-    return Conversation([
-        UserMessage(prompt_instance)
-    ])
+    while loop.get_state() != LoopState.TEST_DONE and loop.get_state() != LoopState.BETWEEN:
+        loop.perform_next_step()
 
 
 def get_llama_endpoint() -> LlamacppEndpoint:
@@ -66,11 +33,3 @@ def get_openai_endpoint() -> OpenAIEndpoint:
     return OpenAIEndpoint(client, 'gpt-3.5-turbo-0125')
 
 
-class MockLLMEndpoint(LLMEndpoint):
-    def complete(self, conversation: Conversation, **kwargs) -> AssistantMessage:
-        print(repr(conversation))
-        value = ''
-        print("\nEnter test code, end with a single 'x':")
-        while (line := input()) != 'x':
-            value += (line + '\n')
-        return AssistantMessage(content=value)

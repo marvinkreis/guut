@@ -47,6 +47,7 @@ class Loop:
         self.llm = endpoint
 
     def perform_next_step(self):
+        logger.info(self.get_state())
         state = self.get_state()
 
         if state == LoopState.EMPTY:
@@ -114,20 +115,23 @@ class Loop:
         test_code = extract_code_block(relevant_text, 'python')
         debugger_script = extract_code_block(relevant_text, 'debugger')
         if debugger_script:
-            debugger_script = debugger_script.strip().split()
+            debugger_script = debugger_script.strip().splitlines()
 
         # TODO: validate the python code
 
         test_results_correct = run_test_on_problem(self.problem, test_code, buggy_version=False)
         test_results_buggy = run_test_on_problem(self.problem, test_code, buggy_version=True)
 
+        # TODO: Lead the response with "Experiment Results"
+
         if debugger_script:
             debugger_results_correct = run_debugger_on_problem(self.problem, test_code, debugger_script, buggy_version=False)
             debugger_results_buggy = run_debugger_on_problem(self.problem, test_code, debugger_script, buggy_version=True)
-            return format_execution_results(test_results_correct, test_results_buggy,
-                                            debugger_results_correct, debugger_results_buggy)
+            new_text = format_execution_results(test_results_correct, test_results_buggy,
+                                                debugger_results_correct, debugger_results_buggy)
+        else:
+            new_text = format_execution_results(test_results_correct, test_results_buggy)
 
-        new_text = format_execution_results(test_results_correct, test_results_buggy)
         new_message = UserMessage(content=new_text)
         new_message.tag = LoopState.EXPERIMENT_RESULTS_GIVEN
         self.conversation.append(new_message)

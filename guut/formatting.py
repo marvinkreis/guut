@@ -90,7 +90,8 @@ def format_execution_results(test_result_correct: ExecutionResult,
                              debugger_result_buggy: ExecutionResult = None) -> str:
     text = []
 
-    test_correct_out = limit_text(test_result_correct.output, 1500)
+    test_correct_out = shorten_paths(test_result_correct.output, test_result_correct.cwd)
+    test_correct_out = limit_text(test_correct_out, 1500)
     test_correct_out = format_code_block('Test on correct version', test_correct_out)
     text.append(test_correct_out)
     if test_result_correct.timeout:
@@ -99,7 +100,8 @@ def format_execution_results(test_result_correct: ExecutionResult,
         text.append(f'The test exited with exitcode {test_result_correct.exitcode}.')
     text.append('')
 
-    test_buggy_out = limit_text(test_result_buggy.output, 1500)
+    test_buggy_out = shorten_paths(test_result_buggy.output, test_result_buggy.cwd)
+    test_buggy_out = limit_text(test_buggy_out, 1500)
     test_buggy_out = format_code_block('Test on buggy version', test_buggy_out)
     text.append(test_buggy_out)
     if test_result_buggy.timeout:
@@ -109,13 +111,15 @@ def format_execution_results(test_result_correct: ExecutionResult,
     text.append('')
 
     if debugger_result_correct:
-        debugger_correct_out = limit_text(debugger_result_correct.output, 1500)
+        debugger_correct_out = shorten_paths(debugger_result_correct.output, debugger_result_correct.cwd)
+        debugger_correct_out = limit_text(debugger_correct_out, 1500)
         debugger_correct_out = format_code_block('Debugger on correct version', debugger_correct_out)
         text.append(debugger_correct_out)
         text.append('')
 
     if debugger_result_buggy:
-        debugger_buggy_out = limit_text(debugger_result_buggy.output, 1500)
+        debugger_buggy_out = shorten_paths(debugger_result_buggy.output, debugger_result_buggy.cwd)
+        debugger_buggy_out = limit_text(debugger_buggy_out, 1500)
         debugger_buggy_out = format_code_block('Debugger on buggy version', debugger_buggy_out)
         text.append(debugger_buggy_out)
         text.append('')
