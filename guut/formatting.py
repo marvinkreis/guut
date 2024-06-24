@@ -1,6 +1,8 @@
 import itertools
 import math
 import os
+import re
+from os.path import realpath
 from pathlib import Path
 
 from guut.execution import ExecutionResult
@@ -29,6 +31,36 @@ def shorten_paths(log: str, path_to_omit: str | Path) -> str:
         path_to_omit += os.sep
 
     return log.replace(path_to_omit, '')
+
+
+def clean_traces(log: str, path_to_include: str | Path) -> str:
+    new_lines = []
+    in_trace = False  # whether the current line is in a trace
+    drop_frame = False  # whether the current frame should be dropped
+
+    for line in log.splitlines():
+        ls = line.strip()
+
+        # Start line
+        if ls.startswith('Traceback'):
+            in_trace = True
+            drop_frame = False
+
+        # Start of frame
+        if in_trace and (matches := re.findall(r'File "([^"]*)"', ls)):
+            drop_frame = str(path_to_include) not in realpath(matches[0])
+
+        # End line
+        if in_trace and re.findall(r'(Exception|Error)', ls):
+            in_trace = False
+            drop_frame = False
+
+        if drop_frame:
+            continue
+
+        new_lines.append(line)
+
+    return '\n'.join(new_lines)
 
 
 def limit_text(text: str, character_limit: int = 2000) -> str:
@@ -111,14 +143,16 @@ def format_execution_results(test_result_correct: ExecutionResult,
     text.append('')
 
     if debugger_result_correct:
-        debugger_correct_out = shorten_paths(debugger_result_correct.output, debugger_result_correct.cwd)
+        debugger_correct_out = clean_traces(debugger_result_correct.output, debugger_result_correct.cwd)
+        debugger_correct_out = shorten_paths(debugger_correct_out, debugger_result_correct.cwd)
         debugger_correct_out = limit_text(debugger_correct_out, 1500)
         debugger_correct_out = format_code_block('Debugger on correct version', debugger_correct_out)
         text.append(debugger_correct_out)
         text.append('')
 
     if debugger_result_buggy:
-        debugger_buggy_out = shorten_paths(debugger_result_buggy.output, debugger_result_buggy.cwd)
+        debugger_buggy_out = clean_traces(debugger_result_correct.output, debugger_result_correct.cwd)
+        debugger_buggy_out = shorten_paths(debugger_buggy_out, debugger_result_buggy.cwd)
         debugger_buggy_out = limit_text(debugger_buggy_out, 1500)
         debugger_buggy_out = format_code_block('Debugger on buggy version', debugger_buggy_out)
         text.append(debugger_buggy_out)

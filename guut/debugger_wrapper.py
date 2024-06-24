@@ -5,10 +5,34 @@ Wraps pdb and echos the entered debugger commands.
 This makes them show up in the output when input is from a pipe.
 """
 
+import sys
+from pathlib import Path
 
-def wrapped_debugger():
-    import pdb
+
+# unused
+def clean_trace(exc: BaseException, directory: Path):
+    """Formats the trace of an exception, only including frames that are real files and are within path."""
+    from traceback import extract_tb, format_list
+    from os.path import exists, realpath
+
+    trace = extract_tb(exc.__traceback__)
+    trace = [frame for frame in trace
+             if exists(frame.filename)
+             and str(directory) in realpath(frame.filename)]
+    trace = ''.join(format_list(trace))
+
+    if exc.args:
+        msg = f'{type(exc).__name__}: {exc.args[0]}'
+    else:
+        msg = type(exc).__name__
+
+    return f'Traceback:\n{trace}{msg}'
+
+
+def wrapped_debugger(script: Path):
     import sys
+    from pdb import _ScriptTarget, Pdb, Restart
+    from traceback import print_exception
 
     class Intercept:
         def __init__(self):
@@ -21,8 +45,31 @@ def wrapped_debugger():
             return line
 
     sys.stdin = Intercept()
-    pdb.main()
+
+    target = _ScriptTarget(str(script))
+    target.check()
+
+    pdb = Pdb()
+
+    try:
+        pdb._run(target)
+        print("The program exited.")
+    except Restart:
+        # Don't restart the debugger.
+        pass
+    except SystemExit as e:
+        # Stop on SystemExit.
+        print(f'The program exited via sys.exit(). Exit status: {e.code}')
+    except BaseException as e:
+        print_exception(e)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
-    wrapped_debugger()
+    script = Path(sys.argv[1]).resolve()
+
+    if not script.exists():
+        print(f'File not found: {script}')
+        sys.exit(1)
+
+    wrapped_debugger(script)
