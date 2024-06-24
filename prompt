@@ -1,4 +1,4 @@
-Below, you will find a python function containing a bug, and a diff containing the fix for the bug. Your task is to use scientific debugging to understand how the bug affects the function. We will then ask you to write a unit test that can detect the bug. It is important that you follow the following steps correctly and in order:
+Below, you will find a python function and a mutant diff. Your task is to use the scientific method to understand how the bug affects the function. We will then ask you to write a unit test that can detect the bug. It is important that you follow the following steps correctly and in order:
 
 1. Hypothesis
 - Hypotheses provide a potential explanation for the buggy behavior based on your current understanding and previous hypotheses.

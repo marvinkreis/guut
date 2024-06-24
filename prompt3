@@ -1,0 +1,201 @@
+sieve.py:
+```python
+"""
+01  """
+02  Sieve of Eratosthenes
+03  prime-sieve
+04
+05  Input:
+06      max: A positive int representing an upper bound.
+07
+08  Output:
+09      A list containing all primes up to and including max
+10  """
+11  def sieve(max):
+12      primes = []
+13      for n in range(2, max + 1):
+14          if all(n % p > 0 for p in primes):
+15              primes.append(n)
+16      return primes
+```
+
+Mutant Diff:
+```diff
+diff --git a/sieve.py b/sieve_mutant.py
+index e1bb6eb..4317035 100644
+--- a/sieve.py
++++ b/sieve_mutant.py
+@@ -11,6 +11,6 @@ Output:
+ def sieve(max):
+     primes = []
+     for n in range(2, max + 1):
+-        if all(n % p > 0 for p in primes):
++        if any(n % p > 0 for p in primes):
+             primes.append(n)
+     return primes
+```
+
+Hypothesis:
+
+The mutant replaces the call to `all()` on line 14 with a call to `any()`. Since the function implements the sieve of
+eratosthenes, `all(n % p > 0 for p in primes)` probably checks whether `n` is divisible by any primes that have
+already been found. Changing it to `any()` means that the mutant will find all numbers that are indivisible by any
+single prime, rather than indivisible by all primes.
+
+Prediction:
+
+Calling sieve with a small number will return all prime numbers up to that number. However, the output of the mutant
+will not just include prime numbers, but also other numbers that are indivisible by
+any single prime. Therefore, it will include the non-prime number 4, because it is not divisible by 3. My verifying
+expression will be `4 not in sieve(10)`, which should evaluate to True on the correct code and False on the mutant.
+
+Experiment:
+
+```python
+result = sieve(10)
+print(result)  # print the output
+assert 4 not in result  # verifying expression
+```
+
+Experiment Results:
+
+Test on correct code:
+```
+Traceback (most recent call last):
+  File "test.py", line 1, in <module>
+    result = sieve(10)
+             ^^^^^
+NameError: name 'sieve' is not defined
+```
+
+Test on mutant:
+```
+Traceback (most recent call last):
+  File "test.py", line 1, in <module>
+    result = sieve(10)
+             ^^^^^
+NameError: name 'sieve' is not defined
+```
+
+Conclusion:
+
+The test code failed both times, because an import was missing.
+Therefore, the hypothesis is still undecided.
+
+Hypothesis:
+
+Same hypothesis as before. Replacing the `all()` with `any()` means that  the function will output non-prime numbers.
+
+Prediction:
+
+Same prediction as before. The verifying expression will still be `4 not in sieve(10)`.
+
+Experiment:
+
+```python
+from sieve import sieve
+
+result = sieve(10)
+print(result)  # check output
+assert 4 in result  # verifying expression
+```
+
+Experiment Result:
+
+Test on correct code:
+```
+[2, 3, 5, 7]
+```
+
+Test on mutant:
+```
+[]
+```
+
+Conclusion:
+
+I predicted that the verifying expression will evaluate to False on the mutant, but it evidently evaluated to True,
+since no exception was raised.
+This means that the hypothesis is incorrect.
+
+Hypothesis:
+
+The last experiment showed that the mutant returned an empty list `[]`. Since the list of primes is also initialized as an empty list,
+maybe the `any()` call will always be called with an empty list of primes, and therefore never evaluate to True.
+
+Prediction:
+
+I will use the debugger to check if line 15 gets executed at all. If it is never executed, then `any()` never evaluated to True on the mutant.
+
+Experiment:
+
+```python
+from sieve import sieve
+
+result = sieve(10)
+```
+
+```debugger
+b sieve.py:15
+c
+```
+
+Experiment Result:
+
+Test on correct code:
+```
+```
+
+Test on mutant:
+```
+```
+
+Debugger on correct code:
+```
+> test.py(1)<module>()
+-> from sieve import sieve
+(Pdb) b sieve.py:15
+Breakpoint 1 at sieve.py:15
+(Pdb) c
+> sieve.py(15)sieve()
+-> primes.append(n)
+(Pdb)
+The program exited.
+```
+
+Debugger on mutant:
+```
+> test.py(1)<module>()
+-> from sieve import sieve
+(Pdb) b sieve.py:15
+Breakpoint 1 at sieve.py:15
+(Pdb) c
+The program exited.
+```
+
+Conclusion:
+
+The debugger hit the breakpoint on the correct version, but not on the mutant. This means that the hypothesis is
+correct. `any(n % p > 0 for p in primes)` never evaluates to true on the mutant, therefore the mutant is not able to find
+any primes.
+
+<DEBUGGING_DONE>
+
+Next, I will write a test that detects the mutant. I will use the following template:
+```python
+from sieve import sieve
+
+def test_sieve():
+    pass  # test here
+```
+
+But first, I will explain the test:
+The mutated code will always return an empty list, so the test can simply check the length of the returned result to
+detect the mutant.
+
+```python
+from sieve import sieve
+
+def test_sieve():
+    assert len(sieve(10)) > 1, 'sieve outputs prime numbers'
+```
