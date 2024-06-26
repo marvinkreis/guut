@@ -1,3 +1,4 @@
+import json
 import time
 from abc import ABC
 from dataclasses import dataclass
@@ -204,10 +205,9 @@ class SafeLLMEndpoint(LLMEndpoint):
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
-        logger.info(f'''Requesting completion (args: {kwargs})
+        answer = input(f'''Requesting completion (args: {kwargs})
 {repr(conversation)}
-Request this completion? [yn]''')
-        answer = input()
+Request this completion? [yn] ''')
         if answer.strip().lower() == 'y':
             msg = self.delegate.complete(conversation, stop=stop, **kwargs)
             print(f'Response:\n{repr(msg)}')
@@ -223,6 +223,9 @@ class OpenAIEndpoint(LLMEndpoint):
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
+        stop = stop or kwargs.get('stop')
+        log_data = {'args': kwargs, 'stop': stop, 'conversation': conversation.to_json()}
+        logger.info(f"Requesting completion: {json.dumps(log_data)}")
         response = self.client.chat.completions.create(
             model=self.model,
             messages=conversation.to_openai_api(),
@@ -238,9 +241,8 @@ class LlamacppEndpoint(LLMEndpoint):
     @override
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
         stop = stop or kwargs.get('stop')
-        logger.info(f'''Requesting completion:
-    args: {kwargs}
-    conversation: {conversation.to_llamacpp_api()}''')
+        log_data = {'args': kwargs, 'stop': stop, 'conversation': conversation.to_json()}
+        logger.info(f"Requesting completion: {json.dumps(log_data)}")
         response = self.client.create_chat_completion(
             messages=conversation.to_llamacpp_api(),
             stop=stop,
@@ -249,10 +251,9 @@ class LlamacppEndpoint(LLMEndpoint):
 
 
 class MockLLMEndpoint(LLMEndpoint):
-    def complete(self, conversation: Conversation, **kwargs) -> AssistantMessage:
+    def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
         path = Path('/tmp/answer')
-        print(repr(conversation))
-        print(f'Write answer to {path}:')
+        print(f'{repr(conversation)}\nWrite answer to {path}...')
         while True:
             if path.is_file():
                 print('Found answer!')

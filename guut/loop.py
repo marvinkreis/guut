@@ -12,9 +12,6 @@ from guut.quixbugs_helper import Problem, format_problem, run_test_on_problem, r
 
 # TODO: repair states
 class LoopState(Enum):
-    # The conversation is empty.
-    EMPTY = 'empty'
-
     # The initial state of the conversation containing only the system message and initial user message.
     INITIAL = 'initial'
 
@@ -41,18 +38,16 @@ class LoopState(Enum):
 
 
 class Loop:
-    def __init__(self, problem: Problem, endpoint: LLMEndpoint, conversation: Conversation = None):
+    def __init__(self, problem: Problem, endpoint: LLMEndpoint, conversation: Conversation):
         self.problem = problem
-        self.conversation = conversation or Conversation()
+        self.conversation = conversation
         self.llm = endpoint
 
     def perform_next_step(self):
         logger.info(self.get_state())
         state = self.get_state()
 
-        if state == LoopState.EMPTY:
-            self._create_initial_messages()
-        elif state == LoopState.INITIAL:
+        if state == LoopState.INITIAL:
             self._prompt_llm_for_hypothesis()
         elif state == LoopState.EXPERIMENT_STATED:
             self._run_experiment()
@@ -73,7 +68,7 @@ class Loop:
 
     def get_state(self) -> LoopState:
         if not self.conversation:
-            return LoopState.EMPTY
+            return LoopState.INVALID
         else:
             return self.conversation[-1].tag
 
