@@ -1,0 +1,19 @@
+The mutant replaces the call to `all()` on line 14 with a call to `any()`. Since the function implements the sieve of
+eratosthenes, `all(n % p > 0 for p in primes)` needs to check whether `n` is divisible by any primes that have
+already been found. After changing `all()` to `any()`, I hypothesize that the mutated function will not just output the prime numbers,
+but also also include numbers that are indivisible by any previous prime number.
+
+Prediction:
+
+We need to find a number that is not prime, but indivisible by a prime smaller than it.
+The number 4 is not prime but is indivisible by 3, so it matches the description.
+So, to verify my hypothesis, I will check whether 4 is contained in the output of `sieve(5)`.
+I will use the expression `4 not in sieve(5)`, which should evaluate to True on the correct version and False on the mutant.
+I will also print the output to gather more information.
+
+Experiment:
+
+```python
+print(sieve(10))  # print output
+print(4 not in sieve(10))  # verifying expression
+```

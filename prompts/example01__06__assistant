@@ -1,0 +1,27 @@
+I predicted that `4 not in sieve(5)` will evaluate to False on the mutant, but it evaluated to True.
+This means that the hypothesis is incorrect.
+
+Hypothesis:
+
+The last experiment showed that the mutated function returned an empty list `[]`. A possible explanation could be that the `any()`
+function always returns False when called with an empty list, so no number ever gets appended to the list.
+Therefore, I hypothesize that the `append()` function on line 15 is never called for the mutant.
+
+Prediction:
+
+I need to check if line 15 of the mutated function gets executed at all. To do so, I use the debugger and set a breakpoint on line 15.
+The breakpoint should be hit on the correct function, but not on the mutated function.
+To make sure that the "max" parameter did not effect the outcome, I will choose a larger max of 100 instead of 5.
+
+Experiment:
+
+```python
+from sieve import sieve
+
+sieve(100)
+```
+
+```debugger
+b sieve.py:15
+c
+```

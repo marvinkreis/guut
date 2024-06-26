@@ -1,0 +1,42 @@
+# Task
+
+sieve.py:
+```python
+"""
+01  """
+02  Sieve of Eratosthenes
+03  prime-sieve
+04
+05  Input:
+06      max: A positive int representing an upper bound.
+07
+08  Output:
+09      A list containing all primes up to and including max
+10  """
+11  def sieve(max):
+12      primes = []
+13      for n in range(2, max + 1):
+14          if all(n % p > 0 for p in primes):
+15              primes.append(n)
+16      return primes
+```
+
+Mutant Diff:
+```diff
+diff --git a/sieve.py b/sieve_mutant.py
+index e1bb6eb..4317035 100644
+--- a/sieve.py
++++ b/sieve_mutant.py
+@@ -11,6 +11,6 @@ Output:
+ def sieve(max):
+     primes = []
+     for n in range(2, max + 1):
+-        if all(n % p > 0 for p in primes):
++        if any(n % p > 0 for p in primes):
+             primes.append(n)
+     return primes
+```
+
+# Scientific Debugging
+
+Hypothesis:
