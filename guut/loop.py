@@ -6,14 +6,13 @@ from loguru import logger
 
 from guut.formatting import extract_code_block, format_execution_results
 from guut.llm import Conversation, Role, Message, UserMessage, LLMEndpoint
-from guut.prompts import prompt
-from guut.quixbugs_helper import Problem, format_problem, run_test_on_problem, run_debugger_on_problem
+from guut.quixbugs_helper import Problem, run_test_on_problem, run_debugger_on_problem
 
 
 # TODO: repair states
 class LoopState(Enum):
-    # The initial state of the conversation containing only the system message and initial user message.
-    INITIAL = 'initial'
+    # The instructions (and examples), as well as the problem description are given.
+    PROBLEM_STATED = 'problem_stated'
 
     # The LLM has stated the experiment and is waiting for the results.
     EXPERIMENT_STATED = 'experiment_stated'
@@ -47,7 +46,7 @@ class Loop:
         logger.info(self.get_state())
         state = self.get_state()
 
-        if state == LoopState.INITIAL:
+        if state == LoopState.PROBLEM_STATED:
             self._prompt_llm_for_hypothesis()
         elif state == LoopState.EXPERIMENT_STATED:
             self._run_experiment()
@@ -67,10 +66,12 @@ class Loop:
             logger.warning('perform_next_step called with conversation in None state.')
 
     def get_state(self) -> LoopState:
-        if not self.conversation:
-            return LoopState.INVALID
-        else:
+        if self.conversation and self.conversation[-1].tag and isinstance(self.conversation[-1].tag, LoopState):
             return self.conversation[-1].tag
+        return LoopState.INVALID
+
+    def set_state(self, state: LoopState) -> None:
+        self.conversation[-1].tag = state
 
     def get_last_messages(self, states: List[LoopState] = None, roles: List[Role] = None) -> List[Message]:
         states = states or []
@@ -80,12 +81,6 @@ class Loop:
             return any(message.tag == state for state in states) and any(message.role == role for role in roles)
 
         return list(takewhile(condition, reversed(self.conversation)))
-
-    def _create_initial_messages(self) -> None:
-        prompt_instance = prompt.replace('{problem}', format_problem(self.problem))
-        message = UserMessage(prompt_instance)
-        message.tag = LoopState.INITIAL
-        self.conversation.append(message)
 
     def _prompt_llm_for_hypothesis(self):
         response = self.llm.complete(self.conversation, stop=['Experiment Results:', '<DEBUGGING_DONE>'])

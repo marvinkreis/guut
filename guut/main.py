@@ -3,17 +3,28 @@ import os
 from llama_cpp import Llama
 from openai import OpenAI
 
-from guut.llm import OpenAIEndpoint, LlamacppEndpoint, LoggingLLMEndpoint, SafeLLMEndpoint
+from guut.llm import OpenAIEndpoint, LlamacppEndpoint, LoggingLLMEndpoint, SafeLLMEndpoint, Conversation, \
+    MockLLMEndpoint, UserMessage
 from guut.loop import Loop, LoopState
-from guut.quixbugs_helper import Problem
+from guut.quixbugs_helper import Problem, format_problem
+from prompts import LongInstructions, FewShotExample01
 
 
 def main():
     endpoint = LoggingLLMEndpoint(SafeLLMEndpoint(get_openai_endpoint()))
-    loop = Loop(Problem('detect_cycle'), endpoint)
-    loop.perform_next_step()
+    # endpoint = SafeLLMEndpoint(MockLLMEndpoint())
 
-    while loop.get_state() != LoopState.TEST_DONE and loop.get_state() != LoopState.BETWEEN:
+    conversation = Conversation([
+        LongInstructions().message(),
+        *FewShotExample01().messages(),
+        UserMessage(format_problem(Problem('detect_cycle')))
+    ])
+
+
+    loop = Loop(Problem('sieve'), endpoint=endpoint, conversation=conversation)
+    loop.set_state(LoopState.PROBLEM_STATED)
+
+    while loop.get_state() not in [LoopState.TEST_DONE, LoopState.BETWEEN, LoopState.INVALID]:
         loop.perform_next_step()
 
 
