@@ -41,9 +41,9 @@ class LoopState(Enum):
 
 
 class Loop:
-    def __init__(self, problem: Problem, endpoint: LLMEndpoint):
+    def __init__(self, problem: Problem, endpoint: LLMEndpoint, conversation: Conversation = None):
         self.problem = problem
-        self.conversation = Conversation()
+        self.conversation = conversation or Conversation()
         self.llm = endpoint
 
     def perform_next_step(self):
@@ -68,6 +68,8 @@ class Loop:
             self._prompt_llm_for_between()
         elif state == LoopState.INVALID:
             logger.warning('perform_next_step called with conversation in invalid state.')
+        elif state is None:
+            logger.warning('perform_next_step called with conversation in None state.')
 
     def get_state(self) -> LoopState:
         if not self.conversation:
