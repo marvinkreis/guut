@@ -57,7 +57,7 @@ class Message(ABC):
 
     def to_openai_api(self):
         """Converts the message into JSON for the OpenAI API."""
-        raise Exception("Can't convert base message.")
+        return {'role': self.role.value, 'content': self.content}
 
     def to_llamacpp_api(self):
         """Converts the message into the format for the llama.cpp API."""
@@ -65,7 +65,7 @@ class Message(ABC):
 
     def to_json(self):
         """Converts the message into JSON for logging."""
-        raise Exception("Can't convert base message.")
+        return {'role': self.role.value, 'content': self.content}
 
     def __str__(self):
         return self.content
@@ -75,41 +75,27 @@ class Message(ABC):
 
 
 class SystemMessage(Message):
-    def __init__(self, content):
+    def __init__(self, content: str, tag: Any = None):
         super().__init__()
         self.role = Role.SYSTEM
         self.content = content
-
-    @override
-    def to_openai_api(self):
-        return {'role': 'system', 'content': self.content}
+        self.tag = tag
 
     @override
     def to_llamacpp_api(self):
         return ChatCompletionRequestSystemMessage(content=self.content, role='system')
 
-    @override
-    def to_json(self):
-        return {'role': 'system', 'content': self.content}
-
 
 class UserMessage(Message):
-    def __init__(self, content):
+    def __init__(self, content: str, tag: Any = None):
         super().__init__()
         self.role = Role.USER
         self.content = content
-
-    @override
-    def to_openai_api(self):
-        return {'role': 'user', 'content': self.content}
+        self.tag = tag
 
     @override
     def to_llamacpp_api(self):
         return ChatCompletionRequestUserMessage(content=self.content, role='user')
-
-    @override
-    def to_json(self):
-        return {'role': 'user', 'content': self.content}
 
 
 class AssistantMessage(Message):
@@ -119,12 +105,13 @@ class AssistantMessage(Message):
     # The token usage to generate this message.
     usage: Usage
 
-    def __init__(self, content: str, response: Any = None, usage: Usage = None):
+    def __init__(self, content: str, response: Any = None, usage: Usage = None, tag: Any = None):
         super().__init__()
         self.role = Role.ASSISTANT
         self.content = content
         self.response = response
         self.usage = usage
+        self.tag = tag
 
     @staticmethod
     def from_openai_api(response: ChatCompletion) -> 'AssistantMessage':
@@ -134,8 +121,8 @@ class AssistantMessage(Message):
                       total_tokens=response.usage.total_tokens)
         return AssistantMessage(content, response, usage)
 
-    @classmethod
-    def from_llamacpp_api(cls, response: CreateChatCompletionResponse) -> 'AssistantMessage':
+    @staticmethod
+    def from_llamacpp_api(response: CreateChatCompletionResponse) -> 'AssistantMessage':
         message = response['choices'][0]['message']
         content = message.get('content')
         usage = Usage(completion_tokens=response['usage']['completion_tokens'],
@@ -144,19 +131,27 @@ class AssistantMessage(Message):
         return AssistantMessage(content, response, usage)
 
     @override
-    def to_openai_api(self):
-        return {'role': 'assistant', 'content': self.content}
-
-    @override
     def to_llamacpp_api(self):
         return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
 
     @override
     def to_json(self):
-        json = {'role': 'user', 'content': self.content}
+        json = {'role': Role.ASSISTANT.name, 'content': self.content}
         if self.usage:
             json['usage'] = self.usage.to_json()
         return
+
+
+class FakeAssistantMessage(Message):
+    def __init__(self, content: str, tag: Any = None):
+        super().__init__()
+        self.role = Role.ASSISTANT
+        self.content = content
+        self.tag = tag
+
+    @override
+    def to_llamacpp_api(self):
+        return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
 
 
 class Conversation(list):
