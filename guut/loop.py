@@ -137,7 +137,7 @@ class Loop:
         self.conversation.append(new_message)
 
     def _prompt_llm_for_conclusion_and_hypothesis(self):
-        response = self.llm.complete(self.conversation, stop=['Experiment Results:', '<DEBUGGING_DONE>'])
+        response = self.llm.complete(self.conversation, stop=['Experiment Result', 'Experiment Results:', '<DEBUGGING_DONE>'])
 
         if '<DEBUGGING_DONE>' in response.content:
             response.tag = LoopState.FINISHED_DEBUGGING
@@ -174,7 +174,7 @@ Make sure to include the backticks and language name.
         return
 
     def _prompt_llm_for_test(self):
-        response = self.llm.complete(self.conversation, stop=['Experiment Results:', '<DEBUGGING_DONE>'])
+        response = self.llm.complete(self.conversation, stop=['Experiment Result:', 'Experiment Results:', '<DEBUGGING_DONE>'])
 
         test_block = extract_code_block(response.content, 'python')
         if test_block:
