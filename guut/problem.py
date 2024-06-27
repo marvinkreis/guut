@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Tuple
 
 from guut.execution import ExecutionResult
+
+type ProblemDescription = Tuple[str, Callable[[], 'Problem']]
 
 
 @dataclass
@@ -43,5 +45,5 @@ class Problem(ABC):
 
     @staticmethod
     @abstractmethod
-    def list_problems() -> Iterable[(str, Callable[[], 'Problem'])]:
+    def list_problems() -> Iterable[ProblemDescription]:
         pass

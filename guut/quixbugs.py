@@ -6,10 +6,10 @@ from pathlib import Path
 from shutil import copyfile
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import List, Iterable, override
+from typing import List, Iterable, override, Callable, Tuple
 
 from guut.execution import run_debugger, run_script, ExecutionResult
-from guut.problem import Problem, CodeSnippet
+from guut.problem import Problem, CodeSnippet, ProblemDescription
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
 NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
@@ -87,7 +87,7 @@ class QuixbugsProblem(Problem):
 
     @staticmethod
     @override
-    def list_problems() -> List[Problem]:
+    def list_problems() -> List[ProblemDescription]:
         # List all buggy programs
         programs = [f for f in (QUIXBUGS_PATH / 'python_programs').iterdir() if f.is_file()]
 
@@ -97,7 +97,7 @@ class QuixbugsProblem(Problem):
         # Exclude dependencies
         programs = [f for f in programs if 'node.py' not in f.name]
 
-        return [QuixbugsProblem(program.stem) for program in programs]
+        return [(program.stem, lambda: QuixbugsProblem(program.stem)) for program in programs]
 
     def filename(self) -> str:
         return f'{self.name}.py'
@@ -160,7 +160,7 @@ class QuixbugsProblem(Problem):
 def main() -> None:
     if len(sys.argv) < 2:
         # List available problems
-        for name, constructor in Problem.list_problems():
+        for name, constructor in QuixbugsProblem.list_problems():
             print(name)
     else:
         # Print selected problem
