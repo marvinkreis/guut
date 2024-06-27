@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterable
+from typing import Iterable, Callable
 
 from guut.execution import ExecutionResult
 
@@ -44,5 +44,5 @@ class Problem(ABC):
 
     @staticmethod
     @abstractmethod
-    def list_problems(self) -> str:
+    def list_problems() -> Iterable[(str, Callable[[], 'Problem'])]:
         pass

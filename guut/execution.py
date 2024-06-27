@@ -19,8 +19,8 @@ class ExecutionResult:
     timeout: bool = False
 
 
-def run_debugger(target: Path, debugger_commands: List[str], cwd: Path = None) -> ExecutionResult:
-    process_input = ''.join(command.strip() + '\n' for command in debugger_commands)
+def run_debugger(target: Path, debugger_script: str, cwd: Path = None) -> ExecutionResult:
+    process_input = debugger_script if debugger_script.endswith('\n') else debugger_script + '\n'
     process_command = ['python', inspect.getfile(debugger_wrapper), str(target)]
     process_cwd = cwd or target.parent
 

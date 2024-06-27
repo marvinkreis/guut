@@ -6,7 +6,7 @@ from openai import OpenAI
 from guut.llm import OpenAIEndpoint, LlamacppEndpoint, LoggingLLMEndpoint, SafeLLMEndpoint, Conversation, \
     MockLLMEndpoint, UserMessage
 from guut.loop import Loop, LoopState
-from guut.quixbugs_helper import Problem, format_problem
+from guut.quixbugs import QuixbugsProblem, format_problem
 from prompts import LongInstructions, FewShotExample01
 
 
@@ -17,11 +17,11 @@ def main():
     conversation = Conversation([
         LongInstructions().message(),
         *FewShotExample01().messages(),
-        UserMessage(format_problem(Problem('detect_cycle')))
+        UserMessage(format_problem(QuixbugsProblem('detect_cycle')))
     ])
 
 
-    loop = Loop(Problem('sieve'), endpoint=endpoint, conversation=conversation)
+    loop = Loop(QuixbugsProblem('sieve'), endpoint=endpoint, conversation=conversation)
     loop.set_state(LoopState.PROBLEM_STATED)
 
     while loop.get_state() not in [LoopState.TEST_DONE, LoopState.BETWEEN, LoopState.INVALID]:

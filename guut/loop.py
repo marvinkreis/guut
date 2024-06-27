@@ -6,7 +6,7 @@ from loguru import logger
 
 from guut.formatting import extract_code_block, format_execution_results
 from guut.llm import Conversation, Role, Message, UserMessage, LLMEndpoint
-from guut.quixbugs_helper import Problem, run_test_on_problem, run_debugger_on_problem
+from guut.quixbugs import QuixbugsProblem, run_test_on_problem, run_debugger_on_problem
 
 
 # TODO: repair states
@@ -37,7 +37,7 @@ class LoopState(Enum):
 
 
 class Loop:
-    def __init__(self, problem: Problem, endpoint: LLMEndpoint, conversation: Conversation):
+    def __init__(self, problem: QuixbugsProblem, endpoint: LLMEndpoint, conversation: Conversation):
         self.problem = problem
         self.conversation = conversation
         self.llm = endpoint
