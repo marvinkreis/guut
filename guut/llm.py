@@ -1,6 +1,6 @@
 import json
 import time
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
@@ -60,6 +60,7 @@ class Message(ABC):
         """Converts the message into JSON for the OpenAI API."""
         return {'role': self.role.value, 'content': self.content}
 
+    @abstractmethod
     def to_llamacpp_api(self):
         """Converts the message into the format for the llama.cpp API."""
         raise Exception("Can't convert base message.")
