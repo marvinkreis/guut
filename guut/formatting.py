@@ -6,12 +6,21 @@ from os.path import realpath
 from pathlib import Path
 
 from guut.execution import ExecutionResult
+from guut.problem import CodeSnippet, Problem
 
 
-def format_code_block(name: str, content: str, linenos: bool = False, language: str = '') -> str:
-    content = add_line_numbers(content) if linenos else content
+def format_snippet(snippet: CodeSnippet, show_linenos: bool = False) -> str:
+    content = add_line_numbers(snippet.content) if show_linenos else snippet.content
+    return f'''{snippet.name}:
+```{snippet.language or ''}
+{content.rstrip()}
+```'''
+
+
+def format_snippet_raw(content: str, name: str, language: str = None, show_linenos: bool = False) -> str:
+    content = add_line_numbers(content) if show_linenos else content
     return f'''{name}:
-```{language}
+```{language or ''}
 {content.rstrip()}
 ```'''
 
@@ -23,22 +32,22 @@ def remove_restarts_from_pdb_output(log: str) -> str:
     return '\n'.join(new_lines)
 
 
-def shorten_paths(log: str, path_to_omit: str | Path) -> str:
+def shorten_paths(text: str, path_to_omit: str | Path) -> str:
     if isinstance(path_to_omit, Path):
         path_to_omit = str(path_to_omit)
 
     if not path_to_omit.endswith(os.sep):
         path_to_omit += os.sep
 
-    return log.replace(path_to_omit, '')
+    return text.replace(path_to_omit, '')
 
 
-def clean_traces(log: str, path_to_include: str | Path) -> str:
+def clean_traces(text: str, path_to_include: str | Path) -> str:
     new_lines = []
     in_trace = False  # whether the current line is in a trace
     drop_frame = False  # whether the current frame should be dropped
 
-    for line in log.splitlines():
+    for line in text.splitlines():
         ls = line.strip()
 
         # Start line
@@ -124,7 +133,7 @@ def format_execution_results(test_result_correct: ExecutionResult,
 
     test_correct_out = shorten_paths(test_result_correct.output, test_result_correct.cwd)
     test_correct_out = limit_text(test_correct_out, 1500)
-    test_correct_out = format_code_block('Test on correct version', test_correct_out)
+    test_correct_out = format_snippet_raw('Test on correct version', test_correct_out)
     text.append(test_correct_out)
     if test_result_correct.timeout:
         text.append('The test was cancelled due to a timeout.')
@@ -134,7 +143,7 @@ def format_execution_results(test_result_correct: ExecutionResult,
 
     test_buggy_out = shorten_paths(test_result_buggy.output, test_result_buggy.cwd)
     test_buggy_out = limit_text(test_buggy_out, 1500)
-    test_buggy_out = format_code_block('Test on buggy version', test_buggy_out)
+    test_buggy_out = format_snippet_raw('Test on buggy version', test_buggy_out)
     text.append(test_buggy_out)
     if test_result_buggy.timeout:
         text.append('The test was cancelled due to a timeout.')
@@ -146,7 +155,7 @@ def format_execution_results(test_result_correct: ExecutionResult,
         debugger_correct_out = clean_traces(debugger_result_correct.output, debugger_result_correct.cwd)
         debugger_correct_out = shorten_paths(debugger_correct_out, debugger_result_correct.cwd)
         debugger_correct_out = limit_text(debugger_correct_out, 1500)
-        debugger_correct_out = format_code_block('Debugger on correct version', debugger_correct_out)
+        debugger_correct_out = format_snippet_raw('Debugger on correct version', debugger_correct_out)
         text.append(debugger_correct_out)
         text.append('')
 
@@ -154,8 +163,17 @@ def format_execution_results(test_result_correct: ExecutionResult,
         debugger_buggy_out = clean_traces(debugger_result_correct.output, debugger_result_correct.cwd)
         debugger_buggy_out = shorten_paths(debugger_buggy_out, debugger_result_buggy.cwd)
         debugger_buggy_out = limit_text(debugger_buggy_out, 1500)
-        debugger_buggy_out = format_code_block('Debugger on buggy version', debugger_buggy_out)
+        debugger_buggy_out = format_snippet_raw('Debugger on buggy version', debugger_buggy_out)
         text.append(debugger_buggy_out)
         text.append('')
 
     return '\n'.join(text).strip()
+
+
+def format_problem(problem: Problem) -> str:
+    snippets = [format_snippet(problem.class_under_test(), show_linenos=True)]
+    snippets += [format_snippet(snippet, show_linenos=False) for snippet in [
+        *problem.dependencies(),
+        problem.mutant_diff()
+    ]]
+    return '\n\n'.join(snippets)

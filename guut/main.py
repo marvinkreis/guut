@@ -3,16 +3,17 @@ import os
 from llama_cpp import Llama
 from openai import OpenAI
 
+from guut.formatting import format_problem
 from guut.llm import OpenAIEndpoint, LlamacppEndpoint, LoggingLLMEndpoint, SafeLLMEndpoint, Conversation, \
     MockLLMEndpoint, UserMessage
 from guut.loop import Loop, LoopState
-from guut.quixbugs import QuixbugsProblem, format_problem
+from guut.quixbugs import QuixbugsProblem
 from prompts import LongInstructions, FewShotExample01
 
 
 def main():
-    endpoint = LoggingLLMEndpoint(SafeLLMEndpoint(get_openai_endpoint()))
-    # endpoint = SafeLLMEndpoint(MockLLMEndpoint())
+    # endpoint = LoggingLLMEndpoint(SafeLLMEndpoint(get_openai_endpoint()))
+    endpoint = SafeLLMEndpoint(MockLLMEndpoint())
 
     conversation = Conversation([
         LongInstructions().message(),

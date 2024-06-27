@@ -26,8 +26,7 @@ class QuixbugsProblem(Problem):
         return CodeSnippet(
             content=self.construct_normalized_code(use_mutant=False),
             name=self.filename(),
-            language='python',
-            show_linenos=True)
+            language='python')
 
     @override
     def dependencies(self) -> Iterable[CodeSnippet]:

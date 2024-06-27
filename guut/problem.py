@@ -10,7 +10,6 @@ class CodeSnippet:
     content: str
     name: str
     language: str = None
-    show_linenos: bool = False
 
 
 class Problem(ABC):

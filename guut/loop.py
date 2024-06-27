@@ -6,7 +6,7 @@ from loguru import logger
 
 from guut.formatting import extract_code_block, format_execution_results
 from guut.llm import Conversation, Role, Message, UserMessage, LLMEndpoint
-from guut.quixbugs import QuixbugsProblem, run_test_on_problem, run_debugger_on_problem
+from guut.problem import Problem
 
 
 # TODO: repair states
@@ -37,7 +37,7 @@ class LoopState(Enum):
 
 
 class Loop:
-    def __init__(self, problem: QuixbugsProblem, endpoint: LLMEndpoint, conversation: Conversation):
+    def __init__(self, problem: Problem, endpoint: LLMEndpoint, conversation: Conversation):
         self.problem = problem
         self.conversation = conversation
         self.llm = endpoint
@@ -111,14 +111,14 @@ class Loop:
 
         # TODO: validate the python code
 
-        test_results_correct = run_test_on_problem(self.problem, test_code, buggy_version=False)
-        test_results_buggy = run_test_on_problem(self.problem, test_code, buggy_version=True)
+        test_results_correct = self.problem.run_test(self.problem, test_code, use_mutant=False)
+        test_results_buggy = self.problem.run_test(self.problem, test_code, use_mutant=True)
 
         # TODO: Lead the response with "Experiment Results"
 
         if debugger_script:
-            debugger_results_correct = run_debugger_on_problem(self.problem, test_code, debugger_script, buggy_version=False)
-            debugger_results_buggy = run_debugger_on_problem(self.problem, test_code, debugger_script, buggy_version=True)
+            debugger_results_correct = self.problem.run_debugger(self.problem, test_code, debugger_script, use_mutant=False)
+            debugger_results_buggy = self.problem.run_debugger(self.problem, test_code, debugger_script, use_mutant=True)
             new_text = format_execution_results(test_results_correct, test_results_buggy,
                                                 debugger_results_correct, debugger_results_buggy)
         else:
