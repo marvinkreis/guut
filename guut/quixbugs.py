@@ -9,6 +9,7 @@ from tempfile import TemporaryDirectory
 from typing import List, Iterable, override
 
 from guut.execution import run_debugger, run_script, ExecutionResult
+from guut.formatting import format_problem
 from guut.problem import Problem, CodeSnippet, ProblemDescription
 
 QUIXBUGS_PATH = Path(os.environ['QUIXBUGS_PATH'])
@@ -128,7 +129,7 @@ class QuixbugsProblem(Problem):
             lambda line: '"""' not in line,
             path.read_text().splitlines())
 
-        return '\n'.join(lines).strip() #+ '\n'
+        return '\n'.join(lines).strip()
 
     def extract_comment(self) -> str:
         code = self.buggy_file().read_text()
@@ -137,7 +138,7 @@ class QuixbugsProblem(Problem):
             lambda line: '"""' not in line,
             code.splitlines())
 
-        return '\n'.join(comment_lines).strip() #+ '\n'
+        return '\n'.join(comment_lines).strip()
 
     def construct_normalized_code(self, use_mutant: bool = False) -> str:
         return self.extract_comment() + self.extract_code(use_mutant)
@@ -170,7 +171,7 @@ def main() -> None:
         # Print selected problem
         problem = QuixbugsProblem(sys.argv[1])
         problem.validate()
-        # print(format_problem(problem))
+        print(format_problem(problem))
 
 
 if __name__ == '__main__':
