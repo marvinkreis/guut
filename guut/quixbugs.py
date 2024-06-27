@@ -6,7 +6,7 @@ from pathlib import Path
 from shutil import copyfile
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import List, Iterable, override, Callable, Tuple
+from typing import List, Iterable, override
 
 from guut.execution import run_debugger, run_script, ExecutionResult
 from guut.problem import Problem, CodeSnippet, ProblemDescription
@@ -16,10 +16,14 @@ NODE_PATH = QUIXBUGS_PATH / 'python_programs' / 'node.py'
 
 
 class QuixbugsProblem(Problem):
-    name: str
+    _name: str
 
     def __init__(self, name: str):
-        self.name = name
+        self._name = name
+
+    @override
+    def name(self) -> str:
+        return self._name
 
     @override
     def class_under_test(self) -> CodeSnippet:
@@ -100,22 +104,22 @@ class QuixbugsProblem(Problem):
         return [(program.stem, lambda: QuixbugsProblem(program.stem)) for program in programs]
 
     def filename(self) -> str:
-        return f'{self.name}.py'
+        return f'{self.name()}.py'
 
     def correct_file(self) -> Path:
-        return QUIXBUGS_PATH / 'correct_python_programs' / f'{self.name}.py'
+        return QUIXBUGS_PATH / 'correct_python_programs' / f'{self.name()}.py'
 
     def buggy_file(self) -> Path:
-        return QUIXBUGS_PATH / 'python_programs' / f'{self.name}.py'
+        return QUIXBUGS_PATH / 'python_programs' / f'{self.name()}.py'
 
     def dependencies_paths(self) -> List[Path]:
         return [NODE_PATH] if self.is_graph_problem() else []
 
     def is_graph_problem(self) -> bool:
         """Check if the QuixBugs program is a graph problem. They depend on node.py but don't import it."""
-        return self.name in ['breadth_first_search', 'depth_first_search', 'detect_cycle', 'minimum_spanning_tree',
-                             'reverse_linked_list', 'shortest_path_length', 'shortest_path_lengths', 'shortest_paths',
-                             'topological_ordering']
+        return self.name() in ['breadth_first_search', 'depth_first_search', 'detect_cycle', 'minimum_spanning_tree',
+                               'reverse_linked_list', 'shortest_path_length', 'shortest_path_lengths', 'shortest_paths',
+                               'topological_ordering']
 
     def extract_code(self, use_mutant: bool = False) -> str:
         path = self.buggy_file() if use_mutant else self.correct_file()
@@ -143,9 +147,9 @@ class QuixbugsProblem(Problem):
         buggy_code = self.construct_normalized_code(use_mutant=True)
 
         with TemporaryDirectory() as tempdir:
-            correct_file = Path(tempdir) / f'{self.name}.py'
+            correct_file = Path(tempdir) / f'{self.name()}.py'
             correct_file.write_text(correct_code.strip() + '\n')
-            buggy_file = Path(tempdir) / f'{self.name}_mutant.py'
+            buggy_file = Path(tempdir) / f'{self.name()}_mutant.py'
             buggy_file.write_text(buggy_code.strip() + '\n')
 
             left_file = buggy_file if reverse else correct_file
@@ -154,7 +158,7 @@ class QuixbugsProblem(Problem):
             # Can't use check=True here, because --no-index implies --exit-code, which exits with 1 if the files differ
             result = run(['git', 'diff', '--no-index', '--', left_file.name, right_file.name],
                          cwd=tempdir, capture_output=True, timeout=2)
-            return result.stdout.decode().replace(f'{self.name}_mutant.py', f'{self.name}.py')
+            return result.stdout.decode().replace(f'{self.name()}_mutant.py', f'{self.name()}.py')
 
 
 def main() -> None:
