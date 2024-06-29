@@ -32,11 +32,11 @@ class Problem(ABC):
         pass
 
     @abstractmethod
-    def run_test(self, code: str, use_mutant: bool = False) -> ExecutionResult:
+    def run_test(self, code: str, use_mutant: bool) -> ExecutionResult:
         pass
 
     @abstractmethod
-    def run_debugger(self, code: str, debugger_script: str, use_mutant: bool = False) -> ExecutionResult:
+    def run_debugger(self, code: str, debugger_script: str, use_mutant: bool) -> ExecutionResult:
         pass
 
     @abstractmethod

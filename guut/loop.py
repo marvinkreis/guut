@@ -111,14 +111,14 @@ class Loop:
 
         # TODO: validate the python code
 
-        test_results_correct = self.problem.run_test(self.problem, test_code, use_mutant=False)
-        test_results_buggy = self.problem.run_test(self.problem, test_code, use_mutant=True)
+        test_results_correct = self.problem.run_test(test_code, use_mutant=False)
+        test_results_buggy = self.problem.run_test(test_code, use_mutant=True)
 
         # TODO: Lead the response with "Experiment Results"
 
         if debugger_script:
-            debugger_results_correct = self.problem.run_debugger(self.problem, test_code, debugger_script, use_mutant=False)
-            debugger_results_buggy = self.problem.run_debugger(self.problem, test_code, debugger_script, use_mutant=True)
+            debugger_results_correct = self.problem.run_debugger(test_code, debugger_script, use_mutant=False)
+            debugger_results_buggy = self.problem.run_debugger(test_code, debugger_script, use_mutant=True)
             new_text = format_execution_results(test_results_correct, test_results_buggy,
                                                 debugger_results_correct, debugger_results_buggy)
         else:
