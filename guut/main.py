@@ -25,7 +25,7 @@ def main():
     loop = Loop(QuixbugsProblem('sieve'), endpoint=endpoint, conversation=conversation)
     loop.set_state(LoopState.PROBLEM_STATED)
 
-    while loop.get_state() not in [LoopState.TEST_DONE, LoopState.BETWEEN, LoopState.INVALID]:
+    while loop.get_state() not in [LoopState.DONE, LoopState.BETWEEN, LoopState.INVALID]:
         loop.perform_next_step()
 
 

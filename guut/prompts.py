@@ -34,3 +34,12 @@ class FewShotExample01:
 
     def messages(self):
         return [FewShotExample01._path_to_msg(path) for path in self.paths]
+
+
+stop_words = [
+    'Experiment Results:',
+    'Experiment Result:',
+    'Experiment Output:',
+    'Experiment Outputs',
+    '<DEBUGGING_DONE>'
+]

@@ -7,11 +7,12 @@ from loguru import logger
 from guut.formatting import extract_code_block, format_execution_results
 from guut.llm import Conversation, Role, Message, UserMessage, LLMEndpoint
 from guut.problem import Problem
+from guut.prompts import stop_words
 
 
 # TODO: repair states
 class LoopState(Enum):
-    # The instructions (and examples), as well as the problem description are given.
+    # The prompt (and possible few-shot examples) as well as the problem description have been stated.
     PROBLEM_STATED = 'problem_stated'
 
     # The LLM has stated the experiment and is waiting for the results.
@@ -23,16 +24,16 @@ class LoopState(Enum):
     # The LLM has finished debugging and is ready to write the test.
     FINISHED_DEBUGGING = 'finished_debugging'
 
-    # The LLM has finished debugging and is ready to write the test.
+    # Instructions for writing the unit test have been stated.
     TEST_INSTRUCTIONS_GIVEN = 'test_instructions_given'
 
     # The LLM has finished writing the test.
-    TEST_DONE = 'test_done'
+    DONE = 'done'
 
-    # The LLM finished inbetween two steps.
+    # The LLM finished between two steps.
     BETWEEN = 'between'
 
-    # The conversation is in an unrecoverable state.
+    # The conversation is in an unknown or unrecoverable state.
     INVALID = 'invalid'
 
 
@@ -43,8 +44,8 @@ class Loop:
         self.llm = endpoint
 
     def perform_next_step(self):
-        logger.info(self.get_state())
         state = self.get_state()
+        logger.info(state)
 
         if state == LoopState.PROBLEM_STATED:
             self._prompt_llm_for_hypothesis()
@@ -56,14 +57,14 @@ class Loop:
             self._add_test_prompt()
         elif state == LoopState.TEST_INSTRUCTIONS_GIVEN:
             self._prompt_llm_for_test()
-        elif state == LoopState.TEST_DONE:
+        elif state == LoopState.DONE:
             logger.warning('perform_next_step called with conversation in completed state.')
         elif state == LoopState.BETWEEN:
             self._prompt_llm_for_between()
         elif state == LoopState.INVALID:
-            logger.warning('perform_next_step called with conversation in invalid state.')
+            raise InvalidStateException(LoopState.INVALID)
         elif state is None:
-            logger.warning('perform_next_step called with conversation in None state.')
+            raise InvalidStateException(None)
 
     def get_state(self) -> LoopState:
         if self.conversation and self.conversation[-1].tag and isinstance(self.conversation[-1].tag, LoopState):
@@ -83,7 +84,7 @@ class Loop:
         return list(takewhile(condition, reversed(self.conversation)))
 
     def _prompt_llm_for_hypothesis(self):
-        response = self.llm.complete(self.conversation, stop=['Experiment Results:', '<DEBUGGING_DONE>'])
+        response = self.llm.complete(self.conversation, stop=stop_words)
 
         test_code = extract_code_block(response.content, 'python')
 
@@ -129,7 +130,7 @@ class Loop:
         self.conversation.append(new_message)
 
     def _prompt_llm_for_conclusion_and_hypothesis(self):
-        response = self.llm.complete(self.conversation, stop=['Experiment Result', 'Experiment Results:', '<DEBUGGING_DONE>'])
+        response = self.llm.complete(self.conversation, stop=stop_words)
 
         if '<DEBUGGING_DONE>' in response.content:
             response.tag = LoopState.FINISHED_DEBUGGING
@@ -166,11 +167,11 @@ Make sure to include the backticks and language name.
         return
 
     def _prompt_llm_for_test(self):
-        response = self.llm.complete(self.conversation, stop=['Experiment Result:', 'Experiment Results:', '<DEBUGGING_DONE>'])
+        response = self.llm.complete(self.conversation, stop=stop_words)
 
         test_block = extract_code_block(response.content, 'python')
         if test_block:
-            response.tag = LoopState.TEST_DONE
+            response.tag = LoopState.DONE
         else:
             # TODO
             response.tag = LoopState.BETWEEN
@@ -179,3 +180,9 @@ Make sure to include the backticks and language name.
 
     def _prompt_llm_for_between(self):
         pass
+
+
+class InvalidStateException(Exception):
+    def __init__(self, state: LoopState | None):
+        self.state = state
+        super().__init__(f'Invalid loop state: {state.value if state else 'None'}')
