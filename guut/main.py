@@ -6,7 +6,7 @@ from openai import OpenAI
 from guut.formatting import format_problem
 from guut.llm import OpenAIEndpoint, LlamacppEndpoint, LoggingLLMEndpoint, SafeLLMEndpoint, Conversation, \
     MockLLMEndpoint, UserMessage
-from guut.loop import Loop, LoopState
+from guut.loop import Loop, State
 from guut.quixbugs import QuixbugsProblem
 from prompts import LongInstructions, FewShotExample01
 
@@ -23,9 +23,9 @@ def main():
 
 
     loop = Loop(QuixbugsProblem('sieve'), endpoint=endpoint, conversation=conversation)
-    loop.set_state(LoopState.PROBLEM_STATED)
+    loop.set_state(State.INITIAL)
 
-    while loop.get_state() not in [LoopState.DONE, LoopState.BETWEEN, LoopState.INVALID]:
+    while loop.get_state() not in [State.DONE, State.BETWEEN, State.INVALID]:
         loop.perform_next_step()
 
 

@@ -11,11 +11,11 @@ from guut.prompts import stop_words
 
 
 # TODO: repair states
-class LoopState(Enum):
-    # The prompt (and possible few-shot examples) as well as the problem description have been stated.
-    PROBLEM_STATED = 'problem_stated'
+class State(Enum):
+    # The prompt as well as the problem description have been stated.
+    INITIAL = 'initial'
 
-    # The LLM has stated the experiment and is waiting for the results.
+    # The LLM has stated an experiment and is waiting for the results.
     EXPERIMENT_STATED = 'experiment_stated'
 
     # The execution result was given to the LLM.
@@ -47,34 +47,34 @@ class Loop:
         state = self.get_state()
         logger.info(state)
 
-        if state == LoopState.PROBLEM_STATED:
+        if state == State.INITIAL:
             self._prompt_llm_for_hypothesis()
-        elif state == LoopState.EXPERIMENT_STATED:
+        elif state == State.EXPERIMENT_STATED:
             self._run_experiment()
-        elif state == LoopState.EXPERIMENT_RESULTS_GIVEN:
+        elif state == State.EXPERIMENT_RESULTS_GIVEN:
             self._prompt_llm_for_conclusion_and_hypothesis()
-        elif state == LoopState.FINISHED_DEBUGGING:
+        elif state == State.FINISHED_DEBUGGING:
             self._add_test_prompt()
-        elif state == LoopState.TEST_INSTRUCTIONS_GIVEN:
+        elif state == State.TEST_INSTRUCTIONS_GIVEN:
             self._prompt_llm_for_test()
-        elif state == LoopState.DONE:
+        elif state == State.DONE:
             logger.warning('perform_next_step called with conversation in completed state.')
-        elif state == LoopState.BETWEEN:
+        elif state == State.BETWEEN:
             self._prompt_llm_for_between()
-        elif state == LoopState.INVALID:
-            raise InvalidStateException(LoopState.INVALID)
+        elif state == State.INVALID:
+            raise InvalidStateException(State.INVALID)
         elif state is None:
             raise InvalidStateException(None)
 
-    def get_state(self) -> LoopState:
-        if self.conversation and self.conversation[-1].tag and isinstance(self.conversation[-1].tag, LoopState):
+    def get_state(self) -> State:
+        if self.conversation and self.conversation[-1].tag and isinstance(self.conversation[-1].tag, State):
             return self.conversation[-1].tag
-        return LoopState.INVALID
+        return State.INVALID
 
-    def set_state(self, state: LoopState) -> None:
+    def set_state(self, state: State) -> None:
         self.conversation[-1].tag = state
 
-    def get_last_messages(self, states: List[LoopState] = None, roles: List[Role] = None) -> List[Message]:
+    def get_last_messages(self, states: List[State] = None, roles: List[Role] = None) -> List[Message]:
         states = states or []
         roles = roles or []
 
@@ -89,20 +89,20 @@ class Loop:
         test_code = extract_code_block(response.content, 'python')
 
         if (not test_code) or ('Experiment:' not in response.content):
-            if self.get_state() != LoopState.BETWEEN:
-                response.tag = LoopState.BETWEEN
+            if self.get_state() != State.BETWEEN:
+                response.tag = State.BETWEEN
             else:
-                response.tag = LoopState.INVALID
+                response.tag = State.INVALID
             self.conversation.append(response)
             return
 
-        response.tag = LoopState.EXPERIMENT_STATED
+        response.tag = State.EXPERIMENT_STATED
         self.conversation.append(response)
         return
 
     def _run_experiment(self):
         relevant_messages = self.get_last_messages(
-            states=[LoopState.EXPERIMENT_STATED, LoopState.BETWEEN], roles=[Role.ASSISTANT])
+            states=[State.EXPERIMENT_STATED, State.BETWEEN], roles=[Role.ASSISTANT])
         relevant_text = '\n'.join(msg.content for msg in relevant_messages)
 
         test_code = extract_code_block(relevant_text, 'python')
@@ -126,28 +126,28 @@ class Loop:
             new_text = format_execution_results(test_results_correct, test_results_buggy)
 
         new_message = UserMessage(content=new_text)
-        new_message.tag = LoopState.EXPERIMENT_RESULTS_GIVEN
+        new_message.tag = State.EXPERIMENT_RESULTS_GIVEN
         self.conversation.append(new_message)
 
     def _prompt_llm_for_conclusion_and_hypothesis(self):
         response = self.llm.complete(self.conversation, stop=stop_words)
 
         if '<DEBUGGING_DONE>' in response.content:
-            response.tag = LoopState.FINISHED_DEBUGGING
+            response.tag = State.FINISHED_DEBUGGING
             self.conversation.append(response)
             return
 
         test_code = extract_code_block(response.content, 'python')
 
         if (not test_code) or ('Experiment:' not in response.content):
-            if self.get_state() != LoopState.BETWEEN:
-                response.tag = LoopState.BETWEEN
+            if self.get_state() != State.BETWEEN:
+                response.tag = State.BETWEEN
             else:
-                response.tag = LoopState.INVALID
+                response.tag = State.INVALID
             self.conversation.append(response)
             return
 
-        response.tag = LoopState.EXPERIMENT_STATED
+        response.tag = State.EXPERIMENT_STATED
         self.conversation.append(response)
         return
 
@@ -162,7 +162,7 @@ def test_{self.problem.name}():
 Make sure to include the backticks and language name.
 '''
         message = UserMessage(prompt)
-        message.tag = LoopState.TEST_INSTRUCTIONS_GIVEN
+        message.tag = State.TEST_INSTRUCTIONS_GIVEN
         self.conversation.append(message)
         return
 
@@ -171,10 +171,10 @@ Make sure to include the backticks and language name.
 
         test_block = extract_code_block(response.content, 'python')
         if test_block:
-            response.tag = LoopState.DONE
+            response.tag = State.DONE
         else:
             # TODO
-            response.tag = LoopState.BETWEEN
+            response.tag = State.BETWEEN
 
         self.conversation.append(response)
 
@@ -183,6 +183,6 @@ Make sure to include the backticks and language name.
 
 
 class InvalidStateException(Exception):
-    def __init__(self, state: LoopState | None):
+    def __init__(self, state: State | None):
         self.state = state
         super().__init__(f'Invalid loop state: {state.value if state else 'None'}')

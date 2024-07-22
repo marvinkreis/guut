@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 
 from guut.llm import UserMessage, Message, FakeAssistantMessage
 
@@ -23,7 +24,8 @@ class ShortInstructions:
 
 class FewShotExample01:
     def __init__(self):
-        self.paths = sorted(prompts_path.glob('example01__*__*'), key=lambda path: path.name)
+        example_dir = prompts_path / 'example01'
+        self.paths = sorted(example_dir / path for path in os.listdir(example_dir))
 
     @staticmethod
     def _path_to_msg(path: Path):

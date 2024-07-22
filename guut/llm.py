@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any, List, override
+import copy
 
 from llama_cpp import Llama, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessage, \
     ChatCompletionRequestAssistantMessage, CreateChatCompletionResponse
@@ -182,7 +183,7 @@ class Conversation(list):
         return '\n'.join(msg.content for msg in self)
 
     def copy(self) -> 'Conversation':
-        return Conversation([*self])
+        return Conversation([copy.deepcopy(msg) for msg in self])
 
 
 class LLMEndpoint:
@@ -208,6 +209,7 @@ class SafeLLMEndpoint(LLMEndpoint):
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
         answer = input(f'''Requesting completion (args: {kwargs})
 {repr(conversation)}
+
 Request this completion? [yn] ''')
         if answer.strip().lower() == 'y':
             msg = self.delegate.complete(conversation, stop=stop, **kwargs)
@@ -254,7 +256,7 @@ class LlamacppEndpoint(LLMEndpoint):
 class MockLLMEndpoint(LLMEndpoint):
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
         path = Path('/tmp/answer')
-        print(f'{repr(conversation)}\nWrite answer to {path}...')
+        print(f'{repr(conversation)}\n\nWrite answer to {path}...')
         while True:
             if path.is_file():
                 print('Found answer!')
