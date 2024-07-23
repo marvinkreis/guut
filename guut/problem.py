@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Iterable, Callable, Tuple
+from typing import Callable, Iterable, Tuple
 
 from guut.execution import ExecutionResult
 
-type ProblemDescription = Tuple[str, Callable[[], 'Problem']]
+type ProblemDescription = Tuple[str, Callable[[], "Problem"]]
 
 
 @dataclass

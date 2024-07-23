@@ -1,14 +1,19 @@
+import copy
 import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
-from typing import Any, List, override
-import copy
+from typing import Any, Dict, List, override
 
-from llama_cpp import Llama, ChatCompletionRequestSystemMessage, ChatCompletionRequestUserMessage, \
-    ChatCompletionRequestAssistantMessage, CreateChatCompletionResponse
+from llama_cpp import (
+    ChatCompletionRequestAssistantMessage,
+    ChatCompletionRequestSystemMessage,
+    ChatCompletionRequestUserMessage,
+    CreateChatCompletionResponse,
+    Llama,
+)
 from loguru import logger
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
@@ -21,13 +26,13 @@ class Role(Enum):
     """Represents the type of message in a LLM conversation."""
 
     # System message.
-    SYSTEM = 'system'
+    SYSTEM = "system"
 
     # User message.
-    USER = 'user'
+    USER = "user"
 
     # Generated response from the assistant.
-    ASSISTANT = 'assistant'
+    ASSISTANT = "assistant"
 
 
 @dataclass
@@ -38,9 +43,9 @@ class Usage:
 
     def to_json(self):
         return {
-            'prompt_tokens': self.prompt_tokens,
-            'completion_tokens': self.completion_tokens,
-            'total_tokens': self.total_tokens,
+            "prompt_tokens": self.prompt_tokens,
+            "completion_tokens": self.completion_tokens,
+            "total_tokens": self.total_tokens,
         }
 
 
@@ -59,7 +64,7 @@ class Message(ABC):
 
     def to_openai_api(self):
         """Converts the message into JSON for the OpenAI API."""
-        return {'role': self.role.value, 'content': self.content}
+        return {"role": self.role.value, "content": self.content}
 
     @abstractmethod
     def to_llamacpp_api(self):
@@ -68,13 +73,13 @@ class Message(ABC):
 
     def to_json(self):
         """Converts the message into JSON for logging."""
-        return {'role': self.role.value, 'content': self.content}
+        return {"role": self.role.value, "content": self.content}
 
     def __str__(self):
         return self.content
 
     def __repr__(self):
-        return f'{self.role.name} MESSAGE:\n{indent_block(self.content)}'
+        return f"{self.role.name} MESSAGE:\n{indent_block(self.content)}"
 
 
 class SystemMessage(Message):
@@ -86,7 +91,7 @@ class SystemMessage(Message):
 
     @override
     def to_llamacpp_api(self):
-        return ChatCompletionRequestSystemMessage(content=self.content, role='system')
+        return ChatCompletionRequestSystemMessage(content=self.content, role="system")
 
 
 class UserMessage(Message):
@@ -98,7 +103,7 @@ class UserMessage(Message):
 
     @override
     def to_llamacpp_api(self):
-        return ChatCompletionRequestUserMessage(content=self.content, role='user')
+        return ChatCompletionRequestUserMessage(content=self.content, role="user")
 
 
 class AssistantMessage(Message):
@@ -117,32 +122,40 @@ class AssistantMessage(Message):
         self.tag = tag
 
     @staticmethod
-    def from_openai_api(response: ChatCompletion) -> 'AssistantMessage':
+    def from_openai_api(response: ChatCompletion) -> "AssistantMessage":
         content = response.choices[0].message.content
-        usage = Usage(completion_tokens=response.usage.completion_tokens,
-                      prompt_tokens=response.usage.prompt_tokens,
-                      total_tokens=response.usage.total_tokens)
+
+        if not content or not response.usage:
+            raise Exception("Incomplete OpenAI response")
+
+        usage = Usage(
+            completion_tokens=response.usage.completion_tokens,
+            prompt_tokens=response.usage.prompt_tokens,
+            total_tokens=response.usage.total_tokens,
+        )
         return AssistantMessage(content, response, usage)
 
     @staticmethod
-    def from_llamacpp_api(response: CreateChatCompletionResponse) -> 'AssistantMessage':
-        message = response['choices'][0]['message']
-        content = message.get('content')
-        usage = Usage(completion_tokens=response['usage']['completion_tokens'],
-                      prompt_tokens=response['usage']['prompt_tokens'],
-                      total_tokens=response['usage']['total_tokens'])
+    def from_llamacpp_api(response: CreateChatCompletionResponse) -> "AssistantMessage":
+        message = response["choices"][0]["message"]
+        content = message.get("content")
+        usage = Usage(
+            completion_tokens=response["usage"]["completion_tokens"],
+            prompt_tokens=response["usage"]["prompt_tokens"],
+            total_tokens=response["usage"]["total_tokens"],
+        )
         return AssistantMessage(content, response, usage)
 
     @override
     def to_llamacpp_api(self):
-        return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
+        return ChatCompletionRequestAssistantMessage(content=self.content, role="assistant")
 
     @override
     def to_json(self):
-        json = {'role': Role.ASSISTANT.name, 'content': self.content}
+        json: Dict[str, Any] = {"role": Role.ASSISTANT.name, "content": self.content}
         if self.usage:
-            json['usage'] = self.usage.to_json()
-        return
+            json["usage"] = self.usage.to_json()
+        return json
 
 
 class FakeAssistantMessage(Message):
@@ -154,11 +167,11 @@ class FakeAssistantMessage(Message):
 
     @override
     def to_llamacpp_api(self):
-        return ChatCompletionRequestAssistantMessage(content=self.content, role='assistant')
+        return ChatCompletionRequestAssistantMessage(content=self.content, role="assistant")
 
 
 class Conversation(list):
-    def __init__(self, messages: List[Message] = None):
+    def __init__(self, messages: List[Message] | None = None):
         if messages:
             super().__init__(messages)
         else:
@@ -177,12 +190,12 @@ class Conversation(list):
         return [msg.to_json() for msg in self]
 
     def __repr__(self):
-        return '\n'.join(repr(msg) for msg in self)
+        return "\n".join(repr(msg) for msg in self)
 
     def __str__(self):
-        return '\n'.join(msg.content for msg in self)
+        return "\n".join(msg.content for msg in self)
 
-    def copy(self) -> 'Conversation':
+    def copy(self) -> "Conversation":
         return Conversation([copy.deepcopy(msg) for msg in self])
 
 
@@ -207,16 +220,16 @@ class SafeLLMEndpoint(LLMEndpoint):
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
-        answer = input(f'''Requesting completion (args: {kwargs})
+        answer = input(f"""Requesting completion (args: {kwargs})
 {repr(conversation)}
 
-Request this completion? [yn] ''')
-        if answer.strip().lower() == 'y':
+Request this completion? [yn] """)
+        if answer.strip().lower() == "y":
             msg = self.delegate.complete(conversation, stop=stop, **kwargs)
-            print(f'Response:\n{repr(msg)}')
+            print(f"Response:\n{repr(msg)}")
             return msg
         else:
-            raise Exception('Request denied.')
+            raise Exception("Request denied.")
 
 
 class OpenAIEndpoint(LLMEndpoint):
@@ -225,15 +238,17 @@ class OpenAIEndpoint(LLMEndpoint):
         self.model = model
 
     @override
-    def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
-        stop = stop or kwargs.get('stop')
-        log_data = {'args': kwargs, 'stop': stop, 'conversation': conversation.to_json()}
+    def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
+        stop = stop or kwargs.get("stop")
+        log_data = {
+            "args": kwargs,
+            "stop": stop,
+            "conversation": conversation.to_json(),
+        }
         logger.info(f"Requesting completion: {json.dumps(log_data)}")
         response = self.client.chat.completions.create(
-            model=self.model,
-            messages=conversation.to_openai_api(),
-            stop=stop,
-            **kwargs)
+            model=self.model, messages=conversation.to_openai_api(), stop=stop, **kwargs
+        )
         return AssistantMessage.from_openai_api(response)
 
 
@@ -243,26 +258,26 @@ class LlamacppEndpoint(LLMEndpoint):
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
-        stop = stop or kwargs.get('stop')
-        log_data = {'args': kwargs, 'stop': stop, 'conversation': conversation.to_json()}
+        stop = stop or kwargs.get("stop")
+        log_data = {
+            "args": kwargs,
+            "stop": stop,
+            "conversation": conversation.to_json(),
+        }
         logger.info(f"Requesting completion: {json.dumps(log_data)}")
-        response = self.client.create_chat_completion(
-            messages=conversation.to_llamacpp_api(),
-            stop=stop,
-            **kwargs)
+        response = self.client.create_chat_completion(messages=conversation.to_llamacpp_api(), stop=stop, **kwargs)
         return AssistantMessage.from_llamacpp_api(response)
 
 
 class MockLLMEndpoint(LLMEndpoint):
     def complete(self, conversation: Conversation, stop: List[str] = None, **kwargs) -> AssistantMessage:
-        path = Path('/tmp/answer')
-        print(f'{repr(conversation)}\n\nWrite answer to {path}...')
+        path = Path("/tmp/answer")
+        print(f"{repr(conversation)}\n\nWrite answer to {path}...")
         while True:
             if path.is_file():
-                print('Found answer!')
+                print("Found answer!")
                 content = path.read_text()
                 path.unlink()
                 return AssistantMessage(content=content)
             else:
                 time.sleep(1)
-
