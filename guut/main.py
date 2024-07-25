@@ -3,26 +3,34 @@ import os
 from llama_cpp import Llama
 from openai import OpenAI
 
-from guut.formatting import format_problem
-from guut.llm import Conversation, LlamacppEndpoint, MockLLMEndpoint, OpenAIEndpoint, SafeLLMEndpoint, UserMessage
+from guut.formatting import format_task
+from guut.llm import Conversation, UserMessage
+from guut.llm_endpoints.llamacpp_endpoint import LlamacppEndpoint
+from guut.llm_endpoints.logging_endpoint import LoggingLLMEndpoint
+from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
+from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop, State
+from guut.prompts import LongInstructions, SystemInstructions
 from guut.quixbugs import QuixbugsProblem
-from prompts import FewShotExample01, LongInstructions
 
 
 def main():
-    # endpoint = LoggingLLMEndpoint(SafeLLMEndpoint(get_openai_endpoint()))
-    endpoint = SafeLLMEndpoint(MockLLMEndpoint())
+    endpoint = LoggingLLMEndpoint(SafeguardLLMEndpoint(get_openai_endpoint()))
+    # endpoint = SafeguardLLMEndpoint(get_llama_endpoint())
+    # endpoint = MockLLMEndpoint()
+
+    problem = QuixbugsProblem("detect_cycle")
+    problem.validate()
 
     conversation = Conversation(
         [
+            SystemInstructions().message(),
             LongInstructions().message(),
-            *FewShotExample01().messages(),
-            UserMessage(format_problem(QuixbugsProblem("detect_cycle"))),
+            UserMessage(f"# Task\n\n{format_task(problem)}"),
         ]
     )
 
-    loop = Loop(QuixbugsProblem("sieve"), endpoint=endpoint, conversation=conversation)
+    loop = Loop(problem, endpoint=endpoint, conversation=conversation)
     loop.set_state(State.INITIAL)
 
     while loop.get_state() not in [State.DONE, State.BETWEEN, State.INVALID]:
@@ -31,15 +39,10 @@ def main():
 
 def get_llama_endpoint() -> LlamacppEndpoint:
     llama_path = os.environ["LLAMA_PATH"]
-    client = Llama(
-        model_path=llama_path,
-        n_gpu_layers=-1,  # Uncomment to use GPU acceleration
-        # seed=1337, # Uncomment to set a specific seed
-        # n_ctx=2048, # Uncomment to increase the context window
-    )
+    client = Llama(model_path=llama_path)
     return LlamacppEndpoint(client)
 
 
 def get_openai_endpoint() -> OpenAIEndpoint:
     client = OpenAI()
-    return OpenAIEndpoint(client, "gpt-3.5-turbo-0125")
+    return OpenAIEndpoint(client, "gpt-4o-mini")

@@ -10,7 +10,7 @@ class LongInstructions:
     def __init__(self):
         self.content = (prompts_path / "long_instructions").read_text()
 
-    def message(self) -> [Message]:
+    def message(self) -> Message:
         return UserMessage(self.content)
 
 
@@ -18,7 +18,7 @@ class ShortInstructions:
     def __init__(self):
         self.content = (prompts_path / "short_instructions").read_text()
 
-    def message(self) -> [Message]:
+    def message(self) -> Message:
         return UserMessage(self.content)
 
 

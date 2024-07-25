@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 import ast
 from dataclasses import dataclass
 from typing import Generator, List, Union

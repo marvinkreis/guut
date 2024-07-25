@@ -9,27 +9,9 @@ import sys
 from pathlib import Path
 
 
-# unused
-def clean_trace(exc: BaseException, directory: Path):
-    """Formats the trace of an exception, only including frames that are real files and are within path."""
-    from os.path import exists, realpath
-    from traceback import extract_tb, format_list
-
-    trace = extract_tb(exc.__traceback__)
-    trace = [frame for frame in trace if exists(frame.filename) and str(directory) in realpath(frame.filename)]
-    trace = "".join(format_list(trace))
-
-    if exc.args:
-        msg = f"{type(exc).__name__}: {exc.args[0]}"
-    else:
-        msg = type(exc).__name__
-
-    return f"Traceback:\n{trace}{msg}"
-
-
-def wrapped_debugger(script: Path):
+def wrapped_debugger(script: Path) -> None:
     import sys
-    from pdb import Pdb, Restart, _ScriptTarget  # pyright: ignore
+    from pdb import Pdb, Restart, _ScriptTarget  # pyright: ignore (private memeber)
     from traceback import print_exception
 
     class Intercept:
@@ -50,7 +32,7 @@ def wrapped_debugger(script: Path):
     pdb = Pdb()
 
     try:
-        pdb._run(target)  # pyright: ignore
+        pdb._run(target)  # pyright: ignore (private member)
         print("The program exited.")
     except Restart:
         # Don't restart the debugger.

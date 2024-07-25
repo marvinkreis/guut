@@ -2,6 +2,7 @@ import errno
 import itertools
 import os
 import sys
+from functools import partial
 from pathlib import Path
 from shutil import copyfile
 from subprocess import run
@@ -9,7 +10,7 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, List, override
 
 from guut.execution import ExecutionResult, run_debugger, run_script
-from guut.formatting import format_problem
+from guut.formatting import format_task
 from guut.problem import CodeSnippet, Problem, ProblemDescription
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
@@ -95,7 +96,10 @@ class QuixbugsProblem(Problem):
         # Exclude dependencies
         programs = [f for f in programs if "node.py" not in f.name]
 
-        return [(program.stem, lambda: QuixbugsProblem(program.stem)) for program in programs]
+        return [
+            ProblemDescription(name=program.stem, constructor=partial(QuixbugsProblem, program.stem))
+            for program in programs
+        ]
 
     def filename(self) -> str:
         return f"{self.name()}.py"
@@ -138,7 +142,7 @@ class QuixbugsProblem(Problem):
         return "\n".join(comment_lines).strip()
 
     def construct_normalized_code(self, use_mutant: bool = False) -> str:
-        return self.extract_comment() + self.extract_code(use_mutant)
+        return f"{self.extract_comment()}\n\n{self.extract_code(use_mutant)}"
 
     def compute_mutant_diff(self, reverse: bool = False) -> str:
         correct_code = self.construct_normalized_code(use_mutant=False)
@@ -166,13 +170,13 @@ class QuixbugsProblem(Problem):
 def main() -> None:
     if len(sys.argv) < 2:
         # List available problems
-        for name, constructor in QuixbugsProblem.list_problems():
-            print(name)
+        for description in QuixbugsProblem.list_problems():
+            print(description.name)
     else:
         # Print selected problem
         problem = QuixbugsProblem(sys.argv[1])
         problem.validate()
-        print(format_problem(problem))
+        print(format_task(problem))
 
 
 if __name__ == "__main__":

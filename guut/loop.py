@@ -11,7 +11,7 @@ from guut.prompts import stop_words
 
 
 # TODO: repair states
-class State(Enum):
+class State(str, Enum):
     # The prompt as well as the problem description have been stated.
     INITIAL = "initial"
 
@@ -74,7 +74,7 @@ class Loop:
     def set_state(self, state: State) -> None:
         self.conversation[-1].tag = state
 
-    def get_last_messages(self, states: List[State] = None, roles: List[Role] = None) -> List[Message]:
+    def get_last_messages(self, states: List[State] | None = None, roles: List[Role] | None = None) -> List[Message]:
         states = states or []
         roles = roles or []
 
@@ -108,8 +108,6 @@ class Loop:
 
         test_code = extract_code_block(relevant_text, "python")
         debugger_script = extract_code_block(relevant_text, "debugger")
-        if debugger_script:
-            debugger_script = debugger_script.strip().splitlines()
 
         # TODO: validate the python code
 
@@ -119,8 +117,8 @@ class Loop:
         # TODO: Lead the response with "Experiment Results"
 
         if debugger_script:
-            debugger_results_correct = self.problem.run_debugger(test_code, debugger_script, use_mutant=False)
-            debugger_results_buggy = self.problem.run_debugger(test_code, debugger_script, use_mutant=True)
+            debugger_results_correct = self.problem.run_debugger(test_code, debugger_script.strip(), use_mutant=False)
+            debugger_results_buggy = self.problem.run_debugger(test_code, debugger_script.strip(), use_mutant=True)
             new_text = format_execution_results(
                 test_results_correct, test_results_buggy, debugger_results_correct, debugger_results_buggy
             )
