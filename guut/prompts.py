@@ -1,17 +1,41 @@
 import os
 from pathlib import Path
 
-from guut.llm import FakeAssistantMessage, Message, UserMessage
+from guut.llm import FakeAssistantMessage, Message, SystemMessage, UserMessage
 
 prompts_path = Path(__file__).parent.parent / "prompts"
+
+
+class SystemInstructions:
+    def __init__(self):
+        self.content = (prompts_path / "system_instructions").read_text()
+
+    def message(self) -> Message:
+        return SystemMessage(self.content)
 
 
 class LongInstructions:
     def __init__(self):
         self.content = (prompts_path / "long_instructions").read_text()
 
-    def message(self) -> Message:
-        return UserMessage(self.content)
+    def message(self, problem_str: str) -> Message:
+        return UserMessage(self.content.replace("{problem}", problem_str))
+
+
+class LongInstructions2:
+    def __init__(self):
+        self.content = (prompts_path / "long_instructions_2").read_text()
+
+    def message(self, problem_str: str) -> Message:
+        return UserMessage(self.content.replace("{problem}", problem_str))
+
+
+class LongInstructions3:
+    def __init__(self):
+        self.content = (prompts_path / "long_instructions_3").read_text()
+
+    def message(self, problem_str: str) -> Message:
+        return UserMessage(self.content.replace("{problem}", problem_str))
 
 
 class ShortInstructions:
@@ -38,10 +62,4 @@ class FewShotExample01:
         return [FewShotExample01._path_to_msg(path) for path in self.paths]
 
 
-stop_words = [
-    "Experiment Results:",
-    "Experiment Result:",
-    "Experiment Output:",
-    "Experiment Outputs",
-    "<DEBUGGING_DONE>",
-]
+stop_words = ["Experiment Result", "Experiment Output", "<DEBUGGING_DONE>"]

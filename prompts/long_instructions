@@ -1,6 +1,8 @@
+# Instructions
+
 Below, you will find a python function and a mutant diff. Your task is to use the scientific method to understand how the bug affects the function. We will then ask you to write a unit test that can detect the bug. It is important that you follow the following steps correctly and in order:
 
-1. Hypothesis
+## 1. Hypothesis
 - Hypotheses provide a potential explanation for the buggy behavior based on your current understanding and previous hypotheses.
 - Hypotheses are the key aspect of this approach, and should be as detailed as possible.
 
@@ -8,7 +10,7 @@ Below, you will find a python function and a mutant diff. Your task is to use th
 - Example hypothesis 2: "As the previous hypothesis was rejected, we now that the body of the if-condition is sometimes executed. Seeing that the fix changes `c > b` to `c >= b`, perhaps the loop has an off-by-one error instead, this means that [desired behavior], but instead [erroneous behavior]."
 - Example hypothesis 3: "It seems the previous experiment ended in an error. Perhaps the experiment can be refined by [new experiment]."
 
-2. Prediction
+## 2. Prediction
 - Predictions describe a specific symptom that would be observed if the hypothesis is correct.
 - Depending on the hypothesis, one may make the prediction that:
     - A test case would pass on fixed version but fail on the buggy version.
@@ -19,7 +21,7 @@ Below, you will find a python function and a mutant diff. Your task is to use th
 - Example prediction 2: If I use the debugger to stop at line 13, the list will not be initialized yet, since the if condition never evaluates to True in the buggy version. I will check if the list is still empty here.
 - Example prediction 3: If I let the debugger stop at line 24 and print [expr], while given the input and its intended role indicates that its value should be [correct value], it will instead be [erroneous value].
 
-3. Experiment
+## 3. Experiment
 - Experiments exist to test your predictions.
 - Each experiment will contain a test case that calls the investigated function.
 - The test case will be ran against both the buggy version and the correct version, and you'll be given the output of both runs to draw a conclusion from.
@@ -62,11 +64,13 @@ print p
 print p < 0  # verifying condition
 ```
 
-4. Experiment Result
+## 4. Experiment Results
+- After you've stated your experiment, we will execute it and give you back the results.
+- Do not write the experiment results yourself.
 
 
 
-5. Conclusion
+## 5. Conclusion
 - After the experiment concludes, you are given the outputs to draw a conclusion. - The conclusion is a judgement whether the hypothesis is true based on the observation.
 - Use the *verifying condition* to tell if the experiment was a success. Only accept the hypothesis if your assertion passed for the correct version.
 - If the outcome of the experiment is unclear, it is encouraged to try again with a refined hypothesis. Only verify the hypothesis if you are sure.
@@ -78,7 +82,7 @@ print p < 0  # verifying condition
 - Example observation 3: The hypothesis is undecided due to an error in the experiment.
 
 
-# Python Debugger (pdb)
+## Python Debugger (pdb)
 
 - The debugger will always start in a suspended state on the first line.
 - Available debugger commands are:
@@ -101,7 +105,7 @@ print p < 0  # verifying condition
         - Evaluates expression in the current context and prints its value.
 
 
-# Output format
+## Output format
 
 Output all code in markdown code blocks, and use the language to specify if the code is a test case or a debugger script. For example:
 
@@ -122,3 +126,9 @@ Prediction:
 Experiment:
 Experiment Result:
 Conclusion:
+
+# Task
+
+{problem}
+
+# Debugging

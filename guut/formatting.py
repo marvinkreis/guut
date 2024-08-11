@@ -120,7 +120,7 @@ def format_task(problem: Problem) -> str:
         for snippet in problem.dependencies()
     ]
     diff_formatted = f"Mutant Diff:\n{format_markdown_code_block(problem.mutant_diff().content, show_linenos=False)}"
-    return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}"
+    return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}\n\n"
 
 
 def format_execution_results(

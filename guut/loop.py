@@ -107,7 +107,7 @@ class Loop:
         relevant_text = "\n".join(msg.content for msg in relevant_messages)
 
         test_code = extract_code_block(relevant_text, "python")
-        debugger_script = extract_code_block(relevant_text, "debugger")
+        debugger_script = extract_code_block(relevant_text, "pdb")
 
         # TODO: validate the python code
 

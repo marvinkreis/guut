@@ -4,13 +4,13 @@ from llama_cpp import Llama
 from openai import OpenAI
 
 from guut.formatting import format_task
-from guut.llm import Conversation, UserMessage
+from guut.llm import Conversation
 from guut.llm_endpoints.llamacpp_endpoint import LlamacppEndpoint
 from guut.llm_endpoints.logging_endpoint import LoggingLLMEndpoint
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop, State
-from guut.prompts import LongInstructions, SystemInstructions
+from guut.prompts import LongInstructions3, SystemInstructions
 from guut.quixbugs import QuixbugsProblem
 
 
@@ -19,16 +19,10 @@ def main():
     # endpoint = SafeguardLLMEndpoint(get_llama_endpoint())
     # endpoint = MockLLMEndpoint()
 
-    problem = QuixbugsProblem("detect_cycle")
+    problem = QuixbugsProblem("sieve")
     problem.validate()
 
-    conversation = Conversation(
-        [
-            SystemInstructions().message(),
-            LongInstructions().message(),
-            UserMessage(f"# Task\n\n{format_task(problem)}"),
-        ]
-    )
+    conversation = Conversation([SystemInstructions().message(), LongInstructions3().message(format_task(problem))])
 
     loop = Loop(problem, endpoint=endpoint, conversation=conversation)
     loop.set_state(State.INITIAL)
