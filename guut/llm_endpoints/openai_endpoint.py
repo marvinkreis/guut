@@ -1,7 +1,6 @@
 import json
-from typing import override
+from typing import List, override
 
-from llama_cpp import List
 from loguru import logger
 from openai import OpenAI
 from openai.types.chat import ChatCompletion

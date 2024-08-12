@@ -1,6 +1,13 @@
+from dotenv import load_dotenv
+
+from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
+
+load_dotenv()
+
 import os
 
 from llama_cpp import Llama
+from loguru import logger
 from openai import OpenAI
 
 from guut.formatting import format_task
@@ -18,6 +25,11 @@ def main():
     endpoint = LoggingLLMEndpoint(SafeguardLLMEndpoint(get_openai_endpoint()))
     # endpoint = SafeguardLLMEndpoint(get_llama_endpoint())
     # endpoint = MockLLMEndpoint()
+    # endpoint = LoggingLLMEndpoint(
+    #     ReplayLLMEndpoint(
+    #         "/home/marvin/workspace/master-thesis-playground/logs/2024-08-12 11:28:20.180534 after_completion.pickle"
+    #     )
+    # )
 
     problem = QuixbugsProblem("sieve")
     problem.validate()
@@ -29,6 +41,8 @@ def main():
 
     while loop.get_state() not in [State.DONE, State.BETWEEN, State.INVALID]:
         loop.perform_next_step()
+    else:
+        logger.info(f"Stopped with state {loop.get_state()}")
 
 
 def get_llama_endpoint() -> LlamacppEndpoint:

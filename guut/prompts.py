@@ -8,7 +8,7 @@ prompts_path = Path(__file__).parent.parent / "prompts"
 
 class SystemInstructions:
     def __init__(self):
-        self.content = (prompts_path / "system_instructions").read_text()
+        self.content = (prompts_path / "system_instructions.md").read_text()
 
     def message(self) -> Message:
         return SystemMessage(self.content)
@@ -16,7 +16,7 @@ class SystemInstructions:
 
 class LongInstructions:
     def __init__(self):
-        self.content = (prompts_path / "long_instructions").read_text()
+        self.content = (prompts_path / "long_instructions.md").read_text()
 
     def message(self, problem_str: str) -> Message:
         return UserMessage(self.content.replace("{problem}", problem_str))
@@ -24,7 +24,7 @@ class LongInstructions:
 
 class LongInstructions2:
     def __init__(self):
-        self.content = (prompts_path / "long_instructions_2").read_text()
+        self.content = (prompts_path / "long_instructions_2.md").read_text()
 
     def message(self, problem_str: str) -> Message:
         return UserMessage(self.content.replace("{problem}", problem_str))
@@ -32,7 +32,7 @@ class LongInstructions2:
 
 class LongInstructions3:
     def __init__(self):
-        self.content = (prompts_path / "long_instructions_3").read_text()
+        self.content = (prompts_path / "long_instructions_3.md").read_text()
 
     def message(self, problem_str: str) -> Message:
         return UserMessage(self.content.replace("{problem}", problem_str))
@@ -40,7 +40,7 @@ class LongInstructions3:
 
 class ShortInstructions:
     def __init__(self):
-        self.content = (prompts_path / "short_instructions").read_text()
+        self.content = (prompts_path / "short_instructions.md").read_text()
 
     def message(self) -> Message:
         return UserMessage(self.content)

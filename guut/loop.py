@@ -88,7 +88,7 @@ class Loop:
 
         test_code = extract_code_block(response.content, "python")
 
-        if (not test_code) or ("Experiment:" not in response.content):
+        if (not test_code) or ("experiment" not in response.content.lower()):
             if self.get_state() != State.BETWEEN:
                 response.tag = State.BETWEEN
             else:
@@ -139,7 +139,7 @@ class Loop:
 
         test_code = extract_code_block(response.content, "python")
 
-        if (not test_code) or ("Experiment:" not in response.content):
+        if (not test_code) or ("experiment" not in response.content.lower()):
             if self.get_state() != State.BETWEEN:
                 response.tag = State.BETWEEN
             else:
