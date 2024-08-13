@@ -23,11 +23,11 @@ Hypotheses are the key aspect of scientific debugging, and should be written det
 
 ## Experiment
 
-You must conduct experiments to test you predictions. Each experiment will cointain a python code snippet that imports and calls the function under test. You can also use the python debugger (pdb). To do so, simply include a pdb script in your experiment.
+You must conduct experiments to test you predictions. Each experiment will contain a python code snippet that imports and calls the function under test. You can also use the python debugger (pdb). To do so, simply include a pdb script in your experiment.
 
 When you stated your experiment, simply write "Experiment stated.". Once we see this message, we will take your code and execute it twice. Once against the correct version of the function under test and once against the mutant. This is important to understand correctly: You only have to call the function once in your code. We will execute it twice for you.
 
-You'll recieve bonus points if you include a *verifying expression*. A verifying expression is a boolean expression that you print in your experiment. It represents the prediction you made in you hypothesis, and the output determines whether the experiment is a success or a failure. For example: You predict in your hypothesis, that the returned list of the function `example` is empty for the correct function but not for the mutant. So you include in your experiment: `print("verifying expression: " + len(example()) == 0)`. Then, if the expression shows `True` in the correct output and `False` in the mutant output, you'll know that the experiment was successful, and otherwise it was not.
+You'll receive bonus points if you include a *verifying expression*. A verifying expression is a boolean expression that you print in your experiment. It represents the prediction you made in you hypothesis, and the output determines whether the experiment is a success or a failure. For example: You predict in your hypothesis, that the returned list of the function `example` is empty for the correct function but not for the mutant. So you include in your experiment: `print("verifying expression: " + len(example()) == 0)`. Then, if the expression shows `True` in the correct output and `False` in the mutant output, you'll know that the experiment was successful, and otherwise it was not.
 
 ## Finishing the task
 

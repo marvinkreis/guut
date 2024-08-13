@@ -22,7 +22,7 @@ Hypotheses are the key aspect of scientific debugging, and should be written det
 
 ## Experiment
 
-You must conduct experiments to test you predictions. Each experiment will cointain a python code snippet that imports and calls the buggy function. You can also use the python debugger (pdb). To use the debugger, simply include a pdb script in your experiment.
+You must conduct experiments to test you predictions. Each experiment will contain a python code snippet that imports and calls the buggy function. You can also use the python debugger (pdb). To use the debugger, simply include a pdb script in your experiment.
 
 Once you stated your experiment, we will take your code and execute it once against the correct version of the function, and once against the mutant.
 
@@ -93,7 +93,7 @@ Here is an example experiment to help you understand the format better:
 
 ### Important note
 
-*THIS IS VERY IMPORTANT:*  Your code snippt must call the buggy function only once! We will execute it against the correct code and the buggy code for you! Calling the buggy function multiple times in your experiment will result in *immediate disqualification*.
+*THIS IS VERY IMPORTANT:*  Your code snippet must call the buggy function only once! We will execute it against the correct code and the buggy code for you! Calling the buggy function multiple times in your experiment will result in *immediate disqualification*.
 
 - *DO NOT* recreate the mutant in your experiment.
 - *DO NOT* execute the function for both the correct code and the mutant code in your experiment.
