@@ -43,16 +43,22 @@ class Loop:
         self.conversation = conversation
         self.llm = endpoint
 
+        self.testcase = None
+        self.testcase_result = None
+
+    def get_testcase(self):
+        return self.testcase
+
     def perform_next_step(self):
         state = self.get_state()
         logger.info(state)
 
         if state == State.INITIAL:
-            self._prompt_llm_for_hypothesis()
+            self._prompt_llm_for_initial_hypothesis()
         elif state == State.EXPERIMENT_STATED:
             self._run_experiment()
         elif state == State.EXPERIMENT_RESULTS_GIVEN:
-            self._prompt_llm_for_conclusion_and_hypothesis()
+            self._prompt_llm_for_hypothesis()
         elif state == State.FINISHED_DEBUGGING:
             self._add_test_prompt()
         elif state == State.TEST_INSTRUCTIONS_GIVEN:
@@ -83,7 +89,7 @@ class Loop:
 
         return list(takewhile(condition, reversed(self.conversation)))
 
-    def _prompt_llm_for_hypothesis(self):
+    def _prompt_llm_for_initial_hypothesis(self):
         response = self.llm.complete(self.conversation, stop=stop_words)
 
         test_code = extract_code_block(response.content, "python")
@@ -129,7 +135,7 @@ class Loop:
         new_message.tag = State.EXPERIMENT_RESULTS_GIVEN
         self.conversation.append(new_message)
 
-    def _prompt_llm_for_conclusion_and_hypothesis(self):
+    def _prompt_llm_for_hypothesis(self):
         response = self.llm.complete(self.conversation, stop=stop_words)
 
         if "<DEBUGGING_DONE>" in response.content:
@@ -137,19 +143,7 @@ class Loop:
             self.conversation.append(response)
             return
 
-        test_code = extract_code_block(response.content, "python")
-
-        if (not test_code) or ("experiment" not in response.content.lower()):
-            if self.get_state() != State.BETWEEN:
-                response.tag = State.BETWEEN
-            else:
-                response.tag = State.INVALID
-            self.conversation.append(response)
-            return
-
-        response.tag = State.EXPERIMENT_STATED
-        self.conversation.append(response)
-        return
+        self._prompt_llm_for_initial_hypothesis()
 
     def _add_test_prompt(self):
         prompt = f"""Perfect. Now please write the bug-detecting test using the following template:
