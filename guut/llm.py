@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List, override
 
-from guut.formatting import indent_text
-
 
 class Role(Enum):
     """Represents the type of message in a LLM conversation."""
@@ -55,7 +53,7 @@ class Message(ABC):
         return self.content
 
     def __repr__(self):
-        return f"Message (role = {self.role.value}, tag = {self.tag}):\n{indent_text(self.content)}"
+        return f"Message(role={self.role.value}, tag={self.tag})\n{self.content}"
 
     def copy(self):
         return copy.deepcopy(self)
@@ -113,6 +111,7 @@ class Conversation(list):
             super().__init__(messages)
         else:
             super().__init__()
+        self.name: str | None = None
 
     def to_json(self):
         """Converts the conversation into JSON for logging."""

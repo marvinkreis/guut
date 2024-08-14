@@ -1,9 +1,0 @@
-The mutated function will always return an empty list, since it never appends any numbers to it.
-The test case can simply check the length of the returned result to detect the mutant.
-
-```python
-from sieve import sieve
-
-def test_sieve():
-    assert len(sieve(5)) > 0, 'sieve should return at least one prime number'
-```

@@ -1,12 +1,14 @@
 import math
 import os
 import re
+from enum import Enum
 from os.path import realpath
 from pathlib import Path
+from typing import List
 
 from guut.execution import ExecutionResult
+from guut.llm import AssistantMessage, Conversation, Message
 from guut.problem import Problem
-from guut.utils.pipe import p
 
 
 def format_markdown_code_block(content: str, language: str | None = None, show_linenos: bool = False) -> str:
@@ -59,25 +61,67 @@ def shorten_stack_trace(stack_trace: str, path_to_include: str | Path) -> str:
     return "\n".join(new_lines)
 
 
-def limit_text(text: str, character_limit: int = 2000) -> str:
+def limit_text(text: str, char_limit: int = 2000) -> str:
     num_chars = 0
     lines = []
     for line in text.splitlines():
         num_chars += len(line) + 1
-        if num_chars > character_limit:
-            return "\n".join(lines) + "\n..."
+        if num_chars > char_limit:
+            return "\n".join(lines) + "\n<truncated>\n..."
         lines.append(line)
     return text
 
 
-def indent_text(text: str, width: int = 4):
-    def indent_line(line: str):
-        if not line or line.isspace():
-            return line
+def wrap_text(text: str, width: int = 100) -> List[str]:
+    lines = []
+    for line in text.splitlines():
+        if len(line) <= width:
+            lines.append(line)
         else:
-            return (" " * width) + line
+            num_chars = 0
+            words = []
+            for word in line.split(" "):
+                if num_chars + len(word) > width:
+                    if words:
+                        lines.append(" ".join(words))
+                        words = [word]
+                        num_chars = len(word) + 1
+                    else:
+                        lines.append(word[:width])
+                        words = [word[width:]]
+                        num_chars = len(word[width:]) + 1
+                else:
+                    words.append(word)
+                    num_chars += len(word) + 1
+            if words:
+                lines.append(" ".join(words))
+    return lines
 
-    return "\n".join(indent_line(line) for line in text.splitlines())
+
+def wrap_in_box(text: str, width: int = 100, title: str = ""):
+    if title:
+        title = f" {title} "
+    wrapped_text = wrap_text(text, width)
+    boxed_text = "\n".join(f"│ {line.ljust(width)} │" for line in wrapped_text)
+    return f"""╭─{title}{"─" * (width + 1 - len(title))}╮
+{boxed_text}
+╰{"─" * (width + 2)}╯"""
+
+
+def pretty_conversation(conversastion: Conversation) -> str:
+    return "\n".join(pretty_message(msg) for msg in conversastion)
+
+
+def pretty_message(message: Message) -> str:
+    title = []
+    title.append(message.role.value)
+    title.append(message.tag.value if isinstance(message.tag, Enum) else str(message.tag))
+    if isinstance(message, AssistantMessage):
+        if message.usage:
+            title.append(f"({message.usage.prompt_tokens}, {message.usage.completion_tokens})")
+        else:
+            title.append("None")
+    return wrap_in_box(message.content, title=", ".join(title))
 
 
 def add_line_numbers(code: str):
@@ -112,75 +156,27 @@ def extract_code_block(response: str, language: str) -> str:
     return "\n".join(code_lines)
 
 
-def format_task(problem: Problem) -> str:
+def format_problem(problem: Problem) -> str:
     cut = problem.class_under_test()
     cut_formatted = f"{cut.name}:\n{format_markdown_code_block(cut.content, show_linenos=True)}"
     deps_formatted = [
         f"{snippet.name}:\n{format_markdown_code_block(snippet.content, show_linenos=False)}"
         for snippet in problem.dependencies()
     ]
-    diff_formatted = f"Mutant Diff:\n{format_markdown_code_block(problem.mutant_diff().content, show_linenos=False)}"
-    return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}\n\n"
+    diff_formatted = f"Mutant Diff:\n{format_markdown_code_block(problem.mutant_diff(), show_linenos=False)}"
+    return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}".strip()
 
 
-def format_execution_results(
-    test_result_correct: ExecutionResult,
-    test_result_buggy: ExecutionResult,
-    debugger_result_correct: ExecutionResult | None = None,
-    debugger_result_buggy: ExecutionResult | None = None,
-) -> str:
-    text = []
+def format_test_result(test_result: ExecutionResult, char_limit: int = 1500):
+    text = test_result.output.rstrip()
+    text = shorten_paths(text, test_result.cwd)
+    text = limit_text(text, char_limit)
+    return text
 
-    text.append(
-        p(test_result_correct.output)
-        | (shorten_paths, test_result_correct.cwd)
-        | (limit_text, 1500)
-        | format_markdown_code_block
-        | p.format("Test on correct code:\n{p}")
-        | p.when(test_result_correct.timeout, p.format("{p}\nThe test was cancelled due to a timeout."))
-        | p.when(
-            test_result_correct.exitcode != 0,
-            p.format("{p}\nThe test exited with exitcode {}.", test_result_correct.exitcode),
-        )
-        | p.format("{p}\n")
-        | p
-    )
 
-    text.append(
-        p(test_result_buggy.output)
-        | (shorten_paths, test_result_buggy.cwd)
-        | (limit_text, 1500)
-        | format_markdown_code_block
-        | p.format("Test on mutant:\n{p}")
-        | p.when(test_result_buggy.timeout, p.format("{p}\nThe test was cancelled due to a timeout."))
-        | p.when(
-            test_result_buggy.exitcode != 0,
-            p.format("{p}\nThe test exited with exitcode {}.", test_result_buggy.exitcode),
-        )
-        | p.format("{p}\n")
-        | p
-    )
-
-    if debugger_result_correct:
-        text.append(
-            p(debugger_result_correct.output)
-            | (shorten_stack_trace, debugger_result_correct.cwd)
-            | (shorten_paths, debugger_result_correct.cwd)
-            | (limit_text, 1500)
-            | format_markdown_code_block
-            | "Debugger on correct code:\n{}\n".format
-            | p
-        )
-
-    if debugger_result_buggy:
-        text.append(
-            p(debugger_result_buggy.output)
-            | (shorten_stack_trace, debugger_result_buggy.cwd)
-            | (shorten_paths, debugger_result_buggy.cwd)
-            | (limit_text, 1500)
-            | format_markdown_code_block
-            | "Debugger on mutant:\n{}\n".format
-            | p
-        )
-
-    return "\n".join(text).strip()
+def format_debugger_result(debugger_result: ExecutionResult, char_limit: int = 1500):
+    text = debugger_result.output.rstrip()
+    text = shorten_stack_trace(text, debugger_result.cwd)
+    text = shorten_paths(text, debugger_result.cwd)
+    text = limit_text(text, char_limit)
+    return text

@@ -1,65 +1,90 @@
-import os
+from dataclasses import dataclass
 from pathlib import Path
+from typing import List
 
-from guut.llm import FakeAssistantMessage, Message, SystemMessage, UserMessage
+import jinja2
 
-prompts_path = Path(__file__).parent.parent / "prompts"
+from guut.execution import ExperimentResult
+from guut.formatting import add_line_numbers, format_debugger_result, format_test_result
+from guut.llm import SystemMessage, UserMessage
+from guut.problem import Problem
 
-
-class SystemInstructions:
-    def __init__(self):
-        self.content = (prompts_path / "system_instructions.md").read_text()
-
-    def message(self) -> Message:
-        return SystemMessage(self.content)
-
-
-class LongInstructions:
-    def __init__(self):
-        self.content = (prompts_path / "long_instructions.md").read_text()
-
-    def message(self, problem_str: str) -> Message:
-        return UserMessage(self.content.replace("{problem}", problem_str))
+templates_path = Path(__file__).parent.parent / "templates"
+jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), trim_blocks=True)
+jinja_env.filters["format_test_result"] = format_test_result
+jinja_env.filters["format_debugger_result"] = format_debugger_result
+jinja_env.filters["add_line_numbers"] = add_line_numbers
+jinja_env.filters["rtrim"] = lambda s: s.rstrip()
 
 
-class LongInstructions2:
-    def __init__(self):
-        self.content = (prompts_path / "long_instructions_2.md").read_text()
+class SystemPrompt:
+    def __init__(self, template_path: str):
+        self.template = jinja_env.get_template(template_path)
 
-    def message(self, problem_str: str) -> Message:
-        return UserMessage(self.content.replace("{problem}", problem_str))
-
-
-class LongInstructions3:
-    def __init__(self):
-        self.content = (prompts_path / "long_instructions_3.md").read_text()
-
-    def message(self, problem_str: str) -> Message:
-        return UserMessage(self.content.replace("{problem}", problem_str))
+    def render(self) -> SystemMessage:
+        return SystemMessage(self.template.render().strip() + "\n")
 
 
-class ShortInstructions:
-    def __init__(self):
-        self.content = (prompts_path / "short_instructions.md").read_text()
+class DebugPrompt:
+    def __init__(self, template_path: str, stop_words: List[str]):
+        self.template = jinja_env.get_template(template_path)
+        self.stop_words = stop_words
 
-    def message(self) -> Message:
-        return UserMessage(self.content)
+    def render(self, problem: Problem) -> UserMessage:
+        return UserMessage(self.template.render().strip() + "\n")
 
-
-class FewShotExample01:
-    def __init__(self):
-        example_dir = prompts_path / "example01"
-        self.paths = sorted(example_dir / path for path in os.listdir(example_dir))
-
-    @staticmethod
-    def _path_to_msg(path: Path):
-        if "assistant" in path.name:
-            return FakeAssistantMessage(path.read_text())
-        else:
-            return UserMessage(path.read_text())
-
-    def messages(self):
-        return [FewShotExample01._path_to_msg(path) for path in self.paths]
+    def get_stop_words(self) -> List[str]:
+        return self.stop_words
 
 
-stop_words = ["Experiment Result", "Experiment Output", "<DEBUGGING_DONE>"]
+class ProblemTemplate:
+    def __init__(self, template_path: str):
+        self.template = jinja_env.get_template(template_path)
+
+    def render(self, problem: Problem) -> UserMessage:
+        return UserMessage(
+            self.template.render(
+                problem=problem,
+            ).strip()
+            + "\n"
+        )
+
+
+class ExperimentResultsTemplate:
+    def __init__(self, template_path: str):
+        self.template = jinja_env.get_template(template_path)
+
+    def render(self, result: ExperimentResult) -> UserMessage:
+        return UserMessage(self.template.render(result=result).strip() + "\n")
+
+
+class TestResultsTemplate:
+    pass
+
+
+class TestPrompt:
+    def __init__(self, template_path: str, stop_words: List[str]):
+        self.template = jinja_env.get_template(template_path)
+        self.stop_words = stop_words
+
+    def render(self, max_iterations: bool) -> UserMessage:
+        return UserMessage(self.template.render(max_iterations=max_iterations).strip() + "\n")
+
+    def get_stop_words(self) -> List[str]:
+        return self.stop_words
+
+
+@dataclass
+class PromptCollection:
+    system_prompt: SystemPrompt | None
+    debug_prompt: DebugPrompt
+    test_prompt: TestPrompt
+    experiment_results_template: ExperimentResultsTemplate
+    problem_template: ProblemTemplate
+
+
+system_prompt = SystemPrompt("prompts/system_prompt.md")
+debug_prompt = DebugPrompt("prompts/debug_prompt.md", ["Experiment Result", "Experiment Output", "<DEBUGGING_DONE>"])
+test_prompt = TestPrompt("prompts/test_prompt.md", [])
+experiment_results_template = ExperimentResultsTemplate("experiment_results_template.md")
+problem_template = ProblemTemplate("problem_template.md")

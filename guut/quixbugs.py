@@ -10,8 +10,8 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, List, override
 
 from guut.execution import ExecutionResult, run_debugger, run_script
-from guut.formatting import format_task
-from guut.problem import CodeSnippet, Problem, ProblemDescription
+from guut.formatting import format_problem
+from guut.problem import Problem, ProblemDescription, TextFile
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
@@ -28,20 +28,20 @@ class QuixbugsProblem(Problem):
         return self._name
 
     @override
-    def class_under_test(self) -> CodeSnippet:
-        return CodeSnippet(
+    def class_under_test(self) -> TextFile:
+        return TextFile(
             content=self.construct_normalized_code(use_mutant=False), name=self.filename(), language="python"
         )
 
     @override
-    def dependencies(self) -> Iterable[CodeSnippet]:
+    def dependencies(self) -> Iterable[TextFile]:
         if self.is_graph_problem():
-            return [CodeSnippet(content=NODE_PATH.read_text(), name=NODE_PATH.name, language="python")]
+            return [TextFile(content=NODE_PATH.read_text(), name=NODE_PATH.name, language="python")]
         return []
 
     @override
-    def mutant_diff(self, reverse: bool = False) -> CodeSnippet:
-        return CodeSnippet(content=self.compute_mutant_diff(reverse=reverse), name="Mutant Diff", language="diff")
+    def mutant_diff(self, reverse: bool = False) -> str:
+        return self.compute_mutant_diff(reverse=reverse)
 
     @override
     def run_test(self, code: str, use_mutant: bool = False) -> ExecutionResult:
@@ -176,7 +176,7 @@ def main() -> None:
         # Print selected problem
         problem = QuixbugsProblem(sys.argv[1])
         problem.validate()
-        print(format_task(problem))
+        print(format_problem(problem))
 
 
 if __name__ == "__main__":

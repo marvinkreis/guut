@@ -4,3 +4,4 @@ __pycache__
 /venv
 .zed
 .env
+.ruff_cache

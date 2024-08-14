@@ -19,6 +19,14 @@ class ExecutionResult:
     timeout: bool = False
 
 
+@dataclass
+class ExperimentResult:
+    test_correct: ExecutionResult
+    test_mutant: ExecutionResult
+    debug_correct: ExecutionResult | None = None
+    debug_mutant: ExecutionResult | None = None
+
+
 def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None) -> ExecutionResult:
     process_input = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
     process_command = ["python", inspect.getfile(debugger_wrapper), str(target)]
@@ -43,7 +51,7 @@ def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None) ->
             cwd=process_cwd,
             input=process_input,
             output=output.decode(),
-            exitcode=process.returncode,
+            exitcode=1,
             timeout=True,
         )
 
@@ -79,6 +87,6 @@ def run_script(script: Path, stdin: str | None = None, cwd: Path | None = None) 
             cwd=process_cwd,
             input=process_input,
             output=output.decode(),
-            exitcode=process.returncode,
+            exitcode=1,
             timeout=True,
         )

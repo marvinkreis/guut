@@ -1,3 +1,4 @@
+import tempfile
 import time
 
 from llama_cpp import Path
@@ -6,9 +7,10 @@ from loguru import logger
 
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint
 
-CONVERSATION_PATH = Path("/tmp/guut/conversation")
-RESPONSE_PATH = Path("/tmp/guut/response")
-Path("/tmp/guut").mkdir(exist_ok=True)
+TEMP_PATH = Path(tempfile.gettempdir()) / "guut"
+TEMP_PATH.mkdir(exist_ok=True)
+CONVERSATION_PATH = TEMP_PATH / "guut/conversation"
+RESPONSE_PATH = TEMP_PATH / "guut/response"
 
 
 class MockLLMEndpoint(LLMEndpoint):

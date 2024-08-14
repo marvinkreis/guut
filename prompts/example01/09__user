@@ -1,9 +1,0 @@
-Next, I will write a test that detects the mutant. I will use the following template:
-```python
-from sieve import sieve
-
-def test_sieve():
-    pass  # test here
-```
-
-But first, I will explain the test:

@@ -1,56 +1,65 @@
-from dotenv import load_dotenv
-
-from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
-
-load_dotenv()
-
 import os
 
-from llama_cpp import Llama
+from dotenv import load_dotenv
+
+load_dotenv(dotenv_path=os.environ["DOTENV_PATH"])
+
+
 from loguru import logger
 from openai import OpenAI
 
-from guut.formatting import format_task
-from guut.llm import Conversation
-from guut.llm_endpoints.llamacpp_endpoint import LlamacppEndpoint
-from guut.llm_endpoints.logging_endpoint import LoggingLLMEndpoint
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
-from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
-from guut.loop import Loop, State
-from guut.prompts import LongInstructions3, SystemInstructions
+from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
+from guut.loop import Loop
+from guut.prompts import (
+    PromptCollection,
+    debug_prompt,
+    experiment_results_template,
+    problem_template,
+    system_prompt,
+    test_prompt,
+)
 from guut.quixbugs import QuixbugsProblem
 
 
 def main():
-    endpoint = LoggingLLMEndpoint(SafeguardLLMEndpoint(get_openai_endpoint()))
-    # endpoint = SafeguardLLMEndpoint(get_llama_endpoint())
-    # endpoint = MockLLMEndpoint()
-    # endpoint = LoggingLLMEndpoint(
-    #     ReplayLLMEndpoint(
-    #         "/home/marvin/workspace/master-thesis-playground/logs/2024-08-12 11:28:20.180534 after_completion.pickle"
-    #     )
-    # )
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            """Experiment:
+```python
+print("something")
+```
 
+```pdb
+p "something from debugger"
+```""",
+            """Experiment:
+```python
+assert 1 == 2
+```""",
+            """<DEBUGGING_DONE>""",
+            """```python
+from sieve import sieve
+
+assert len(sieve(10)) > 0
+```""",
+        ]
+    )
     problem = QuixbugsProblem("sieve")
     problem.validate()
 
-    conversation = Conversation([SystemInstructions().message(), LongInstructions3().message(format_task(problem))])
+    prompts = PromptCollection(
+        system_prompt=system_prompt,
+        debug_prompt=debug_prompt,
+        test_prompt=test_prompt,
+        experiment_results_template=experiment_results_template,
+        problem_template=problem_template,
+    )
 
-    loop = Loop(problem, endpoint=endpoint, conversation=conversation)
-    loop.set_state(State.INITIAL)
-
-    while loop.get_state() not in [State.DONE, State.BETWEEN, State.INVALID]:
-        loop.perform_next_step()
-    else:
-        logger.info(f"Stopped with state {loop.get_state()}")
-
-
-def get_llama_endpoint() -> LlamacppEndpoint:
-    llama_path = os.environ["LLAMA_PATH"]
-    client = Llama(model_path=llama_path)
-    return LlamacppEndpoint(client)
+    loop = Loop(problem, endpoint=endpoint, prompts=prompts, print=True, log=False)
+    loop.iterate()
+    logger.info(f"Stopped with state {loop.get_state()}")
 
 
 def get_openai_endpoint() -> OpenAIEndpoint:
-    client = OpenAI()
-    return OpenAIEndpoint(client, "gpt-4o-mini")
+    return OpenAIEndpoint(OpenAI(), "gpt-4o-mini")

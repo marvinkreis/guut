@@ -26,7 +26,7 @@ You must conduct experiments to test you predictions. Each experiment will conta
 
 Once you stated your experiment, we will take your code and execute it once against the correct version of the function, and once against the mutant.
 
-You'll recieve bonus points if you include a *verifying expression*. A verifying expression is a boolean expression that you print in your experiment. It represents the prediction you made in you hypothesis, and its value determines whether the experiment is a success or a failure. For example: You predict in your hypothesis, that the returned list of the function `example` is empty for the correct function but not for the mutant. So you include in your experiment: `print("verifying expression: " + (len(example()) == 0))`. Then, if the expression shows `True` in the correct output and `False` in the mutant output, you'll know that the experiment was successful, and otherwise it was not.
+You'll receive bonus points if you include a *verifying expression*. A verifying expression is a boolean expression that you print in your experiment. It represents the prediction you made in you hypothesis, and its value determines whether the experiment is a success or a failure. For example: You predict in your hypothesis, that the returned list of the function `example` is empty for the correct function but not for the mutant. So you include in your experiment: `print("verifying expression: " + (len(example()) == 0))`. Then, if the expression shows `True` in the correct output and `False` in the mutant output, you'll know that the experiment was successful, and otherwise it was not.
 
 ### Example experiment
 
@@ -186,9 +186,3 @@ Repeat this for every hypothesis you make. Once you are ready to write the test,
     - p
         - Syntax: `p expression`
         - Evaluates expression in the current context and prints its value.
-
-# Task
-
-{problem}
-
-# Scientific debugging

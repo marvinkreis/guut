@@ -1,4 +1,0 @@
-The debugger indeed hit the breakpoint on the correct version, but not on the mutant. This means that the hypothesis is
-correct. I now understand how the mutant affects the function, therefore I am done with debugging.
-
-<DEBUGGING_DONE>
