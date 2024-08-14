@@ -1,0 +1,11 @@
+diff --git a/example.py b/example.py
+index a657e80..02c488a 100644
+--- a/home/marvin/workspace/guut/prompts/example.py
++++ b/example.py
+@@ -6,5 +6,5 @@ def example(names: List[str]):
+     counts = {}
+     for name in names:
+         count = counts.get(name) or 0
+-        counts[name] = count + 1
++        counts[name] = 1
+     return counts
