@@ -11,14 +11,7 @@ from openai import OpenAI
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.loop import Loop
-from guut.prompts import (
-    PromptCollection,
-    debug_prompt,
-    experiment_results_template,
-    problem_template,
-    system_prompt,
-    test_prompt,
-)
+from guut.prompts import default_prompts
 from guut.quixbugs import QuixbugsProblem
 
 
@@ -48,15 +41,7 @@ assert len(sieve(10)) > 0
     problem = QuixbugsProblem("sieve")
     problem.validate()
 
-    prompts = PromptCollection(
-        system_prompt=system_prompt,
-        debug_prompt=debug_prompt,
-        test_prompt=test_prompt,
-        experiment_results_template=experiment_results_template,
-        problem_template=problem_template,
-    )
-
-    loop = Loop(problem, endpoint=endpoint, prompts=prompts, print=True, log=False)
+    loop = Loop(problem, endpoint=endpoint, prompts=default_prompts, print=True, log=False)
     loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
 

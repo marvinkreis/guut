@@ -27,6 +27,12 @@ class ExperimentResult:
     debug_mutant: ExecutionResult | None = None
 
 
+@dataclass
+class TestResult:
+    correct: ExecutionResult
+    mutant: ExecutionResult
+
+
 def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None) -> ExecutionResult:
     process_input = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
     process_command = ["python", inspect.getfile(debugger_wrapper), str(target)]

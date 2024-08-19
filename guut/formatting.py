@@ -138,7 +138,7 @@ def add_line_numbers(code: str):
     return "\n".join(add_line_number(line, i + 1) for i, line in enumerate(lines))
 
 
-def extract_code_block(response: str, language: str) -> str:
+def extract_code_block(response: str, language: str) -> str | None:
     code_block_started = False
     code_lines = []
 
@@ -153,7 +153,7 @@ def extract_code_block(response: str, language: str) -> str:
         if code_block_started:
             code_lines.append(line)
 
-    return "\n".join(code_lines)
+    return "\n".join(code_lines) if code_lines else None
 
 
 def format_problem(problem: Problem) -> str:

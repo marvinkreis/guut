@@ -11,7 +11,7 @@ from typing import Iterable, List, override
 
 from guut.execution import ExecutionResult, run_debugger, run_script
 from guut.formatting import format_problem
-from guut.problem import Problem, ProblemDescription, TextFile
+from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
@@ -44,7 +44,7 @@ class QuixbugsProblem(Problem):
         return self.compute_mutant_diff(reverse=reverse)
 
     @override
-    def run_test(self, code: str, use_mutant: bool = False) -> ExecutionResult:
+    def run_code(self, code: str, use_mutant: bool = False) -> ExecutionResult:
         with TemporaryDirectory() as tempdir:
             # copy program under test
             put_path = Path(tempdir) / self.filename()
@@ -165,6 +165,13 @@ class QuixbugsProblem(Problem):
                 timeout=2,
             )
             return result.stdout.decode().replace(f"{self.name()}_mutant.py", f"{self.name()}.py")
+
+    def validate_code(self, code: str) -> ValidationResult:
+        try:
+            compile(code, "test.py", "exec")
+            return ValidationResult(True)
+        except SyntaxError as e:
+            return ValidationResult(False, e.msg)
 
 
 def main() -> None:
