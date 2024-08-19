@@ -6,7 +6,7 @@ from typing import List
 from loguru import logger
 
 from guut.formatting import extract_code_block, pretty_message
-from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message, Role
+from guut.llm import Conversation, LLMEndpoint, Message, Role
 from guut.logging import LOG_BASE_PATH, Logger
 from guut.problem import Problem
 from guut.prompts import PromptCollection, test_prompt
@@ -77,11 +77,11 @@ class Loop:
         if state == State.EMPTY:
             self._init_conversation()
         elif state == State.INITIAL:
-            self._prompt_llm_for_initial_hypothesis()
+            self._prompt_for_hypothesis()
         elif state == State.EXPERIMENT_STATED:
             self._run_experiment()
         elif state == State.EXPERIMENT_RESULTS_GIVEN:
-            self._prompt_llm_for_hypothesis()
+            self._prompt_for_hypothesis()
         elif state == State.FINISHED_DEBUGGING:
             self._add_test_prompt()
         elif state == State.TEST_INSTRUCTIONS_GIVEN:
@@ -139,13 +139,16 @@ class Loop:
         self.add_msg(self.prompts.debug_prompt.render(self.problem), State.BETWEEN)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
-    def _prompt_llm_for_initial_hypothesis(self, response: AssistantMessage | None = None):
-        if not response:
-            response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_prompt.stop_words)
+    def _prompt_for_hypothesis(self):
+        response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_prompt.stop_words)
+
+        if "<DEBUGGING_DONE>" in response.content:
+            self.add_msg(response, State.FINISHED_DEBUGGING)
+            return
 
         test_code = extract_code_block(response.content, "python")
 
-        if (not test_code) or ("experiment" not in response.content.lower()):
+        if not test_code:
             if self.get_state() != State.BETWEEN:
                 self.add_msg(response, State.BETWEEN)
             else:
@@ -153,7 +156,6 @@ class Loop:
             return
 
         self.add_msg(response, State.EXPERIMENT_STATED)
-        return
 
     def _run_experiment(self):
         relevant_messages = self.get_last_messages(
@@ -171,15 +173,6 @@ class Loop:
             result=experiment_result,
         )
         self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
-
-    def _prompt_llm_for_hypothesis(self):
-        response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_prompt.stop_words)
-
-        if "<DEBUGGING_DONE>" in response.content:
-            self.add_msg(response, State.FINISHED_DEBUGGING)
-            return
-
-        self._prompt_llm_for_initial_hypothesis(response=response)
 
     def _add_test_prompt(self, max_iterations: bool = False):
         self.add_msg(test_prompt.render(max_iterations=max_iterations), State.TEST_INSTRUCTIONS_GIVEN)
