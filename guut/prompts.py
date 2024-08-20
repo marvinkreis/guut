@@ -1,6 +1,6 @@
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import List, Literal
+from typing import List
 
 import jinja2
 
@@ -68,8 +68,8 @@ class ResultsTemplate(Template):
 
 
 class ConversationAbortedTemplate(Template):
-    def render(self, reason: Literal["incomplete_response", "invalid_test"]) -> UserMessage:
-        return UserMessage(self.template.render(reason=reason).strip() + "\n")
+    def render(self, reason: str, extra_reason: str | None = None) -> UserMessage:
+        return UserMessage(self.template.render(reason=reason, extra_reason=extra_reason).strip() + "\n")
 
 
 @dataclass
