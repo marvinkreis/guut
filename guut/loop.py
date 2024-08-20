@@ -61,8 +61,8 @@ class Loop:
         endpoint: LLMEndpoint,
         prompts: PromptCollection,
         conversation: Conversation | None = None,
-        log: bool = True,
-        print: bool = False,
+        enable_log: bool = True,
+        enable_print: bool = False,
         max_retries_for_invalid_test: int = 2,
         max_incomplete_responses: int = 2,
         max_num_experiments: int = 8,
@@ -70,9 +70,9 @@ class Loop:
         self.problem = problem
         self.endpoint = endpoint
         self.prompts = prompts
-        self.log = log
+        self.enable_log = enable_log
 
-        self.print = print
+        self.enable_print = enable_print
         self.new_messages: List[Message] = []
 
         self.max_retries_for_invalid_code = max_retries_for_invalid_test
@@ -94,12 +94,12 @@ class Loop:
 
         self._perform_next_step(state)
 
-        if self.print:
+        if self.enable_print:
             for msg in self.new_messages:
                 print(pretty_message(msg))
             self.new_messages = []
 
-        if self.log:
+        if self.enable_log:
             self.logger.log_conversation(self.conversation, name=self.conversation.name or "")
 
     def _perform_next_step(self, state: State):
@@ -150,7 +150,6 @@ class Loop:
 
     def _init_conversation(self):
         """it's hard to so sometimes"""
-        self.conversation = Conversation()
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render())
         self.add_msg(self.prompts.debug_prompt.render(self.problem))

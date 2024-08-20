@@ -1,4 +1,3 @@
-import json
 from typing import List, override
 
 from loguru import logger
@@ -30,12 +29,12 @@ class OpenAIEndpoint(LLMEndpoint):
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
         messages = conversation_to_api(conversation)
         stop = stop or kwargs.get("stop")
-        log_data = {
-            "args": kwargs,
-            "stop": stop,
-            "conversation": conversation.to_json(),
-        }
-        logger.info(f"Requesting completion for conversation {json.dumps(log_data)}")
+        log_data = {"args": kwargs, "stop": stop, "num_messages": len(conversation)}
+        if conversation.name:
+            log_data["conversation"] = conversation.name
+        logger.info(
+            f"Requesting completion: conversation={conversation.name}, num_messages={len(conversation)}, stop={stop}, args={kwargs}"
+        )
         response = self.client.chat.completions.create(model=self.model, messages=messages, stop=stop, **kwargs)
         return msg_from_response(response)
 

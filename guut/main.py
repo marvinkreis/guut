@@ -10,6 +10,7 @@ from openai import OpenAI
 
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
+from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop
 from guut.prompts import default_prompts
 from guut.quixbugs import QuixbugsProblem
@@ -38,10 +39,11 @@ assert len(sieve(10)) > 0
 ```""",
         ]
     )
+    endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
     problem = QuixbugsProblem("sieve")
     problem.validate()
 
-    loop = Loop(problem, endpoint=endpoint, prompts=default_prompts, print=True, log=False)
+    loop = Loop(problem, endpoint=endpoint, prompts=default_prompts, enable_print=True, enable_log=True)
     loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
 
