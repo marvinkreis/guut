@@ -65,6 +65,7 @@ class Loop:
         print: bool = False,
         max_retries_for_invalid_test: int = 2,
         max_incomplete_responses: int = 2,
+        max_num_experiments: int = 8,
     ):
         self.problem = problem
         self.endpoint = endpoint
@@ -76,6 +77,7 @@ class Loop:
 
         self.max_retries_for_invalid_code = max_retries_for_invalid_test
         self.max_retries_for_incomplete_response = max_incomplete_responses
+        self.max_num_experiments = max_num_experiments
 
         self.testcase = str | None
         self.test_result = TestResult | None
@@ -195,8 +197,13 @@ class Loop:
         )
         self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
 
-    def _add_test_prompt(self, max_iterations: bool = False):
-        new_message = self.prompts.test_prompt.render(max_iterations=max_iterations)
+        num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
+        if num_experiments >= self.max_num_experiments:
+            new_message = self.prompts.test_prompt.render(max_iterations=True)
+            self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
+
+    def _add_test_prompt(self):
+        new_message = self.prompts.test_prompt.render(max_iterations=False)
         self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
 
     def _prompt_llm_for_test(self):
