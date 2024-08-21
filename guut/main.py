@@ -39,11 +39,11 @@ assert len(sieve(10)) > 0
 ```""",
         ]
     )
-    endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
+    # endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
     problem = QuixbugsProblem("sieve")
     problem.validate()
 
-    loop = Loop(problem, endpoint=endpoint, prompts=default_prompts, enable_print=True, enable_log=True)
+    loop = Loop(problem, endpoint=endpoint, prompts=default_prompts, enable_print=True, enable_log=False)
     loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
 

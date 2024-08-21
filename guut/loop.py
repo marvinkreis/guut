@@ -53,6 +53,9 @@ class State(str, Enum):
     # The conversation is in an unknown or unrecoverable state.
     INVALID = "invalid"
 
+    # The conversation was aborted.
+    ABORTED = "aborted"
+
 
 class Loop:
     def __init__(
@@ -127,11 +130,13 @@ class Loop:
             self._prompt_llm_for_incomplete_response()
         elif state == State.INVALID:
             raise InvalidStateException(State.INVALID)
+        elif state == State.ABORTED:
+            raise InvalidStateException(State.ABORTED)
         elif state is None:
             raise InvalidStateException(None)
 
     def iterate(self):
-        while self.get_state() not in [State.DONE, State.INVALID, None]:
+        while self.get_state() not in [State.DONE, State.INVALID, State.ABORTED, None]:
             self.perform_next_step()
 
     def get_state(self) -> State:
@@ -233,25 +238,31 @@ class Loop:
             return
 
         result = self.problem.run_test(test_code)
+
+        self.testcase = test_code
+        self.test_result = result
+
         if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
-            self.testcase = test_code
-            self.test_result = result
             new_message = self.prompts.results_template.render(test=test_code, result=result)
             self.add_msg(new_message, State.DONE)
             return
 
         new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
-        num_tries = len([msg for msg in self.conversation if msg.tag == State.TEST_INVALID])
+        num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_INVALID])
 
-        if num_tries < self.max_retries_for_invalid_code:
-            self.add_msg(new_message, State.TEST_INVALID)
-        else:
-            self.add_msg(new_message, State.INVALID)
+        self.add_msg(new_message, State.TEST_INVALID)
+        if num_retries >= self.max_retries_for_invalid_code:
+            new_message = self.prompts.conversation_aborted_template.render(
+                reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
+            )
+            self.add_msg(new_message, State.ABORTED)
 
     def _prompt_llm_for_incomplete_response(self):
         num_tries = len([msg for msg in self.conversation if msg.tag == State.INCOMPLETE_RESPONSE])
         if num_tries > self.max_retries_for_incomplete_response:
-            new_message = self.prompts.conversation_aborted_template.render(reason="incomplete_response")
+            new_message = self.prompts.conversation_aborted_template.render(
+                reason="incomplete_response", extra_reason="The LLM has given too many incomplete responses."
+            )
             self.add_msg(new_message, State.INVALID)
             return
 
