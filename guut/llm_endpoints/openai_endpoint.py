@@ -56,14 +56,19 @@ def conversation_to_api(conversation: Conversation) -> List[ChatCompletionMessag
 
 
 def msg_from_response(response: ChatCompletion) -> AssistantMessage:
-    content = response.choices[0].message.content
+    try:
+        content = response.choices[0].message.content or ""
+    except Exception:
+        content = ""
 
-    if not content or not response.usage:
-        raise Exception("Incomplete OpenAI response")
-
-    usage = Usage(
-        completion_tokens=response.usage.completion_tokens,
-        prompt_tokens=response.usage.prompt_tokens,
-        total_tokens=response.usage.total_tokens,
+    usage = (
+        Usage(
+            completion_tokens=response.usage.completion_tokens,
+            prompt_tokens=response.usage.prompt_tokens,
+            total_tokens=response.usage.total_tokens,
+        )
+        if response.usage
+        else None
     )
+
     return AssistantMessage(content, response, usage)
