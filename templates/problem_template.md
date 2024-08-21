@@ -1,20 +1,19 @@
 # Task
 
 {% set cut = problem.class_under_test() %}
-{{ cut.name }}:
-```{{ cut.language }}
+```{{ cut.language }} {{ cut.name }}
 {{ cut.content | rtrim | add_line_numbers }}
 ```
 {% for dep in problem.dependencies() %}
 
 {{ dep.name }}:
-```{{ dep.language }}
+```{{ dep.language }} {{ dep.name }}
 {{ dep.content | rtrim }}
 ```
 {% endfor %}
 
 Mutant Diff:
-```diff
+```diff {{ mutant.diff }}
 {{ problem.mutant_diff() | rtrim }}
 ```
 

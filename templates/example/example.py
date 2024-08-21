@@ -1,7 +1,7 @@
 from typing import List
 
 
-def example(names: List[str]):
+def count_names(names: List[str]):
     """Counts the appearances of names in a list."""
     counts = {}
     for name in names:

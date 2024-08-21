@@ -11,9 +11,12 @@ from guut.llm import AssistantMessage, Conversation, Message
 from guut.problem import Problem
 
 
-def format_markdown_code_block(content: str, language: str | None = None, show_linenos: bool = False) -> str:
+def format_markdown_code_block(
+    content: str, language: str | None = None, name: str | None = None, show_linenos: bool = False
+) -> str:
+    header = " ".join([language or "", name or ""])
     content = add_line_numbers(content) if show_linenos else content
-    return f"""```{language or ''}
+    return f"""```{header}
 {content.rstrip()}
 ```"""
 
