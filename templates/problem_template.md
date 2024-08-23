@@ -13,7 +13,7 @@
 {% endfor %}
 
 Mutant Diff:
-```diff {{ mutant.diff }}
+```diff mutant.diff
 {{ problem.mutant_diff() | rtrim }}
 ```
 
