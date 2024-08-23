@@ -1,25 +1,32 @@
-We are going to give you some Python code and a mutant diff. We would like you to use scientific debugging to analyze the mutant diff, and then write a test case that detects the mutant. But first, we'll give you some information on scientific debugging and on how to complete the task.
+We are going to give you some Python code and a mutant diff. We would like you to use scientific debugging to analyze the mutant diff, and then write a test case that detects the mutant.
 
 # Scientific Debugging
 
-The goal of scientific debugging is to analyze and understand a software bug (here: mutant) via the scientific method. One starts with limited knowledge about the bug, then creates hypotheses and conducts experiments to test them. The hypotheses, whether verified or falsified, then build the basis for new hypotheses until the bug is understood.
+The goal of scientific debugging is to analyze and understand a software bug (here: mutant) via the scientific method. One starts with limited knowledge about the mutant, then creates hypotheses and conducts experiments to test them. The hypotheses, whether verified or falsified, then build the basis for new hypotheses until the mutant is understood.
 
-The next part provides more information about the steps of scientific debugging.
+## Go step by step
 
-## Starting out
+Firstly, you might already have an intuitive idea about how the mutant affects the code. This is good, but *do not* start out by assuming that your idea is correct. It is good practice to explain your idea, but the next step should be to *test the assumptions* that are the basis of your idea, even if they may seem obvious.
 
-Firstly, you might already have an idea in mind about how the entire bug works. *DO NOT IMMEDIATELY ASSUME THAT IS IDEA IS CORRECT*. It is imperative to this approach that you start with small hypotheses and build your way up. You can write you idea down, but you need to start with smaller hypotheses, even if they seem obvious.
+Think of it like constructing a proof for your thesis. You may find that all parts that make up the thesis are correct, but you may also find some to be incorrect, so you adjust your thesis.
 
 ## Observe
 
-The first step is usually to gather information about the bug, so that a hypothesis can be constructed. Try calling the buggy function and printing the output, then check for any difference in behavior between the correct version and the mutant. Bonus points if you use the debugger to print out intermediate values from the computation.
+Wheter or not you already have an idea, stepping through the program with the debugger can be a great tool to find out what is happening. Try putting a breakpoint and printing relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code).
 
 ## Hypothesize
 
-The goal of a hypothesis is to get you closer to understanding the bug. Start with simple hypotheses, even if they seem obvious to you. Then combine the gained information to construct more complex hypotheses. Ideally, you will end up with a plausible explanation for the bug. Importantly, *hypotheses are always based on information that have previously been gathered*. One cannot create hypotheses based on untested assumptions.
+Each time you run the code (i.e. conduct an experiment) you should have a an unproven idea (i.e. a hypothesis) in mind, that you can test with the experiment. Predict what will happen when you run the code, then check if you predicted correctly.
 
-Hypotheses are the key aspect of scientific debugging, and should be written detailed and with great care. But most importantly, *hypotheses always need to be testable*. Each hypothesis you make needs to come with a prediction. You provide some input to the buggy function and predict how it will behave.
+Start with simple hypotheses, even if they may seem obvious. Then use what you learned to test your ideas. Ideally, you will end up with a proven explanation for the bug.
 
+
+Importantly, don't base hypotheses on facts that are unproven. Prove tho
+
+Hypotheses are the key aspect of scientific debugging, and should be written detailed and with great care.  Each hypothesis you make needs to come with a prediction. You provide some input to the buggy function and predict how it will behave.
+
+
+A possible hypothesis could be: I want to find out if [assumption] when [mutant difference]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 ## Experiment
 
 You must conduct experiments to test you predictions. Each experiment will contain a python code snippet that imports and calls the buggy function. You can also use the python debugger (pdb). To use the debugger, simply include a pdb script in your experiment.
