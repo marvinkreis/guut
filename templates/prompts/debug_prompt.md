@@ -8,11 +8,17 @@ The goal of scientific debugging is to analyze and understand a software bug (he
 
 Firstly, you might already have an intuitive idea about how the mutant affects the code. This is good, but *do not* start out by assuming that your idea is correct. It is good practice to explain your idea, but the next step should be to *test the assumptions* that are the basis of your idea, even if they may seem obvious.
 
-Think of it like constructing a proof for your thesis. You may find that all parts that make up the thesis are correct, but you may also find some to be incorrect, so you adjust your thesis.
+Think of it like constructing a proof for a thesis. You may find that all parts that make up the thesis are correct, but you may also find some to be incorrect, so you adjust your thesis.
+
+The process should loosely follow a loop of:
+- Hypothesis
+- Predicttion
+- Experiment
+- Conclusion
 
 ## Observe
 
-Wheter or not you already have an idea, stepping through the program with the debugger can be a great tool to find out what is happening. Try putting a breakpoint and printing relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code).
+Stepping through the program with the debugger can be a great first step to find out what is happening. Try putting a breakpoint and printing relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code). You may use your first experiment to explore without a hypothesis.
 
 ## Hypothesize
 
@@ -22,125 +28,66 @@ Hypotheses are the key aspect of scientific debugging, and should be written det
 - Include a relevant prediction and an experiment with every hypothesis.
 - Don't repeat hypotheses you have already made.
 - Don't base hypotheses on unproven assumptions. Prove the assumtions first.
+- Don't create hypotheses that you already know to be true or false based on previous test output. Study the output closely.
 
 An example hypothesis: I want to find out if [assumption] when [mutant difference]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 
 ## Experiment
 
-You conduct experiments to observe the program and to test your hypotheses. Each experiment will contain a python code snippet that imports and calls the mutated code.
+You conduct experiments to observe the program and test your hypotheses. Each experiment will contain a python code snippet that imports and calls the infected code. We will take your code snippet and execute it once on the correct code and once on the mutated code, then give you the output of both executions. Therefore, please use the code normally like below:
 
-You can also use the python debugger (pdb). To use the debugger, simply include a pdb script in your experiment.
-
-Once you stated your experiment, we will take your code and execute it once against the correct version of the function, and once against the mutant.
-
-You'll receive bonus points if you include a *verifying expression*. A verifying expression is a boolean expression that you print in your experiment. It represents the prediction you made in you hypothesis, and its value determines whether the experiment is a success or a failure. For example: You predict in your hypothesis, that the returned list of the function `example` is empty for the correct function but not for the mutant. So you include in your experiment: `print("verifying expression: " + (len(example()) == 0))`. Then, if the expression shows `True` in the correct output and `False` in the mutant output, you'll know that the experiment was successful, and otherwise it was not.
-
-### Example experiment
-
-Here is an example experiment to help you understand the format better:
-
-    ## Experiment
-
-    ```python
-    from example import example
-
-    output = example()
-    verifying_expression = (len(output) == 0)
-    print(output)
-    print(f"verifying expression: {verifying_expression}")
-    ```
-
-    ```pdb
-    break example.py:14
-    cont
-    p some_value
-    ```
-
-    ## Experiment Results
-
-    Test on correct code:
-    ```
-    []
-    verifying expression: True
-    ```
-
-    Test on mutant:
-    ```
-    [1]
-    verifying expression: False
-    ```
-
-    Debugger on correct code:
-    ```
-    > /mnt/temp/test.py(1)<module>()
-    -> from example import example
-    (Pdb) break example.py:14
-    Breakpoint 1 at /mnt/temp/example.py:14
-    (Pdb) cont
-    > /mnt/temp/example.py(14)example()
-    -> return left
-    (Pdb) p some_value
-    1
-    (Pdb)
-    ```
-
-    Debugger on mutant:
-    ```
-    > /mnt/temp/test.py(1)<module>()
-    -> from example import example
-    (Pdb) break example.py:14
-    Breakpoint 1 at /mnt/temp/example.py:14
-    (Pdb) cont
-    > /mnt/temp/example.py(14)example()
-    -> return left
-    (Pdb) p some_value
-    2
-    (Pdb)
-    ```
-
-### Important note
-
-*THIS IS VERY IMPORTANT:*  Your code snippet must call the buggy function only once! We will execute it against the correct code and the buggy code for you! Calling the buggy function multiple times in your experiment will result in *immediate disqualification*.
-
-- *DO NOT* recreate the mutant in your experiment.
-- *DO NOT* execute the function for both the correct code and the mutant code in your experiment.
-
-#### Example 1
-*BAD*:
 ```python
-print("output of the correct version: {example()}")
-print("output of the mutant: {example()}")
+# good example
+import example from example
+output = example(123)
 ```
 
-*GOOD*:
+This will not work:
+
 ```python
-print("output: {example()}")
+# BAD example
+import example from example  # import correct code
+correct_output = example(123)
+import example from example  # import mutant
+mutant_output = example(123)
 ```
 
-#### Example 2
-
-*BAD*:
+This also does not work. Do not do this:
 ```python
-output_correct = example()
-output_mutant = example()
-```
-*GOOD*:
-```python
-output = example()
+# BAD example
+import example from example  # import correct code
+correct_output = example(123)
+
+# recreate the mutated code
+def mutant(index: int):
+    list = []
+    # ...
+
+mutant_output = mutant(123)
 ```
 
-#### Example 3
+Again, we will execute your code twice (agianst correct code and mutant). *DO NOT UNDER ANY CIRCUMSTANCES IMPORT A MUTANT OR RECREATE THE MUTANT! YOU WILL BE DISQUALIFIED IMMEDIATELY!*
 
-*BAD*:
-```python
-# We recreate the mutated function
-def example():
-    ...
+If possible, please include a *verifying expression* in your experiment. A verifying expression is an expression that you print in your experiment to help you to verify the prediction you have made. For example, you predicted that the mutated function always returns the empty list and the correct implementation dosen't, so you include in your experiment: `print("verifying expression: " + (len(example()) == 0))`. Then, your prediction is only confimed if the expression shows `True` in the mutant output and `False` in the correct output. Be sure to explain this in your prediction.
+
+We encourage you to use the python debugger (pdb) to explore the function execution. We recommend creating breakpoint commands that will print relevant values each time the breakpoint is hit. To use the debugger, simply include a pdb script in your experiment like below, and we will execut your python code through the debugger:
+
+```pdb
+break example.py:15
+commands
+p list
+p index
+cont
+cont
 ```
+
+## Syntax Errors
+
+Sometimes, your experiments will have errors. That's ok. Simply fix the errors as repeat the experiment. You don't have to repeat your hypothesis and prediction.
 
 ## Finishing the task
 
-Once you understand the bug and you what inputs cause the correct code and the mutant code to behave differently, you can finish debugging and write the mutant-killing test. When you are ready, please write verbatim: "<DEBUGGING_DONE>". Then you can write the test case. Remember: write "<DEBUGGING_DONE>" when you're ready to write the test.
+Once you understand the bug and what triggers the mutant to behave differently, you can finish debugging and write the mutant-killing test. When you are ready, please write verbatim: `<DEBUGGING_DONE>`. Then you can write the test case. You need to write `<DEBUGGING_DONE>`, so we can see that you are ready.
 
 # Experiment and Test Format
 
@@ -155,22 +102,25 @@ so we can tell which code block is which. For example:
     // debugger script here
     ```
 
-Make sure to import all necessary functions in the code. You can assume that all python files we give you are in the root directory, so, for example, "example.py" can be imported with `import example` or `from example import ...`.
+Make sure to import all necessary functions in the code. You can assume that all python files we give you are in the root directory, so "example.py" would be imported with `import example` or `from example import ...`.
 
 # General Format
 
 Please use this format for every step of your solution:
 
     ## Hypothesis
-    // hypothesis here
+    // hypothesis and prediction
 
     ## Experiment
-    // experiment here
+    // your experiment code
 
     ## Experiment Results
-    // we will give you the results here
+    // we will give you the results
 
-Repeat this for every hypothesis you make. Once you are ready to write the test, write verbatim "<DEBUGGING_DONE>".
+    ## Conclusion
+    // a short conclusion
+
+This will repeat until you write `<DEBUGGING_DONE>`. Also, please include the `## Experiment Results` headline after your experiment so we know that you finished writing your experiment.
 
 # Python Debugger (pdb)
 
@@ -184,12 +134,24 @@ Repeat this for every hypothesis you make. Once you are ready to write the test,
     - next:
         - Syntax: `next`
         - Description: Continues execution until either the next line or the end of the function is reached.
-    - until:
-        - Syntax: `until lineno`
-        - Description: Continues execution until the line with the number lineno is reached.
     - cont:
         - Syntax: `cont`
         - Description: Continue execution until the next breakpoint is reached.
-    - p
+    - p:
         - Syntax: `p expression`
         - Evaluates expression in the current context and prints its value.
+    - commands:
+        - See example below.
+
+`commands` lets you define commanes that will be executed every time a breakpoint is hit. We encourage you to use this to print values during the execution. Use it directly after defining a breakpoint like so:
+
+```pdb
+break example.py:15
+commands
+p list
+p index
+cont
+cont
+```
+
+The first `cont` terminates the command list and the debugger is still in paused state. The second `cont` continues the execution.
