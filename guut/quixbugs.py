@@ -7,7 +7,7 @@ from pathlib import Path
 from shutil import copyfile
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import Iterable, List, override
+from typing import Iterable, List, Literal, override
 
 from guut.execution import ExecutionResult, run_debugger, run_script
 from guut.formatting import format_problem
@@ -44,35 +44,77 @@ class QuixbugsProblem(Problem):
         return self.compute_mutant_diff(reverse=reverse)
 
     @override
-    def run_code(self, code: str, use_mutant: bool = False) -> ExecutionResult:
+    def run_code(self, code: str, use_mutant: Literal["no", "yes", "insert"]) -> ExecutionResult:
         with TemporaryDirectory() as tempdir:
+            temp_path = Path(tempdir)
+
             # copy program under test
-            put_path = Path(tempdir) / self.filename()
-            put_path.write_text(self.construct_normalized_code(use_mutant=use_mutant))
+            put_path = temp_path / self.filename()
+            if use_mutant in ["no", "insert"]:
+                # copy regular program
+                put_path.write_text(self.construct_normalized_code(use_mutant=False))
+            elif use_mutant == "yes":
+                # copy mutant
+                put_path.write_text(self.construct_normalized_code(use_mutant=True))
 
             # copy dependencies
             for dep in self.dependencies_paths():
-                copyfile(dep, Path(tempdir) / dep.name)
+                copyfile(dep, temp_path / dep.name)
+
+            # create mutant directory if requested
+            if use_mutant == "insert":
+                mutant_path = temp_path / "mutant"
+                mutant_path.mkdir()
+
+                # copy mutant
+                mutant_put_path = mutant_path / self.filename()
+                mutant_put_path.write_text(self.construct_normalized_code(use_mutant=True))
+
+                # copy dependencies
+                for dep in self.dependencies_paths():
+                    copyfile(dep, temp_path / dep.name)
 
             # write test
-            test_path = Path(tempdir) / "test.py"
+            test_path = temp_path / "test.py"
             test_path.write_text(code)
 
-            return run_script(test_path, cwd=Path(tempdir))
+            return run_script(test_path, cwd=temp_path)
 
     @override
-    def run_debugger(self, code: str, debugger_script: str, use_mutant: bool = False) -> ExecutionResult:
+    def run_debugger(
+        self, code: str, debugger_script: str, use_mutant: Literal["no", "yes", "insert"]
+    ) -> ExecutionResult:
         with TemporaryDirectory() as tempdir:
+            temp_path = Path(tempdir)
+
             # copy program under test
-            put_path = Path(tempdir) / self.filename()
-            put_path.write_text(self.construct_normalized_code(use_mutant=use_mutant))
+            put_path = temp_path / self.filename()
+            if use_mutant in ["no", "insert"]:
+                # copy regular program
+                put_path.write_text(self.construct_normalized_code(use_mutant=False))
+            elif use_mutant == "yes":
+                # copy mutant
+                put_path.write_text(self.construct_normalized_code(use_mutant=True))
 
             # copy dependencies
             for dep in self.dependencies_paths():
-                copyfile(dep, Path(tempdir) / dep.name)
+                copyfile(dep, temp_path / dep.name)
+
+            # create mutant directory if requested
+            if use_mutant == "insert":
+                mutant_path = temp_path / "mutant"
+                mutant_path.mkdir()
+
+                # copy mutant
+                mutant_put_path = mutant_path / self.filename()
+                mutant_put_path.write_text(self.construct_normalized_code(use_mutant=True))
+
+                # copy dependencies
+                for dep in self.dependencies_paths():
+                    copyfile(dep, temp_path / dep.name)
 
             # write test
-            test_path = Path(tempdir) / "test.py"
+            test_path = temp_path / "test.py"
             test_path.write_text(code)
 
             return run_debugger(test_path, debugger_script, cwd=Path(tempdir))

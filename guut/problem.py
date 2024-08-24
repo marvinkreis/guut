@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Iterable
+from typing import Callable, Iterable, Literal
 
 from guut.execution import ExecutionResult, ExperimentResult, TestResult
 
@@ -42,28 +42,31 @@ class Problem(ABC):
         pass
 
     @abstractmethod
-    def run_code(self, code: str, use_mutant: bool) -> ExecutionResult:
+    def run_code(self, code: str, use_mutant: Literal["no", "yes", "insert"]) -> ExecutionResult:
         pass
 
     @abstractmethod
-    def run_debugger(self, code: str, debugger_script: str, use_mutant: bool) -> ExecutionResult:
+    def run_debugger(
+        self, code: str, debugger_script: str, use_mutant: Literal["no", "yes", "insert"]
+    ) -> ExecutionResult:
         pass
 
     def run_experiment(self, code: str, debugger_script: str | None) -> ExperimentResult:
         if debugger_script:
             return ExperimentResult(
-                test_correct=self.run_code(code, use_mutant=False),
-                test_mutant=self.run_code(code, use_mutant=True),
-                debug_correct=self.run_debugger(code, debugger_script, use_mutant=False),
-                debug_mutant=self.run_debugger(code, debugger_script, use_mutant=True),
+                test=self.run_code(code, use_mutant="insert"),
+                debug=self.run_debugger(code, debugger_script, use_mutant="insert"),
             )
         else:
             return ExperimentResult(
-                test_correct=self.run_code(code, use_mutant=False), test_mutant=self.run_code(code, use_mutant=True)
+                test=self.run_code(code, use_mutant="insert"),
             )
 
     def run_test(self, code: str) -> TestResult:
-        return TestResult(correct=self.run_code(code, use_mutant=False), mutant=self.run_code(code, use_mutant=True))
+        return TestResult(
+            correct=self.run_code(code, use_mutant="no"),
+            mutant=self.run_code(code, use_mutant="yes"),
+        )
 
     @abstractmethod
     def validate(self):

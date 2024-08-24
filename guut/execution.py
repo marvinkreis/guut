@@ -21,10 +21,8 @@ class ExecutionResult:
 
 @dataclass
 class ExperimentResult:
-    test_correct: ExecutionResult
-    test_mutant: ExecutionResult
-    debug_correct: ExecutionResult | None = None
-    debug_mutant: ExecutionResult | None = None
+    test: ExecutionResult
+    debug: ExecutionResult | None = None
 
 
 @dataclass

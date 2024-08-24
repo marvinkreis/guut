@@ -113,3 +113,4 @@ default_prompts = PromptCollection(
 
 debug_prompt_old = DebugPrompt("prompts/debug_prompt_old.md")
 debug_prompt_short = DebugPrompt("prompts/debug_prompt_short.md")
+debug_prompt_alt_experiments = DebugPrompt("prompts/debug_prompt_alt_experiments.md")

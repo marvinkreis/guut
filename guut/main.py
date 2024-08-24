@@ -1,9 +1,4 @@
-import os
-
-from dotenv import load_dotenv
-
-load_dotenv(dotenv_path=os.environ["DOTENV_PATH"])
-
+from dataclasses import replace
 
 from loguru import logger
 from openai import OpenAI
@@ -12,7 +7,7 @@ from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop
-from guut.prompts import default_prompts
+from guut.prompts import debug_prompt_alt_experiments, default_prompts
 from guut.quixbugs import QuixbugsProblem
 
 
@@ -21,29 +16,33 @@ def main():
         [
             """Experiment:
 ```python
-print("something")
+from sieve import sieve
+from mutant.sieve import sieve as mutant_sieve
+
+print(f"correct: {sieve(10)}")
+print(f"mutant: {mutant_sieve(10)}")
 ```
 
 ```pdb
-p "something from debugger"
-```""",
-            """Experiment:
-```python
-assert 1 == 2
-```""",
-            """<DEBUGGING_DONE>""",
-            """```python
-from sieve import sieve
-
-assert len(sieve(10)) > 0
-```""",
+b sieve.py:14
+commands
+p "ok"
+c
+b mutant/sieve.py:14
+commands
+p "ok"
+c
+c
+```"""
         ]
     )
-    # endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
-    problem = QuixbugsProblem("sieve")
+    endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
+    problem = QuixbugsProblem("mergesort")
     problem.validate()
 
-    loop = Loop(problem, endpoint=endpoint, prompts=default_prompts, enable_print=True, enable_log=False)
+    prompts = replace(default_prompts, debug_prompt=debug_prompt_alt_experiments)
+
+    loop = Loop(problem, endpoint=endpoint, prompts=prompts, enable_print=True, enable_log=True)
     loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
 
