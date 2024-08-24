@@ -110,3 +110,6 @@ default_prompts = PromptCollection(
     results_template=ResultsTemplate("results_template.md"),
     conversation_aborted_template=ConversationAbortedTemplate("conversation_aborted_template.md"),
 )
+
+debug_prompt_old = DebugPrompt("prompts/debug_prompt_old.md")
+debug_prompt_short = DebugPrompt("prompts/debug_prompt_short.md")
