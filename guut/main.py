@@ -7,7 +7,7 @@ from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop
-from guut.prompts import debug_prompt_alt_experiments, default_prompts
+from guut.prompts import debug_prompt_alt_experiments_v2, default_prompts
 from guut.quixbugs import QuixbugsProblem
 
 
@@ -37,10 +37,10 @@ c
         ]
     )
     endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
-    problem = QuixbugsProblem("mergesort")
+    problem = QuixbugsProblem("kth")
     problem.validate()
 
-    prompts = replace(default_prompts, debug_prompt=debug_prompt_alt_experiments)
+    prompts = replace(default_prompts, debug_prompt=debug_prompt_alt_experiments_v2)
 
     loop = Loop(problem, endpoint=endpoint, prompts=prompts, enable_print=True, enable_log=True)
     loop.iterate()

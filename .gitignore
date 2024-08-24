@@ -5,3 +5,4 @@ __pycache__
 .zed
 .env
 .ruff_cache
+todo.md

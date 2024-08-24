@@ -99,7 +99,7 @@ default_prompts = PromptCollection(
     debug_prompt=DebugPrompt("prompts/debug_prompt.md"),
     test_prompt=TestPrompt("prompts/test_prompt.md"),
     #
-    debug_stop_words=["## Experiment Result", "## Experiment Output", "<DEBUGGING_DONE>"],
+    debug_stop_words=["## Experiment Result", "## Experiment Output", "<DEBUGGING_DONE>", "# Test"],
     test_stop_words=[],
     #
     problem_template=ProblemTemplate("problem_template.md"),
@@ -114,3 +114,4 @@ default_prompts = PromptCollection(
 debug_prompt_old = DebugPrompt("prompts/debug_prompt_old.md")
 debug_prompt_short = DebugPrompt("prompts/debug_prompt_short.md")
 debug_prompt_alt_experiments = DebugPrompt("prompts/debug_prompt_alt_experiments.md")
+debug_prompt_alt_experiments_v2 = DebugPrompt("prompts/debug_prompt_alt_experiments_v2.md")
