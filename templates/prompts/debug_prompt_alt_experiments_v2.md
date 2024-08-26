@@ -1,107 +1,189 @@
-We are going to give you some Python code and a mutant diff. We would like you to use scientific debugging to analyze the mutant diff, and then write a test case that detects the mutant.
+We are going to give you a Python program and a mutant diff. We want you to use scientific debugging to understand the mutant diff, and then write a test case that detects the mutant.
 
 # Scientific Debugging
 
-The goal of scientific debugging is to analyze and understand a software bug (here: mutant) via the scientific method. The process loosely follows a loop of:
+Scientific debugging is a sytstematic debugging approach based on the scientific method. The process follows a loop of:
 
 - Observation
 - Hypothesis
-- Prediction
 - Experiment
 - Conclusion
 
-## Go step by step
+## Observation
 
-Firstly, you might already have an intuitive idea about how the mutant affects the code. This is good, but *do not* start out by assuming that your idea is correct. You should explain your idea, but the next step should be to *test the assumptions* that are the basis of your idea, even if they may seem obvious. Think of it like constructing a proof for a thesis. You may find that some assuptions you made are wrong, so you adjust the thesis or make a new thesis.
+In the beginning, please run the code with a debugger script to get a good idea of what is happening in the code. Put a breakpoint and print relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code).
 
-## Starting out: Observe
+### Example Observation
 
-Running the program with the debugger can be a great first step to find out what is happening. Try putting a breakpoint and printing relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code). You may use your first experiment to simply observe, but then you have to use the debugger with at least one "commands" block, for example:
+Consider the following example program that implements the sieve of Eratosthenes. We will refer back to this later:
+
+```python sieve.py
+1  def sieve(max):
+2      primes = []
+3      for n in range(2, max + 1):
+4          if all(n % p > 0 for p in primes):
+5              primes.append(n)
+6      return primes
+```
+
+```diff mutant.diff
+diff --git a/sieve.py b/sieve.py
+index d9a0df7..3125b92 100644
+--- a/sieve.py
++++ b/sieve.py
+@@ -1,6 +1,6 @@
+ def sieve(max):
+     primes = []
+     for n in range(2, max + 1):
+-        if all(n % p > 0 for p in primes):
++        if any(n % p > 0 for p in primes):
+             primes.append(n)
+     return primes
+```
+
+The initial initial observation step could look like this:
+
+```python
+from sieve import sieve
+from mutant.sieve import sieve as sieve_mutant
+
+print(f"Correct output: {sieve(5)}")
+print(f"Mutant output: {sieve_mutant(5)}")
+```
 
 ```pdb
-b example.py:9
+b sieve.py:5
 commands
-p some_relevant_value
-p some_other_value
+p f"without mutant: primes={primes}, n={n}"
+c
+b mutant/sieve.py:5
+commands
+p f"with mutant: primes={primes}, n={n}"
 c
 c
 ```
 
+And it would yield the following output:
+
+Script output
+```
+Correct output: [2, 3, 5]
+Mutant output: []
+```
+
+Debugger output:
+```
+> test.py(1)<module>()
+-> from sieve import sieve
+(Pdb) b sieve.py:5
+Breakpoint 1 at sieve.py:5
+(Pdb) commands
+(com) p f"without mutant: primes={primes}, n={n}"
+(com) c
+(Pdb) b mutant/sieve.py:5
+Breakpoint 2 at mutant/sieve.py:5
+(Pdb) commands
+(com) p f"with mutant: primes={primes}, n={n}"
+(com) c
+(Pdb) c
+'without mutant: primes=[], n=2'
+> sieve.py(5)sieve()
+-> primes.append(n)
+'without mutant: primes=[2], n=3'
+> sieve.py(5)sieve()
+-> primes.append(n)
+'without mutant: primes=[2, 3], n=5'
+> sieve.py(5)sieve()
+-> primes.append(n)
+Correct output: [2, 3, 5]
+Mutant output: []
+The program exited.
+```
+
+Here, for example, you would see that line 5 is executed normally without the mutant, but isn't executed at all with the mutant in place.
+
 See "Python Debugger (pdb)" for more information.
 
-## Hypotheses
+## Hypothesis
 
-An hypothesis follows more or less this format: I want to find out if [assumption] when [mutant difference]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
-
-Start with simple hypotheses, even if they may seem obvious. Then combine what you learned into new ideas. Ideally, you will end up with a proven explanation for the bug.
-
-Each hypothesis must contain a predcition. Predict what will happen when you run the code, then check if you predicted correctly. See "Verifying Expression" for more info.
+Each hypothesis should describe an assumption you have about the code. You predict what will happen when you run the code in your experiment, then check if you predicted correctly.
 
 Hypotheses are the key aspect of scientific debugging, and should be written detailed and with great care.
+- Base hypotheses on the findings of previous experiments.
 - Include a relevant prediction and an experiment with every hypothesis.
 - Don't repeat hypotheses you have already made.
-- Don't base hypotheses on unproven assumptions.
+- Don't base hypotheses on untested assumptions.
 
-## Experiments
+Hypotheses follow this template: I hypothesize that [assumption] holds when [mutant difference]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 
-You conduct experiments to observe the program and test your hypotheses. Each experiment will contain a python code snippet that imports and calls the correct code and the mutant code. We will then execute that code for you and give you the results. Here is an illustrative example:
+### Example Hypothesis
+
+The observation step showed that the mutant didn't call the `append` function and returned an empty list. Therefore, I hypothesize that the mutant will also output an empty list for a different input n=10. I will verify this by calling both versions of sieve with n=10 and checking that the mutant outputs the empty list, while the correct code doesn't.
+
+## Experiment
+
+Each experiment will contain python code that imports and calls the correct code and the mutant. We will then execute that code for you and give you the results.
+
+- Use the debugger to print out intermediate values. Simply include a pdb script in the experiment.
+- Don't forget to print your outputs.
+- Make sure to import all necessary functions. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
+- Sometimes, an experiments will have syntax errors. Then, please fix the errors as repeat the experiment. Don't repeat your hypothesis and prediction.
+
+### Example Experiment
 
 ```python
-from example import gcd
-from mutant.example import gcd as gcd_mutant
-print("Correct code: " + gcd(25, 5))
-print("Mutant code: " + gcd_mutant(25, 5))
+from sieve import sieve
+from mutant.sieve import sieve as sieve_mutant
+
+output_correct = sieve(10)
+output_mutant = sieve_mutant(10)
+
+print(f"Correct output: {output_correct}")
+print(f"Mutant output: {output_mutant}")
+print(f"Verifying expression: {len(output_mutant) == 0 and len(output_correct) > 0}")
 ```
 
 Script output:
 ```
-Correct code: 5
-Mutant code: 10
+Correct output: [2, 3, 5, 7]
+Mutant output: []
+Verifying expression: True
 ```
 
-If possible, please include a *verifying expression* in your experiment. A verifying expression is an expression that you print in your experiment to help you to verify the prediction you have made. For example, you predicted that the mutated function always returns the empty list and the correct implementation dosen't, so you include in your experiment:
+## Conclusion
 
-```python
-verifying_expression = (len(correct_output) != 0) and (len(mutant_output) == 0)
-print(f"verifying expression: {verifying_expression}")
-```
+After every experiment, write a conclusion that summarizes on the results. Examine the experiment results closely so you don't miss anthing. Keep the conclusions brief, so you can refer back to them easily.
 
-Then, your prediction is only confimed if the verifying expression evaluates to `True`. Be sure to explain this in your prediction.
+### Example Conclusion
 
-We encourage you to use the python debugger (pdb) to explore the function execution. We recommend creating breakpoint commands that will print relevant values each time the breakpoint is hit. To use the debugger, simply include a pdb script in your experiment like below, and we will execute your python code through the debugger.
+We can see that for n=10, the mutant returned an empty list and the correct code returned prime numbers. The verifying expression also evaluated to `True`. Therefore we can confirm the hypothesis.
 
-```pdb
-b example.py:15
-commands
-p relevant_var_1
-p relevant_var_2
-c
-b mutant/example.py:15
-commands
-p relevant_var_1
-p relevant_var_2
-c
-c
-```
+## Writing the Test
 
-You will receive bonus points for every experiment with a debugger script, but only if it contains a "commands" block, so please remember to include one. See "Python Debugger (pdb)" for more explanation.
+Keep writing new hypotheses and testing them until you understand the muntant. Once you have understood the mutant, you can finish debugging and write the mutant-killing test.
 
-## Syntax Errors
 
-Sometimes, your experiments will have errors. That's ok. Simply fix the errors as repeat the experiment. You don't have to repeat your hypothesis and prediction.
+# Output Format
 
-## Conclusions
+Please use this format for your solution:
 
-After every experiment, write a quick conclusion based on the results. Study the experiment results closely, they sometimes tell you more than the outcome of your prediction.
+    ## Hypothesis
+    [hypothesis and prediction]
 
-## Finishing the task
+    ## Experiment
+    [your experiment code]
 
-Once you understand the bug and what triggers the mutant to behave differently, you can finish debugging and write the mutant-killing test. When you are ready, please write verbatim: `<DEBUGGING_DONE>`. Then you can write the test case. You need to write `<DEBUGGING_DONE>`, so we can see that you are ready.
+    ## Experiment Results
+    [we will give you the results]
 
-# Experiment and Test Format
+    ## Conclusion
+    [a short conclusion]
 
-Output all code in markdown code blocks, and specify the language ("python" or "pdb"),
-so we can tell which code block is which. For example:
+    [when you are done with debugging]
+    # Test
+    [the mutant-killing test]
+
+Write all code in markdown blocks and specify the language, e.g.:
 
     ```python
     // python code here
@@ -110,37 +192,6 @@ so we can tell which code block is which. For example:
     ```pdb
     // debugger script here
     ```
-
-Make sure to import all necessary functions in the code. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory. For example:
-
-```python
-from example import example
-from mutant.example import example as example_mutant
-```
-
-# General Format
-
-Please use this format for every step of your solution:
-
-    ## Hypothesis
-    // hypothesis and prediction
-
-    ## Experiment
-    // your experiment code
-
-    ## Experiment Results
-    // we will give you the results
-
-    ## Conclusion
-    // a short conclusion
-
-    // eventually
-    <DEBUGGING_DONE>
-
-    # Test
-    // the mutant-killing test
-
-This will repeat until you write `<DEBUGGING_DONE>`. Also, please include the `## Experiment Results` headline after your experiment so we know that you finished writing your experiment.
 
 # Python Debugger (pdb)
 
@@ -163,7 +214,7 @@ This will repeat until you write `<DEBUGGING_DONE>`. Also, please include the `#
     - commands:
         - See example below.
 
-`commands` lets you define commanes that will be executed every time a breakpoint is hit. We encourage you to use this to print values during the execution. You will receive bonus points for every experiment that includes this. Use it directly after defining a breakpoint like so:
+`commands` lets you define commands that will be executed every time a breakpoint is hit. We encourage you to use this to print intermediate values from the execution. You will receive bonus points for every experiment that includes this. Use it directly after defining a breakpoint like so:
 
 ```pdb
 b example.py:15

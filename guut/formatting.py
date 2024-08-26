@@ -43,7 +43,7 @@ def shorten_stack_trace(stack_trace: str, path_to_include: str | Path) -> str:
         line = line.strip()
 
         # Start line
-        if line.startswith("Traceback"):
+        if line.startswith("Traceback") or line.startswith("(Pdb) Traceback"):
             in_trace = True
             drop_frame = False
 
@@ -70,7 +70,7 @@ def limit_text(text: str, char_limit: int = 2000) -> str:
     for line in text.splitlines():
         num_chars += len(line) + 1
         if num_chars > char_limit:
-            return "\n".join(lines) + "\n<truncated>\n..."
+            return "\n".join(lines) + "\n<truncated>"
         lines.append(line)
     return text
 
@@ -166,12 +166,13 @@ def format_problem(problem: Problem) -> str:
         f"{snippet.name}:\n{format_markdown_code_block(snippet.content, show_linenos=False)}"
         for snippet in problem.dependencies()
     ]
-    diff_formatted = f"Mutant Diff:\n{format_markdown_code_block(problem.mutant_diff(), show_linenos=False)}"
+    diff_formatted = format_markdown_code_block(problem.mutant_diff(), show_linenos=False, name="mutant.diff")
     return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}".strip()
 
 
 def format_test_result(test_result: ExecutionResult, char_limit: int = 1500):
     text = test_result.output.rstrip()
+    text = shorten_stack_trace(text, test_result.cwd)
     text = shorten_paths(text, test_result.cwd)
     text = limit_text(text, char_limit)
     return text
