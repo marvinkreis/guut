@@ -33,7 +33,7 @@ class TestResult:
 
 def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None) -> ExecutionResult:
     process_input = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
-    process_command = ["python", inspect.getfile(debugger_wrapper), str(target)]
+    process_command = ["python", "-u", inspect.getfile(debugger_wrapper), str(target)]
     process_cwd = cwd or target.parent
 
     process = Popen(process_command, cwd=process_cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
@@ -58,6 +58,8 @@ def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None) ->
             exitcode=1,
             timeout=True,
         )
+    finally:
+        process.terminate()
 
 
 def run_script(script: Path, stdin: str | None = None, cwd: Path | None = None) -> ExecutionResult:
@@ -69,7 +71,7 @@ def run_script(script: Path, stdin: str | None = None, cwd: Path | None = None) 
     else:
         process_input = ""
 
-    process_command = ["python", script]
+    process_command = ["python", "-u", script]
     process_cwd = cwd or script.parent
 
     process = Popen(process_command, cwd=process_cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
@@ -94,3 +96,5 @@ def run_script(script: Path, stdin: str | None = None, cwd: Path | None = None) 
             exitcode=1,
             timeout=True,
         )
+    finally:
+        process.terminate()
