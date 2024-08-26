@@ -35,7 +35,9 @@ class OpenAIEndpoint(LLMEndpoint):
         logger.info(
             f"Requesting completion: conversation={conversation.name}, num_messages={len(conversation)}, stop={stop}, args={kwargs}"
         )
-        response = self.client.chat.completions.create(model=self.model, messages=messages, stop=stop, **kwargs)
+        response = self.client.chat.completions.create(
+            model=self.model, messages=messages, stop=stop, max_tokens=2000, **kwargs
+        )
         return msg_from_response(response)
 
 
