@@ -72,6 +72,11 @@ class ConversationAbortedTemplate(Template):
         return UserMessage(self.template.render(reason=reason, extra_reason=extra_reason).strip() + "\n")
 
 
+class IncompleteResponseTemplate(Template):
+    def render(self) -> UserMessage:
+        return UserMessage(self.template.render().strip() + "\n")
+
+
 @dataclass
 class PromptCollection:
     system_prompt: SystemPrompt | None
@@ -89,6 +94,7 @@ class PromptCollection:
 
     results_template: ResultsTemplate
     conversation_aborted_template: ConversationAbortedTemplate
+    incomplete_response_template: IncompleteResponseTemplate
 
     def replace(self, **kwargs):
         return replace(self, **kwargs)
@@ -109,6 +115,7 @@ default_prompts = PromptCollection(
     test_doesnt_detect_mutant_template=TestDoesntDetectMutantTemplate("test_doesnt_detect_mutant_template.md"),
     results_template=ResultsTemplate("results_template.md"),
     conversation_aborted_template=ConversationAbortedTemplate("conversation_aborted_template.md"),
+    incomplete_response_template=IncompleteResponseTemplate("incomplete_response_template.md"),
 )
 
 debug_prompt_old = DebugPrompt("prompts/debug_prompt_old.md")

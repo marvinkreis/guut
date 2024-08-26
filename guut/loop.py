@@ -1,3 +1,4 @@
+import re
 from enum import Enum
 from itertools import dropwhile, takewhile
 from random import randbytes
@@ -6,7 +7,7 @@ from typing import List
 from loguru import logger
 
 from guut.execution import TestResult
-from guut.formatting import extract_code_block, pretty_message
+from guut.formatting import extract_code_block, pretty_message, remove_code_blocks
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH, Logger
 from guut.problem import Problem
@@ -50,11 +51,17 @@ class State(str, Enum):
     # The LLM did not give a complete response.
     INCOMPLETE_RESPONSE = "incomplete_response"
 
+    # The LLM did not give a complete response.
+    INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN = "incomplete_response_instructions_given"
+
     # The conversation is in an unknown or unrecoverable state.
     INVALID = "invalid"
 
     # The conversation was aborted.
     ABORTED = "aborted"
+
+
+TEST_HEADLINE_REGEX = re.compile(r"^#+ (unit )?test", re.IGNORECASE)
 
 
 class Loop:
@@ -87,11 +94,19 @@ class Loop:
 
         if conversation is None:
             self.conversation = Conversation()
+        else:
+            self.conversation = conversation
+            self.new_messages = conversation[::]
 
         self.conversation.name = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
         self.logger = Logger(LOG_PATH, overwrite_old_logs=True)
 
     def perform_next_step(self):
+        if self.enable_print:
+            for msg in self.new_messages:
+                print(pretty_message(msg))
+            self.new_messages = []
+
         state = self.get_state()
         logger.info(state)
 
@@ -109,13 +124,13 @@ class Loop:
         if state == State.EMPTY:
             self._init_conversation()
         elif state == State.INITIAL:
-            self._prompt_for_hypothesis()
+            self._prompt_for_hypothesis_or_test()
         elif state == State.EXPERIMENT_STATED:
             self._run_experiment()
         elif state == State.EXPERIMENT_RESULTS_GIVEN:
-            self._prompt_for_hypothesis()
+            self._prompt_for_hypothesis_or_test()
         elif state == State.EXPERIMENT_INVALID:
-            self._prompt_for_hypothesis()
+            self._prompt_for_hypothesis_or_test()
         # elif state == State.FINISHED_DEBUGGING:
         #     self._add_test_prompt()
         elif state == State.TEST_INSTRUCTIONS_GIVEN:
@@ -127,7 +142,9 @@ class Loop:
         elif state == State.DONE:
             logger.warning("perform_next_step called with conversation in completed state.")
         elif state == State.INCOMPLETE_RESPONSE:
-            self._prompt_llm_for_incomplete_response()
+            self._handle_incomplete_response()
+        elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
+            self._prompt_for_hypothesis_or_test()
         elif state == State.INVALID:
             raise InvalidStateException(State.INVALID)
         elif state == State.ABORTED:
@@ -160,20 +177,21 @@ class Loop:
         self.add_msg(self.prompts.debug_prompt.render(self.problem))
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
-    def _prompt_for_hypothesis(self):
+    def _prompt_for_hypothesis_or_test(self):
         response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_stop_words)
         self._remove_stop_word_residue(response)
 
-        if "# Experiment" in response.content:
-            test_code = extract_code_block(response.content, "python")
-            if test_code:
-                self.add_msg(response, State.EXPERIMENT_STATED)
-            else:
-                self.add_msg(response, State.INCOMPLETE_RESPONSE)
-        elif "# Test" in response.content:
+        text_content = remove_code_blocks(response.content)
+        if any(re.match(TEST_HEADLINE_REGEX, line) for line in text_content.splitlines()):
             test_code = extract_code_block(response.content, "python")
             if test_code:
                 self.add_msg(response, State.TEST_STATED)
+            else:
+                self.add_msg(response, State.INCOMPLETE_RESPONSE)
+        else:
+            test_code = extract_code_block(response.content, "python")
+            if test_code:
+                self.add_msg(response, State.EXPERIMENT_STATED)
             else:
                 self.add_msg(response, State.INCOMPLETE_RESPONSE)
 
@@ -261,7 +279,7 @@ class Loop:
             )
             self.add_msg(new_message, State.ABORTED)
 
-    def _prompt_llm_for_incomplete_response(self):
+    def _handle_incomplete_response(self):
         num_tries = len([msg for msg in self.conversation if msg.tag == State.INCOMPLETE_RESPONSE])
         if num_tries > self.max_retries_for_incomplete_response:
             new_message = self.prompts.conversation_aborted_template.render(
@@ -272,7 +290,9 @@ class Loop:
 
         msg_before = [msg for msg in self.conversation if msg.tag != State.INCOMPLETE_RESPONSE][-1]
         if isinstance(msg_before.tag, State):
-            self._perform_next_step(msg_before.tag)
+            self.add_msg(
+                self.prompts.incomplete_response_template.render(), State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN
+            )
         else:
             raise InvalidStateException(None, f"No valid state before {State.INCOMPLETE_RESPONSE.value}.")
 
@@ -282,10 +302,9 @@ class Loop:
         def condition(line: str):
             if not line:
                 return False
-            sline = line.strip()
-            if not sline:
+            if not line.strip():
                 return False
-            if all(lambda c: c == "#" for c in sline):
+            if all([c == "#" for c in line.strip()]):
                 return False
             return True
 

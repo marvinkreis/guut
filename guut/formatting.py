@@ -146,7 +146,7 @@ def extract_code_block(response: str, language: str) -> str | None:
     code_lines = []
 
     for line in response.splitlines():
-        if line.strip() == f"```{language}":
+        if line.strip().startswith(f"```{language}"):
             code_block_started = True
             continue
 
@@ -157,6 +157,25 @@ def extract_code_block(response: str, language: str) -> str | None:
             code_lines.append(line)
 
     return "\n".join(code_lines) if code_lines else None
+
+
+def remove_code_blocks(response: str) -> str:
+    in_code_block = False
+    non_code_lines = []
+
+    for line in response.splitlines():
+        if line.strip().startswith("```"):
+            in_code_block = True
+            continue
+
+        if in_code_block and line.strip() == "```":
+            in_code_block = False
+            continue
+
+        if not in_code_block:
+            non_code_lines.append(line)
+
+    return "\n".join(non_code_lines)
 
 
 def format_problem(problem: Problem) -> str:
