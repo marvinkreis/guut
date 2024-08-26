@@ -1,9 +1,8 @@
 import sys
-import os
 
-from dotenv import load_dotenv
+from guut.load_env import load_env
 
-load_dotenv(dotenv_path=os.environ["DOTENV_PATH"])
+load_env()
 
 from guut.main import main
 
