@@ -7,28 +7,43 @@ from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Role
 
 
 class ReplayLLMEndpoint(LLMEndpoint):
-    def __init__(self, replay_messages: List[AssistantMessage], delegate: LLMEndpoint | None = None):
-        self.replay_messages = replay_messages
+    def __init__(
+        self,
+        replay_messages: List[AssistantMessage],
+        delegate: LLMEndpoint | None = None,
+        select_messages: int | None = None,
+    ):
+        if not select_messages:
+            self.replay_messages = replay_messages
+        else:
+            self.replay_messages = replay_messages[:select_messages]
+
         self.delegate = delegate
 
     @staticmethod
-    def from_conversation(replay_conversation: Conversation, delegate: LLMEndpoint | None = None):
+    def from_conversation(
+        replay_conversation: Conversation, delegate: LLMEndpoint | None = None, select_messages: int | None = None
+    ):
         replay_messages = [msg for msg in replay_conversation if msg.role == Role.ASSISTANT]
-        return ReplayLLMEndpoint(replay_messages, delegate)
+        return ReplayLLMEndpoint(replay_messages, delegate, select_messages=select_messages)
 
     @staticmethod
-    def from_pickled_conversation(pickled_replay_conversation: Path | str, delegate: LLMEndpoint | None = None):
+    def from_pickled_conversation(
+        pickled_replay_conversation: Path | str, delegate: LLMEndpoint | None = None, select_messages: int | None = None
+    ):
         if isinstance(pickled_replay_conversation, str):
-            pickled_replay_conversation = unquote(urlparse(pickled_replay_conversation).path)
+            pickled_replay_conversation = Path(unquote(urlparse(pickled_replay_conversation).path))
 
-        bytes = Path(pickled_replay_conversation).read_bytes()
+        bytes = pickled_replay_conversation.read_bytes()
         replay_conversation = cast(Conversation, pickle.loads(bytes))
-        return ReplayLLMEndpoint.from_conversation(replay_conversation, delegate)
+        return ReplayLLMEndpoint.from_conversation(replay_conversation, delegate, select_messages=select_messages)
 
     @staticmethod
-    def from_raw_messages(raw_replay_messages: List[str], delegate: LLMEndpoint | None = None):
+    def from_raw_messages(
+        raw_replay_messages: List[str], delegate: LLMEndpoint | None = None, select_messages: int | None = None
+    ):
         replay_messages = [AssistantMessage(msg) for msg in raw_replay_messages]
-        return ReplayLLMEndpoint(replay_messages, delegate)
+        return ReplayLLMEndpoint(replay_messages, delegate, select_messages=select_messages)
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:

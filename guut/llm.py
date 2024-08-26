@@ -1,8 +1,11 @@
 import copy
+import pickle
 from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, List, override
+from pathlib import Path
+from typing import Any, List, cast, override
+from urllib.parse import unquote, urlparse
 
 
 class Role(Enum):
@@ -125,6 +128,14 @@ class Conversation(list):
 
     def copy(self) -> "Conversation":
         return Conversation([msg.copy() for msg in self])
+
+    @staticmethod
+    def from_pickle(pickle_path: Path | str):
+        if isinstance(pickle_path, str):
+            pickle_path = Path(unquote(urlparse(pickle_path).path))
+
+        bytes = pickle_path.read_bytes()
+        return cast(Conversation, pickle.loads(bytes))
 
 
 class LLMEndpoint:
