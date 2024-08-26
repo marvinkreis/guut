@@ -158,10 +158,22 @@ After every experiment, write a conclusion that summarizes on the results. Exami
 
 We can see that for n=10, the mutant returned an empty list and the correct code returned prime numbers. The verifying expression also evaluated to `True`. Therefore we can confirm the hypothesis.
 
-## Writing the Test
+## Test
 
 Keep writing new hypotheses and testing them until you understand the muntant. Once you have understood the mutant, you can finish debugging and write the mutant-killing test.
 
+The test is different that an experiment. In the test, you don't import the mutant. Instead you write a test that passes on the correct code and fail when executed against the mutant.
+
+Output the test as a simple python snippet. Don't use any functions or testing frameworks.
+
+### Example Test
+
+```python
+from sieve import sieve
+
+output = sieve(10)
+assert len(output) > 0, "sieve must output prime numbers"
+```
 
 # Output Format
 
@@ -182,6 +194,9 @@ Please use this format for your solution:
     [when you are done with debugging]
     # Test
     [the mutant-killing test]
+
+    # Test Results
+    [we will give you the results]
 
 Write all code in markdown blocks and specify the language, e.g.:
 

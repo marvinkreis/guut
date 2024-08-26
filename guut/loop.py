@@ -1,5 +1,5 @@
 from enum import Enum
-from itertools import takewhile
+from itertools import dropwhile, takewhile
 from random import randbytes
 from typing import List
 
@@ -7,7 +7,7 @@ from loguru import logger
 
 from guut.execution import TestResult
 from guut.formatting import extract_code_block, pretty_message
-from guut.llm import Conversation, LLMEndpoint, Message
+from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH, Logger
 from guut.problem import Problem
 from guut.prompts import PromptCollection
@@ -33,7 +33,7 @@ class State(str, Enum):
     EXPERIMENT_RESULTS_GIVEN = "experiment_results_given"
 
     # The LLM has finished debugging and is ready to write the test.
-    FINISHED_DEBUGGING = "finished_debugging"
+    # FINISHED_DEBUGGING = "finished_debugging"
 
     # Instructions for writing the unit test have been stated.
     TEST_INSTRUCTIONS_GIVEN = "test_instructions_given"
@@ -116,8 +116,8 @@ class Loop:
             self._prompt_for_hypothesis()
         elif state == State.EXPERIMENT_INVALID:
             self._prompt_for_hypothesis()
-        elif state == State.FINISHED_DEBUGGING:
-            self._add_test_prompt()
+        # elif state == State.FINISHED_DEBUGGING:
+        #     self._add_test_prompt()
         elif state == State.TEST_INSTRUCTIONS_GIVEN:
             self._prompt_llm_for_test()
         elif state == State.TEST_STATED:
@@ -162,17 +162,20 @@ class Loop:
 
     def _prompt_for_hypothesis(self):
         response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_stop_words)
+        self._remove_stop_word_residue(response)
 
-        if "<DEBUGGING_DONE>" in response.content:
-            self.add_msg(response, State.FINISHED_DEBUGGING)
-            return
-
-        test_code = extract_code_block(response.content, "python")
-
-        if test_code:
-            self.add_msg(response, State.EXPERIMENT_STATED)
-        else:
-            self.add_msg(response, State.INCOMPLETE_RESPONSE)
+        if "# Experiment" in response.content:
+            test_code = extract_code_block(response.content, "python")
+            if test_code:
+                self.add_msg(response, State.EXPERIMENT_STATED)
+            else:
+                self.add_msg(response, State.INCOMPLETE_RESPONSE)
+        elif "# Test" in response.content:
+            test_code = extract_code_block(response.content, "python")
+            if test_code:
+                self.add_msg(response, State.TEST_STATED)
+            else:
+                self.add_msg(response, State.INCOMPLETE_RESPONSE)
 
     def _run_experiment(self):
         relevant_messages = takewhile(
@@ -211,7 +214,8 @@ class Loop:
         self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
 
     def _prompt_llm_for_test(self):
-        response = self.endpoint.complete(self.conversation, stop=self.prompts.test_stop_words)
+        response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_stop_words)
+        self._remove_stop_word_residue(response)
 
         test_code = extract_code_block(response.content, "python")
         if test_code:
@@ -271,6 +275,22 @@ class Loop:
             self._perform_next_step(msg_before.tag)
         else:
             raise InvalidStateException(None, f"No valid state before {State.INCOMPLETE_RESPONSE.value}.")
+
+    def _remove_stop_word_residue(self, msg: AssistantMessage):
+        lines = msg.content.splitlines()
+
+        def condition(line: str):
+            if not line:
+                return False
+            sline = line.strip()
+            if not sline:
+                return False
+            if all(lambda c: c == "#" for c in sline):
+                return False
+            return True
+
+        lines = list(dropwhile(condition, lines[::-1]))[::-1]
+        return AssistantMessage(content="\n".join(lines), response=msg.response, usage=msg.usage)
 
 
 class InvalidStateException(Exception):
