@@ -15,9 +15,9 @@ sum_completion_tokens=0
 
 for x in "$@"; do
     echo "$(basename "${x}")"
-    prompt_tokens=$(jq -r 'map(.usage.prompt_tokens) | add' "$x")
-    completion_tokens=$(jq -r 'map(.usage.completion_tokens) | add' "$x")
-    total_tokens=$(jq -r 'map(.usage.total_tokens) | add' "$x")
+    prompt_tokens=$(jq -r 'map(.usage.prompt_tokens) | add // 0' "$x")
+    completion_tokens=$(jq -r 'map(.usage.completion_tokens) | add // 0' "$x")
+    total_tokens=$(jq -r 'map(.usage.total_tokens) | add // 0' "$x")
 
     prompt_tokens_price="$(bc <<< "$prompt_tokens * .00000015")"
     completion_tokens_price="$(bc <<< "$completion_tokens * .0000006")"
