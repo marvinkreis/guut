@@ -165,11 +165,7 @@ def remove_code_blocks(response: str) -> str:
 
     for line in response.splitlines():
         if line.strip().startswith("```"):
-            in_code_block = True
-            continue
-
-        if in_code_block and line.strip() == "```":
-            in_code_block = False
+            in_code_block = not in_code_block
             continue
 
         if not in_code_block:
