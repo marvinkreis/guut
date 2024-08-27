@@ -5,7 +5,7 @@ from typing import List
 import jinja2
 
 from guut.execution import ExperimentResult, TestResult
-from guut.formatting import add_line_numbers, format_debugger_result, format_test_result
+from guut.formatting import add_line_numbers, format_debugger_result, format_test_result, limit_text
 from guut.llm import SystemMessage, UserMessage
 from guut.problem import Problem, ValidationResult
 
@@ -15,6 +15,7 @@ jinja_env.filters["format_test_result"] = format_test_result
 jinja_env.filters["format_debugger_result"] = format_debugger_result
 jinja_env.filters["add_line_numbers"] = add_line_numbers
 jinja_env.filters["rtrim"] = lambda s: s.rstrip()
+jinja_env.filters["limit_text"] = limit_text
 
 
 class Template:
