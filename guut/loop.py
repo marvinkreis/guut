@@ -159,7 +159,7 @@ class Loop:
         self.new_messages.append(msg)
 
     def _init_conversation(self):
-        """it's hard to so sometimes"""
+        """it's hard to do sometimes"""
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render(), tag=None)
         self.add_msg(self.prompts.debug_prompt.render(self.problem), tag=None)
