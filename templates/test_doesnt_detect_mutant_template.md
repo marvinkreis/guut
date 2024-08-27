@@ -1,7 +1,5 @@
 # Test Results
 
-Your test did not correctly identify the mutant. Please try again.
-
 ## Test on correct code
 ```
 {{ result.correct | format_test_result }}
@@ -23,3 +21,5 @@ The test was canceled due to a timeout.
 {% if result.mutant.exitcode != 0 %}
 The test exited with exitcode {{ result.mutant.exitcode }}.
 {% endif %}
+
+Your test did not correctly identify the mutant. Please try again.

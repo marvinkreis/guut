@@ -9,7 +9,8 @@ from loguru import logger
 from guut.execution import TestResult
 from guut.formatting import extract_code_block, pretty_message, remove_code_blocks
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
-from guut.logging import LOG_BASE_PATH, Logger
+from guut.logging import LOG_BASE_PATH
+from guut.logging import Logger as ConversationLogger
 from guut.problem import Problem
 from guut.prompts import PromptCollection
 
@@ -83,42 +84,29 @@ class Loop:
         self.enable_log = enable_log
 
         self.enable_print = enable_print
-        self.new_messages: List[Message] = []
-
-        self.max_retries_for_invalid_code = max_retries_for_invalid_test
-        self.max_retries_for_incomplete_response = max_incomplete_responses
-        self.max_num_experiments = max_num_experiments
-
-        self.testcase = str | None
-        self.test_result = TestResult | None
-
         if conversation is None:
             self.conversation = Conversation()
+            self.new_messages: List[Message] = []
         else:
             self.conversation = conversation
             self.new_messages = conversation[::]
 
+        self.max_retries_for_invalid_test = max_retries_for_invalid_test
+        self.max_retries_for_incomplete_response = max_incomplete_responses
+        self.max_num_experiments = max_num_experiments
+
+        self.testcase: str | None = None
+        self.test_result: TestResult | None = None
+
         self.conversation.name = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
-        self.logger = Logger(LOG_PATH, overwrite_old_logs=True)
+        self.conversation_logger = ConversationLogger(LOG_PATH, overwrite_old_logs=True)
 
     def perform_next_step(self):
-        if self.enable_print:
-            for msg in self.new_messages:
-                print(pretty_message(msg))
-            self.new_messages = []
-
+        self._print_and_log_conversation()
         state = self.get_state()
         logger.info(state)
-
         self._perform_next_step(state)
-
-        if self.enable_print:
-            for msg in self.new_messages:
-                print(pretty_message(msg))
-            self.new_messages = []
-
-        if self.enable_log:
-            self.logger.log_conversation(self.conversation, name=self.conversation.name or "")
+        self._print_and_log_conversation()
 
     def _perform_next_step(self, state: State):
         if state == State.EMPTY:
@@ -153,7 +141,7 @@ class Loop:
             raise InvalidStateException(None)
 
     def iterate(self):
-        while self.get_state() not in [State.DONE, State.INVALID, State.ABORTED, None]:
+        while self.get_state() not in [State.DONE, State.ABORTED, State.INVALID, None]:
             self.perform_next_step()
 
     def get_state(self) -> State:
@@ -164,7 +152,7 @@ class Loop:
         else:
             return State.INVALID
 
-    def add_msg(self, msg: Message, tag: State | None = None):
+    def add_msg(self, msg: Message, tag: State | None):
         if tag:
             msg.tag = tag
         self.conversation.append(msg)
@@ -173,8 +161,8 @@ class Loop:
     def _init_conversation(self):
         """it's hard to so sometimes"""
         if self.prompts.system_prompt:
-            self.add_msg(self.prompts.system_prompt.render())
-        self.add_msg(self.prompts.debug_prompt.render(self.problem))
+            self.add_msg(self.prompts.system_prompt.render(), tag=None)
+        self.add_msg(self.prompts.debug_prompt.render(self.problem), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
     def _prompt_for_hypothesis_or_test(self):
@@ -273,7 +261,7 @@ class Loop:
         num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_INVALID])
 
         self.add_msg(new_message, State.TEST_INVALID)
-        if num_retries >= self.max_retries_for_invalid_code:
+        if num_retries >= self.max_retries_for_invalid_test:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
             )
@@ -285,7 +273,7 @@ class Loop:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="incomplete_response", extra_reason="The LLM has given too many incomplete responses."
             )
-            self.add_msg(new_message, State.INVALID)
+            self.add_msg(new_message, State.ABORTED)
             return
 
         msg_before = [msg for msg in self.conversation if msg.tag != State.INCOMPLETE_RESPONSE][-1]
@@ -310,6 +298,14 @@ class Loop:
 
         lines = list(dropwhile(condition, lines[::-1]))[::-1]
         return AssistantMessage(content="\n".join(lines), response=msg.response, usage=msg.usage)
+
+    def _print_and_log_conversation(self):
+        if self.enable_print:
+            for msg in self.new_messages:
+                print(pretty_message(msg))
+            self.new_messages = []
+        if self.enable_log:
+            self.conversation_logger.log_conversation(self.conversation, name=self.conversation.name or "")
 
 
 class InvalidStateException(Exception):
