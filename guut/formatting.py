@@ -141,22 +141,22 @@ def add_line_numbers(code: str):
     return "\n".join(add_line_number(line, i + 1) for i, line in enumerate(lines))
 
 
-def extract_code_block(response: str, language: str) -> str | None:
-    code_block_started = False
+def extract_code_blocks(response: str, language: str) -> List[str]:
+    in_code_block = False
     code_lines = []
+    code_blocks = []
 
     for line in response.splitlines():
-        if line.strip().startswith(f"```{language}"):
-            code_block_started = True
+        if line.strip().startswith("```"):
+            if in_code_block:
+                code_blocks.append("\n".join(code_lines))
+            in_code_block = not in_code_block
             continue
 
-        if code_block_started and line.strip() == "```":
-            break
-
-        if code_block_started:
+        if in_code_block:
             code_lines.append(line)
 
-    return "\n".join(code_lines) if code_lines else None
+    return code_blocks
 
 
 def remove_code_blocks(response: str) -> str:
