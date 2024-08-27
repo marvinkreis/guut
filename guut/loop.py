@@ -2,7 +2,7 @@ import re
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import List
+from typing import List, Literal
 
 from loguru import logger
 
@@ -186,13 +186,9 @@ class Loop:
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
     def _concat_incomplete_responses(self, include_message: Message | None = None, include_state: State | None = None):
-        all_messages = self.conversation[::]
-        if include_message:
-            all_messages.append(include_message)
-
         all_relevant_messages = []
         included_state_found = False if include_state else True
-        for msg in reversed(all_messages):
+        for msg in reversed(self.conversation):
             if msg.tag == State.INCOMPLETE_RESPONSE:
                 all_relevant_messages = [msg] + all_relevant_messages
             elif msg.tag == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
@@ -200,6 +196,9 @@ class Loop:
             elif not included_state_found and msg.tag == include_state:
                 all_relevant_messages = [msg] + all_relevant_messages
                 included_state_found = True
+
+        if include_message:
+            all_relevant_messages.append(include_message)
 
         relevant_text = "\n".join(msg.content for msg in all_relevant_messages)
         return relevant_text
@@ -212,35 +211,36 @@ class Loop:
         relevant_markdown_text = remove_code_blocks(response.content)
 
         python_blocks = extract_code_blocks(relevant_text, "python")
-        debugger_blocks = extract_code_blocks(relevant_text, "debugger")
 
         test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
 
+        found_experiment = False
+        found_test = False
         for line in reversed(relevant_markdown_text.splitlines()):
             if re.match(TEST_HEADLINE_REGEX, line):
-                if python_blocks:
-                    self.add_msg(response, State.TEST_STATED)
-                    return
-                else:
-                    self.add_msg(response, State.INCOMPLETE_RESPONSE)
-                    return
-            elif not test_instructions_stated and re.match(EXPERIMENT_HEADLINE_REGEX, line):
-                if python_blocks:
-                    self.add_msg(response, State.TEST_STATED)
-                    return
-                else:
-                    self.add_msg(response, State.INCOMPLETE_RESPONSE)
-                    return
+                found_test = True
+            elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
+                found_experiment = True
 
         if not python_blocks:
-            if not debugger_blocks:
-                pass  # TODO?
-            else:
-                pass  # TODO?
-        if test_instructions_stated:
-            pass  # TODO?
+            self.add_msg(response, State.INCOMPLETE_RESPONSE)
+            return
 
-        self.add_msg(response, State.INCOMPLETE_RESPONSE)
+        if found_test:
+            self.add_msg(response, State.TEST_STATED)
+            return
+        elif found_experiment:
+            self.add_msg(response, State.EXPERIMENT_STATED)
+            return
+        elif test_instructions_stated:
+            self.add_msg(response, State.TEST_STATED)
+            return
+        elif not test_instructions_stated:
+            self.add_msg(response, State.EXPERIMENT_STATED)
+            return
+        else:
+            self.add_msg(response, State.INCOMPLETE_RESPONSE)
+            return
 
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses(include_state=State.EXPERIMENT_STATED)
