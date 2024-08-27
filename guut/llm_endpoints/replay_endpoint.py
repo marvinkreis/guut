@@ -55,7 +55,7 @@ class ReplayLLMEndpoint(LLMEndpoint):
         if self.delegate:
             return self.delegate.complete(conversation, stop=stop, **kwargs)
         else:
-            raise Exception("No more messages to replay.")
+            raise StopIteration("No more messages to replay.")
 
     def drop_messages(self, count: int):
         self.replay_messages = self.replay_messages[:-count]
