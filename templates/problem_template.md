@@ -16,4 +16,4 @@
 {{ problem.mutant_diff() | rtrim }}
 ```
 
-# Scientific debugging
+# Debugging

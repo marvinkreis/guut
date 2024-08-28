@@ -1,4 +1,8 @@
+{% if is_observation %}
+## Observation Results
+{% else %}
 ## Experiment Results
+{% endif %}
 
 ### Script output
 ```

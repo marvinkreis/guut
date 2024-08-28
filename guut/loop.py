@@ -33,7 +33,7 @@ class State(str, Enum):
 
     # The experiment does not compile.
     # Applies to: UserMsg with compilation result.
-    EXPERIMENT_DOESNT_COMPILE = "experiment_invalid"
+    EXPERIMENT_DOESNT_COMPILE = "experiment_doesnt_compile"
 
     # The experiment result was given to the LLM.
     # Applies to: UserMsg with experiment result.
@@ -81,6 +81,7 @@ class State(str, Enum):
 
 TEST_HEADLINE_REGEX = re.compile(r"^#+ (unit )?test", re.IGNORECASE)
 EXPERIMENT_HEADLINE_REGEX = re.compile(r"^#+ experiment", re.IGNORECASE)
+OBSERVATION_HEADLINE_REGEX = re.compile(r"^#+ observ", re.IGNORECASE)
 
 
 class Loop:
@@ -216,11 +217,14 @@ class Loop:
 
         found_experiment = False
         found_test = False
+        found_observation = False
         for line in reversed(relevant_markdown_text.splitlines()):
             if re.match(TEST_HEADLINE_REGEX, line):
                 found_test = True
             elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
                 found_experiment = True
+            elif re.match(OBSERVATION_HEADLINE_REGEX, line):
+                found_observation = True
 
         if not python_blocks:
             self.add_msg(response, State.INCOMPLETE_RESPONSE)
@@ -230,6 +234,9 @@ class Loop:
             self.add_msg(response, State.TEST_STATED)
             return
         elif found_experiment:
+            self.add_msg(response, State.EXPERIMENT_STATED)
+            return
+        elif found_observation:
             self.add_msg(response, State.EXPERIMENT_STATED)
             return
         elif test_instructions_stated:
@@ -258,9 +265,22 @@ class Loop:
             new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
             self.add_msg(new_message, State.EXPERIMENT_DOESNT_COMPILE)
         else:
+            relevant_text = self._concat_incomplete_responses(include_state=State.EXPERIMENT_STATED)
+            relevant_markdown_text = remove_code_blocks(relevant_text)
+
+            found_experiment = False
+            found_observation = False
+            for line in reversed(relevant_markdown_text.splitlines()):
+                if re.match(EXPERIMENT_HEADLINE_REGEX, line):
+                    found_experiment = True
+                elif re.match(OBSERVATION_HEADLINE_REGEX, line):
+                    found_observation = True
+
             debugger_code = debugger_blocks[-1] if debugger_blocks else None
             experiment_result = self.problem.run_experiment(experiment_code, debugger_code)
-            new_message = self.prompts.experiment_results_template.render(result=experiment_result)
+            new_message = self.prompts.experiment_results_template.render(
+                result=experiment_result, is_observaion=(found_observation and not found_experiment)
+            )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])

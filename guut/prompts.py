@@ -44,8 +44,8 @@ class ExperimentDoesntCompileTemplate(Template):
 
 
 class ExperimentResultsTemplate(Template):
-    def render(self, result: ExperimentResult) -> UserMessage:
-        return UserMessage(self.template.render(result=result).strip() + "\n")
+    def render(self, result: ExperimentResult, is_observaion: bool = False) -> UserMessage:
+        return UserMessage(self.template.render(result=result, is_observaion=is_observaion).strip() + "\n")
 
 
 class TestPrompt(Template):
@@ -123,3 +123,4 @@ debug_prompt_old = DebugPrompt("prompts/debug_prompt_old.md")
 debug_prompt_short = DebugPrompt("prompts/debug_prompt_short.md")
 debug_prompt_alt_experiments = DebugPrompt("prompts/debug_prompt_alt_experiments.md")
 debug_prompt_alt_experiments_v2 = DebugPrompt("prompts/debug_prompt_alt_experiments_v2.md")
+debug_prompt_alt_experiments_v3 = DebugPrompt("prompts/debug_prompt_alt_experiments_v3.md")

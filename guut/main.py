@@ -9,7 +9,7 @@ from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop
-from guut.prompts import debug_prompt_alt_experiments_v2, default_prompts
+from guut.prompts import debug_prompt_alt_experiments_v3, default_prompts
 from guut.quixbugs import QuixbugsProblem
 
 
@@ -18,16 +18,41 @@ def main():
 
     endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
 
-    if False:
-        endpoint = ReplayLLMEndpoint.from_pickled_conversation(
-            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-27 12:22:33%5D 8f30bd9d_sieve.pickle",
+    if True:
+        endpoint = ReplayLLMEndpoint.from_raw_messages(
+            [
+                """
+## Observation
+
+```python
+from sieve import sieve
+from mutant.sieve import sieve as sieve_mutant
+
+print(f"Correct output: {sieve(5)}")
+print(f"Mutant output: {sieve_mutant(5)}")
+```
+
+```pdb
+b sieve.py:5
+commands
+print(f"without mutant: n={n}, primes={primes}")
+c
+b mutant/sieve.py:5
+commands
+print(f"with mutant: n={n}, primes={primes}")
+c
+c
+```
+
+            """
+            ],
             select_messages=None,
         )
 
     problem = QuixbugsProblem(problem_name)
     problem.validate()
 
-    prompts = replace(default_prompts, debug_prompt=debug_prompt_alt_experiments_v2)
+    prompts = replace(default_prompts, debug_prompt=debug_prompt_alt_experiments_v3)
 
     conversation = None
 

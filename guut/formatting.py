@@ -147,11 +147,15 @@ def extract_code_blocks(response: str, language: str) -> List[str]:
     code_blocks = []
 
     for line in response.splitlines():
+        if line.strip().startswith(f"```{language}"):
+            in_code_block = True
+            continue
+
         if line.strip().startswith("```"):
             if in_code_block:
                 code_blocks.append("\n".join(code_lines))
-            in_code_block = not in_code_block
-            continue
+                in_code_block = False
+                continue
 
         if in_code_block:
             code_lines.append(line)
