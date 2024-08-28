@@ -1,11 +1,13 @@
 # Results
 
 ## Test Case
+
 ```python
 {{ test | trim }}
 ```
 
 ## Test on correct code
+
 ```
 {{ result.correct | format_test_result }}
 ```
@@ -17,6 +19,7 @@ The test exited with exitcode {{ result.correct.exitcode }}.
 {% endif %}
 
 ## Test on mutant
+
 ```
 {{ result.mutant | format_test_result }}
 ```

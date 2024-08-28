@@ -106,9 +106,9 @@ def wrap_in_box(text: str, width: int = 100, title: str = ""):
         title = f" {title} "
     wrapped_text = wrap_text(text, width)
     boxed_text = "\n".join(f"│ {line.ljust(width)} │" for line in wrapped_text)
-    return f"""╭─{title}{"─" * (width + 1 - len(title))}╮
+    return f"""┌─{title}{"─" * (width + 1 - len(title))}┐
 {boxed_text}
-╰{"─" * (width + 2)}╯"""
+└{"─" * (width + 2)}┘"""
 
 
 def pretty_conversation(conversastion: Conversation) -> str:

@@ -1,10 +1,11 @@
 {% if is_observation %}
-## Observation Results
+### Observation Results
 {% else %}
-## Experiment Results
+### Experiment Results
 {% endif %}
 
-### Script output
+#### Script output
+
 ```
 {{ result.test | format_test_result }}
 ```
@@ -16,7 +17,8 @@ The test exited with exitcode {{ result.test.exitcode }}.
 {% endif %}
 
 {% if result.debug %}
-### Debugger output
+#### Debugger output
+
 ```
 {{ result.debug | format_debugger_result }}
 ```

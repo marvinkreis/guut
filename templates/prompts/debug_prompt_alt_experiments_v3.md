@@ -55,10 +55,12 @@ print(f"Mutant output: {sieve_mutant(5)}")
 ```pdb
 b sieve.py:5
 commands
+silent
 print(f"without mutant: n={n}, primes={primes}")
 c
 b mutant/sieve.py:5
 commands
+silent
 print(f"with mutant: n={n}, primes={primes}")
 c
 c
@@ -79,23 +81,19 @@ Debugger output:
 (Pdb) b sieve.py:5
 Breakpoint 1 at sieve.py:5
 (Pdb) commands
-(com) p f"without mutant: primes={primes}, n={n}"
+(com) silent
+(com) print(f"without mutant: n={n}, primes={primes}")
 (com) c
 (Pdb) b mutant/sieve.py:5
 Breakpoint 2 at mutant/sieve.py:5
 (Pdb) commands
-(com) p f"with mutant: primes={primes}, n={n}"
+(com) silent
+(com) print(f"with mutant: n={n}, primes={primes}")
 (com) c
 (Pdb) c
-without mutant: primes=[], n=2
-> sieve.py(5)sieve()
--> primes.append(n)
-without mutant: primes=[2], n=3
-> sieve.py(5)sieve()
--> primes.append(n)
-without mutant: primes=[2, 3], n=5
-> sieve.py(5)sieve()
--> primes.append(n)
+without mutant: n=2, primes=[]
+without mutant: n=3, primes=[2]
+without mutant: n=5, primes=[2, 3]
 Correct output: [2, 3, 5]
 Mutant output: []
 The program exited.
@@ -147,11 +145,13 @@ print(f"Verifying expression: {len(output_mutant) == 0 and len(output_correct) >
 ```pdb
 b sieve.py:5
 commands
-print(f"without mutant: n={n}, primes={primes}")
+silent
+print(f"mutant: added {n} to primes {primes}. This should not print!")
 c
 b mutant/sieve.py:5
 commands
-print(f"with mutant: n={n}, primes={primes}")
+silent
+print(f"with mutant: added {n} to primes {primes}")
 c
 c
 ```
@@ -165,12 +165,32 @@ Mutant output: []
 Verifying expression: True
 ```
 
-TODO
-TODO
-TODO
-TODO
-TODO
-TODO
+Debugger output:
+```
+> test.py(1)<module>()
+-> from sieve import sieve
+(Pdb) b sieve.py:5
+Breakpoint 1 at sieve.py:5
+(Pdb) commands
+(com) print(f"without mutant: added {n} to {primes}")
+(com) silent
+(com) c
+(Pdb) b mutant/sieve.py:5
+Breakpoint 2 at mutant/sieve.py:5
+(Pdb) commands
+(com) silent
+(com) print(f"with mutant: added {n} to {primes}. This should not print!")
+(com) c
+(Pdb) c
+without mutant: added 2 to primes []
+without mutant: added 3 to primes [2]
+without mutant: added 5 to primes [2, 3]
+without mutant: added 7 to primes [2, 3, 5]
+Correct output: [2, 3, 5, 7]
+Mutant output: []
+Verifying expression: True
+The program exited.
+```
 
 ## Conclusion
 
@@ -225,7 +245,7 @@ Please use this format for your solution:
     ### Conclusion
     [a short conclusion]
 
-    [more hypotheses until you are ready to write the mutant-killing test]
+    [more hypotheses and experiments until you are ready to write the mutant-killing test]
 
     # Test
     [the mutant-killing test]
@@ -248,6 +268,7 @@ Be brief in your responses and don't repeat things you have already written. Wri
 
 # Python Debugger (pdb)
 
+- Comments are not allowed in the debugger script.
 - The debugger will always start in a suspended state on the first line of your code.
 - Available debugger commands are:
     - break:
@@ -256,8 +277,10 @@ Be brief in your responses and don't repeat things you have already written. Wri
         - Example 1: break mutant/sieve.py:5
         - Example 1: break sieve.py:5, len(primes) != 0
       - commands:
-        - Syntax: `commands \n <your commands> \n [end|c]`
+        - Syntax: `commands \n [silent] \n <your commands> \n (end|c[ont])`
           - `commands` lets you define commands that will be executed every time a breakpoint is hit.
+          - Use `silent` as the first command to suppresses additional output when the breakpoint is hit.
+          - Use `c[ont]` to terminate the command list and instruct the debugger to continue execution after the command list is executed.
     - next:
         - Syntax: `n[ext]`
         - Description: Continues execution until either the next line or the end of the function is reached.
@@ -276,10 +299,12 @@ We encourage you to use the `commands` command to print out intermediate values.
 ```pdb
 b sieve.py:5
 commands
+silent
 print(f"without mutant: n={n}, primes={primes}")
 c
 b mutant/sieve.py:5
 commands
+silent
 print(f"with mutant: n={n}, primes={primes}")
 c
 c

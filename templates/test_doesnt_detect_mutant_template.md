@@ -1,6 +1,7 @@
-# Test Results
+## Test Results
 
-## Test on correct code
+### Test on correct code
+
 ```
 {{ result.correct | format_test_result }}
 ```
@@ -11,7 +12,8 @@ The test was canceled due to a timeout.
 The test exited with exitcode {{ result.correct.exitcode }}.
 {% endif %}
 
-## Test on mutant
+### Test on mutant
+
 ```
 {{ result.mutant | format_test_result }}
 ```

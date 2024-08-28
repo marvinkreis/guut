@@ -18,11 +18,11 @@ def main():
 
     endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
 
-    if True:
+    if False:
         endpoint = ReplayLLMEndpoint.from_raw_messages(
             [
                 """
-## Observation
+# Observation
 
 ```python
 from sieve import sieve
@@ -35,18 +35,53 @@ print(f"Mutant output: {sieve_mutant(5)}")
 ```pdb
 b sieve.py:5
 commands
+silent
 print(f"without mutant: n={n}, primes={primes}")
 c
 b mutant/sieve.py:5
 commands
+silent
 print(f"with mutant: n={n}, primes={primes}")
 c
 c
 ```
+""",
+                """
+# Experiment
 
-            """
+```python
+from sieve import sieve
+from mutant.sieve import sieve as sieve_mutant
+
+output_correct = sieve(10)
+output_mutant = sieve_mutant(10)
+
+print(f"Correct output: {output_correct}")
+print(f"Mutant output: {output_mutant}")
+print(f"Verifying expression: {len(output_mutant) == 0 and len(output_correct) > 0}")
+```
+
+```pdb
+b sieve.py:5
+commands
+print(f"without mutant: added {n} to {primes}")
+silent
+c
+b mutant/sieve.py:5
+commands
+silent
+print(f"with mutant: added {n} to {primes}. This should not print!")
+c
+c
+```
+""",
             ],
             select_messages=None,
+        )
+
+    if False:
+        endpoint = ReplayLLMEndpoint.from_pickled_conversation(
+            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-28 20:43:57%5D 51944bce_flatten.pickle"
         )
 
     problem = QuixbugsProblem(problem_name)

@@ -1,4 +1,5 @@
 import re
+from dataclasses import dataclass
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
@@ -6,12 +7,12 @@ from typing import List, Literal
 
 from loguru import logger
 
-from guut.execution import TestResult
+from guut.execution import ExperimentResult, TestResult
 from guut.formatting import extract_code_blocks, pretty_message, remove_code_blocks
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH
 from guut.logging import Logger as ConversationLogger
-from guut.problem import Problem
+from guut.problem import Problem, ValidationResult
 from guut.prompts import PromptCollection
 
 LOG_PATH = LOG_BASE_PATH / "loop"
@@ -79,6 +80,31 @@ class State(str, Enum):
     INVALID = "invalid"
 
 
+@dataclass
+class ExperimentDescription:
+    code_blocks: List[str]
+    debugger_blocks: List[str]
+    found_observation: bool
+    found_experiment: bool
+    found_test: bool
+
+
+@dataclass
+class TestCase:
+    code: str
+    validation_result: ValidationResult
+    result: TestResult | None
+    valid: bool
+
+
+@dataclass
+class Experiment:
+    code: str
+    debugger_script: str | None
+    validation_result: ValidationResult
+    result: ExperimentResult | None
+
+
 TEST_HEADLINE_REGEX = re.compile(r"^#+ (unit )?test", re.IGNORECASE)
 EXPERIMENT_HEADLINE_REGEX = re.compile(r"^#+ experiment", re.IGNORECASE)
 OBSERVATION_HEADLINE_REGEX = re.compile(r"^#+ observ", re.IGNORECASE)
@@ -101,8 +127,8 @@ class Loop:
         self.endpoint = endpoint
         self.prompts = prompts
         self.enable_log = enable_log
-
         self.enable_print = enable_print
+
         if conversation is None:
             self.conversation = Conversation()
             self.new_messages: List[Message] = []
@@ -114,8 +140,8 @@ class Loop:
         self.max_num_incimplete_responses = max_num_incomplete_responses
         self.max_num_experiments = max_num_experiments
 
-        self.testcase: str | None = None
-        self.test_result: TestResult | None = None
+        self.experiments: List[Experiment] = []
+        self.testcases: List[TestCase] = []
 
         self.conversation.name = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
         self.conversation_logger = ConversationLogger(LOG_PATH, overwrite_old_logs=True)
@@ -138,8 +164,6 @@ class Loop:
             self._prompt_for_hypothesis_or_test()
         elif state == State.EXPERIMENT_RESULTS_GIVEN:
             self._prompt_for_hypothesis_or_test()
-        # elif state == State.FINISHED_DEBUGGING:
-        #     self._add_test_prompt()
         elif state == State.TEST_INSTRUCTIONS_GIVEN:
             self._prompt_for_hypothesis_or_test()
         elif state == State.TEST_STATED:
@@ -186,57 +210,25 @@ class Loop:
         self.add_msg(self.prompts.debug_prompt.render(self.problem), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
-    def _concat_incomplete_responses(self, include_message: Message | None = None, include_state: State | None = None):
-        all_relevant_messages = []
-        included_state_found = False if include_state else True
-        for msg in reversed(self.conversation):
-            if msg.tag == State.INCOMPLETE_RESPONSE:
-                all_relevant_messages = [msg] + all_relevant_messages
-            elif msg.tag == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
-                continue
-            elif not included_state_found and msg.tag == include_state:
-                all_relevant_messages = [msg] + all_relevant_messages
-                included_state_found = True
-
-        if include_message:
-            all_relevant_messages.append(include_message)
-
-        relevant_text = "\n".join(msg.content for msg in all_relevant_messages)
-        return relevant_text
-
     def _prompt_for_hypothesis_or_test(self):
         response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_stop_words)
         self._remove_stop_word_residue(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
-        relevant_markdown_text = remove_code_blocks(response.content)
-
-        python_blocks = extract_code_blocks(relevant_text, "python")
-
+        experiment = self._parse_experiment(relevant_text)
         test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
 
-        found_experiment = False
-        found_test = False
-        found_observation = False
-        for line in reversed(relevant_markdown_text.splitlines()):
-            if re.match(TEST_HEADLINE_REGEX, line):
-                found_test = True
-            elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
-                found_experiment = True
-            elif re.match(OBSERVATION_HEADLINE_REGEX, line):
-                found_observation = True
-
-        if not python_blocks:
+        if not experiment.code_blocks:
             self.add_msg(response, State.INCOMPLETE_RESPONSE)
             return
 
-        if found_test:
+        if experiment.found_test:
             self.add_msg(response, State.TEST_STATED)
             return
-        elif found_experiment:
+        elif experiment.found_experiment:
             self.add_msg(response, State.EXPERIMENT_STATED)
             return
-        elif found_observation:
+        elif experiment.found_observation:
             self.add_msg(response, State.EXPERIMENT_STATED)
             return
         elif test_instructions_stated:
@@ -250,38 +242,43 @@ class Loop:
             return
 
     def _run_experiment(self):
-        relevant_text = self._concat_incomplete_responses(include_state=State.EXPERIMENT_STATED)
+        relevant_text = self._concat_incomplete_responses()
+        experiment = self._parse_experiment(relevant_text)
 
-        python_blocks = extract_code_blocks(relevant_text, "python")
-        if not python_blocks:
+        if not experiment.code_blocks:
             raise InvalidStateException(
                 State.EXPERIMENT_STATED, f"No code present but state is {State.EXPERIMENT_STATED.value}."
             )
-        debugger_blocks = extract_code_blocks(relevant_text, "pdb") + extract_code_blocks(relevant_text, "debugger")
 
-        experiment_code = python_blocks[-1]
+        experiment_code = experiment.code_blocks[-1]  # TODO: select better and maybe try multiple?
+        debugger_script = experiment.debugger_blocks[-1] if experiment.debugger_blocks else None
         validation_result = self.problem.validate_code(experiment_code)
         if not validation_result.valid:
             new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
             self.add_msg(new_message, State.EXPERIMENT_DOESNT_COMPILE)
+            self.experiments.append(
+                Experiment(
+                    code=experiment_code,
+                    debugger_script=debugger_script,
+                    validation_result=validation_result,
+                    result=None,
+                )
+            )
         else:
-            relevant_text = self._concat_incomplete_responses(include_state=State.EXPERIMENT_STATED)
-            relevant_markdown_text = remove_code_blocks(relevant_text)
-
-            found_experiment = False
-            found_observation = False
-            for line in reversed(relevant_markdown_text.splitlines()):
-                if re.match(EXPERIMENT_HEADLINE_REGEX, line):
-                    found_experiment = True
-                elif re.match(OBSERVATION_HEADLINE_REGEX, line):
-                    found_observation = True
-
-            debugger_code = debugger_blocks[-1] if debugger_blocks else None
-            experiment_result = self.problem.run_experiment(experiment_code, debugger_code)
+            experiment_result = self.problem.run_experiment(experiment_code, debugger_script)
             new_message = self.prompts.experiment_results_template.render(
-                result=experiment_result, is_observaion=(found_observation and not found_experiment)
+                result=experiment_result,
+                is_observation=(experiment.found_observation and not experiment.found_experiment),
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
+            self.experiments.append(
+                Experiment(
+                    code=experiment_code,
+                    debugger_script=debugger_script,
+                    validation_result=validation_result,
+                    result=experiment_result,
+                )
+            )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
         if num_experiments == self.max_num_experiments:
@@ -293,12 +290,8 @@ class Loop:
             )
             self.add_msg(new_message, State.ABORTED)
 
-    def _add_test_prompt(self):
-        new_message = self.prompts.test_prompt.render(max_iterations=False)
-        self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
-
     def _run_test(self):
-        relevant_text = self._concat_incomplete_responses(include_state=State.EXPERIMENT_STATED)
+        relevant_text = self._concat_incomplete_responses()
 
         python_blocks = extract_code_blocks(relevant_text, "python")
         if not python_blocks:
@@ -311,18 +304,24 @@ class Loop:
                 result=validation_result,
             )
             self.add_msg(new_message, State.TEST_DOESNT_COMPILE)
+            self.testcases.append(
+                TestCase(code=test_code, validation_result=validation_result, result=None, valid=False)
+            )
         else:
             result = self.problem.run_test(test_code)
-
-            self.testcase = test_code
-            self.test_result = result
 
             if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
                 new_message = self.prompts.results_template.render(test=test_code, result=result)
                 self.add_msg(new_message, State.DONE)
+                self.testcases.append(
+                    TestCase(code=test_code, validation_result=validation_result, result=result, valid=True)
+                )
             else:
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
+                self.testcases.append(
+                    TestCase(code=test_code, validation_result=validation_result, result=result, valid=False)
+                )
 
         num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_DOESNT_COMPILE])
         if num_retries >= self.max_retries_for_invalid_test:
@@ -370,6 +369,50 @@ class Loop:
             self.new_messages = []
         if self.enable_log:
             self.conversation_logger.log_conversation(self.conversation, name=self.conversation.name or "")
+
+    def _concat_incomplete_responses(self, include_message: Message | None = None):
+        if include_message:
+            relevant_messages = [include_message]
+            messages = self.conversation
+        else:
+            relevant_messages = [self.conversation[-1]]
+            messages = self.conversation[:-1]
+
+        for msg in messages[::-1]:
+            if msg.tag == State.INCOMPLETE_RESPONSE:
+                relevant_messages = [msg] + relevant_messages
+            elif msg.tag == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
+                continue
+            else:
+                break
+
+        relevant_text = "\n".join(msg.content for msg in relevant_messages)
+        return relevant_text
+
+    def _parse_experiment(self, text: str) -> ExperimentDescription:
+        markdown_text = remove_code_blocks(text)
+
+        code_blocks = extract_code_blocks(text, "python")
+        debugger_blocks = extract_code_blocks(text, "pdb") + extract_code_blocks(text, "debugger")
+
+        found_test = False
+        found_experiment = False
+        found_observation = False
+        for line in reversed(markdown_text.splitlines()):
+            if re.match(TEST_HEADLINE_REGEX, line):
+                found_test = True
+            elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
+                found_experiment = True
+            elif re.match(OBSERVATION_HEADLINE_REGEX, line):
+                found_observation = True
+
+        return ExperimentDescription(
+            code_blocks=code_blocks,
+            debugger_blocks=debugger_blocks,
+            found_test=found_test,
+            found_experiment=found_experiment,
+            found_observation=found_observation,
+        )
 
 
 class InvalidStateException(Exception):

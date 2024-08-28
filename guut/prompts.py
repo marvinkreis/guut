@@ -44,8 +44,8 @@ class ExperimentDoesntCompileTemplate(Template):
 
 
 class ExperimentResultsTemplate(Template):
-    def render(self, result: ExperimentResult, is_observaion: bool = False) -> UserMessage:
-        return UserMessage(self.template.render(result=result, is_observaion=is_observaion).strip() + "\n")
+    def render(self, result: ExperimentResult, is_observation: bool = False) -> UserMessage:
+        return UserMessage(self.template.render(result=result, is_observation=is_observation).strip() + "\n")
 
 
 class TestPrompt(Template):
@@ -106,7 +106,7 @@ default_prompts = PromptCollection(
     debug_prompt=DebugPrompt("prompts/debug_prompt.md"),
     test_prompt=TestPrompt("prompts/test_prompt.md"),
     #
-    debug_stop_words=["# Experiment Result", "# Experiment Output", "# Test Result", "# Test Output"],
+    debug_stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
     test_stop_words=[],
     #
     problem_template=ProblemTemplate("problem_template.md"),
