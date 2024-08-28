@@ -16,13 +16,13 @@ from guut.quixbugs import QuixbugsProblem
 def main():
     problem_name = sys.argv[1] if len(sys.argv) > 1 else "sieve"
 
-    openai_endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
-    replay_endpoint = ReplayLLMEndpoint.from_pickled_conversation(
-        "",
-        select_messages=2,
-    )
+    endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
 
-    endpoint = replay_endpoint
+    if False:
+        endpoint = ReplayLLMEndpoint.from_pickled_conversation(
+            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-27 12:22:33%5D 8f30bd9d_sieve.pickle",
+            select_messages=None,
+        )
 
     problem = QuixbugsProblem(problem_name)
     problem.validate()
