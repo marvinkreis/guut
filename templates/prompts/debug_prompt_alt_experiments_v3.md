@@ -12,9 +12,9 @@ Scientific debugging is a sytstematic debugging approach based on the scientific
 
 ## Observation
 
-In the beginning, please run the code with a debugger script to get a good idea of what is happening in the code. Put a breakpoint and print relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code).
+In the beginning, please run the code with a debugger script to get a good idea of what is happening in the code. Put a breakpoint and print relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code). Give a brief explanation about what values you are interested in and why.
 
-### Example Observation
+### Example Task
 
 Consider the following example program that implements the sieve of Eratosthenes. We will refer back to this later:
 
@@ -42,7 +42,14 @@ index d9a0df7..3125b92 100644
      return primes
 ```
 
+### Example Observation
+
 The initial initial observation step could look like this:
+
+The function changes the `all` on line 4 to `any`, so I should investigate if this changes the way the function detects prime numbers.
+
+I will set a breakpoint on line 5 to print `n` and `primes` whenever a prime number is appended. This way, I should see if there is a difference in the prime number detection.
+
 
 ```python
 from sieve import sieve
@@ -66,7 +73,9 @@ c
 c
 ```
 
-And it would yield the following output:
+### Example Observation Results
+
+This would yield the following output:
 
 Script output
 ```
@@ -156,6 +165,8 @@ c
 c
 ```
 
+### Example Hypothesis Results
+
 This would yield the following output:
 
 Script output:
@@ -202,9 +213,9 @@ We can see that for n=10, the mutant returned an empty list and the correct code
 
 ## Test
 
-Keep writing new hypotheses and testing them until you understand the muntant. Once you have understood the mutant, you can finish debugging and write the mutant-killing test.
+Keep experimenting until you found inputs for which the mutant produces a different output than the correct implementation (exceptions and infinite loops also count). Once you found those inputs, you can finish debugging and write the mutant-killing test.
 
-The test is different that an experiment. In the test, you don't import the mutant. Instead you write a test that passes on the correct code and fail when executed against the mutant.
+The test is different that an experiment. In the test, you don't import the mutant. Instead you write a test that passes on the correct code and fails when executed against the mutant.
 
 Output the test as a simple python snippet. Don't use any functions or testing frameworks.
 
@@ -217,6 +228,26 @@ output = sieve(10)
 assert len(output) > 0, "sieve must output prime numbers"
 ```
 
+#### Example Test Results
+
+Test on correct code:
+
+```
+
+```
+
+Test on mutant:
+
+```
+Traceback (most recent call last):
+File "test.py", line 4, in <module>
+assert len(output) > 0, "sieve must output prime numbers"
+^^^^^^^^^^^^^^^
+AssertionError: sieve must output prime numbers
+```
+The test exited with exitcode 1.
+
+
 
 # Output Format
 
@@ -228,6 +259,7 @@ Please use this format for your solution:
     # Debugging
 
     ## Observation
+    [a brief explanation]
     [your observation code]
 
     ### Observation Results
@@ -245,7 +277,7 @@ Please use this format for your solution:
     ### Conclusion
     [a short conclusion]
 
-    [more hypotheses and experiments until you are ready to write the mutant-killing test]
+    [more hypotheses and experiments until you found function inputs that can detect the mutant]
 
     # Test
     [the mutant-killing test]
@@ -265,6 +297,8 @@ Write all code in markdown blocks and specify the language, e.g.:
 
 Be brief in your responses and don't repeat things you have already written. Write brief hypotheses and conclusions makes it easier to refer back to them later.
 
+Make sure that `## Observation` is always followed by `### Observation Results`, `### Experiment` is always followed by `### Experiment Results` and `# Test` is always followed by `## Test Results`. Otherwise we cannot give you the results.
+
 
 # Python Debugger (pdb)
 
@@ -276,6 +310,7 @@ Be brief in your responses and don't repeat things you have already written. Wri
         - Description: Sets a breakpoint at the given position. You can pass an optional condition for when to break.
         - Example 1: break mutant/sieve.py:5
         - Example 1: break sieve.py:5, len(primes) != 0
+        - Avoid putting breakpoints on lines with list comprehenstions (e.g. `[x for x in y if ...]`), because Python calls the line internally many times.
       - commands:
         - Syntax: `commands \n [silent] \n <your commands> \n (end|c[ont])`
           - `commands` lets you define commands that will be executed every time a breakpoint is hit.
@@ -294,7 +329,7 @@ Be brief in your responses and don't repeat things you have already written. Wri
         - Syntax: `dir(expression)`
         - Evaluates expression in the current context and prints its value.
 
-We encourage you to use the `commands` command to print out intermediate values. You will receive bonus points for every experiment that includes a debugger script with `commands`. Use it directly after defining a breakpoint like so:
+We encourage you to use the `commands` command to print out intermediate values. Use it directly after defining a breakpoint like so:
 
 ```pdb
 b sieve.py:5

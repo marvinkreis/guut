@@ -1,8 +1,4 @@
-{% if is_observation %}
-### Observation Results
-{% else %}
-### Experiment Results
-{% endif %}
+### {{ is_observation and "Observation" or "Experiment" }} Results
 
 #### Script output
 
@@ -10,10 +6,10 @@
 {{ result.test | format_test_result }}
 ```
 {% if result.test.timeout %}
-The test was canceled due to a timeout.
+The experiment was canceled due to a timeout.
 {% endif %}
 {% if result.test.exitcode != 0 %}
-The test exited with exitcode {{ result.test.exitcode }}.
+The experiment exited with exitcode {{ result.test.exitcode }}.
 {% endif %}
 
 {% if result.debug %}

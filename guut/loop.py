@@ -1,14 +1,15 @@
+import itertools
 import re
 from dataclasses import dataclass
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import List, Literal
+from typing import List, Literal, Tuple
 
 from loguru import logger
 
 from guut.execution import ExperimentResult, TestResult
-from guut.formatting import extract_code_blocks, pretty_message, remove_code_blocks
+from guut.formatting import detect_code_blocks, extract_code_blocks, pretty_message
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH
 from guut.logging import Logger as ConversationLogger
@@ -80,13 +81,61 @@ class State(str, Enum):
     INVALID = "invalid"
 
 
+ExperimentKind = Literal["observation", "experiment", "test", "none"]
+
+
 @dataclass
 class ExperimentDescription:
+    code_block: str | None
+    debugger_block: str | None
+    kind: ExperimentKind
+
+
+@dataclass
+class ParsedExperimentsSection:
     code_blocks: List[str]
     debugger_blocks: List[str]
-    found_observation: bool
-    found_experiment: bool
-    found_test: bool
+    kind: ExperimentKind
+
+    def to_description(self) -> ExperimentDescription:
+        return ExperimentDescription(
+            kind=self.kind,
+            code_block=self.code_blocks[-1],
+            debugger_block=self.debugger_blocks[-1] if self.debugger_blocks else None,
+        )
+
+
+@dataclass
+class ParsedExperiments:
+    sections: List[ParsedExperimentsSection]
+
+    def get_section(self, kind: ExperimentKind) -> ParsedExperimentsSection | None:
+        matches = [s for s in self.sections if s.kind == kind]
+        return matches[-1] if matches else None
+
+    def find_last_code_block(self) -> str | None:
+        for section in reversed(self.sections):
+            if section.code_blocks:
+                return section.code_blocks[-1]
+        return None
+
+    def find_last_debugger_block(self) -> str | None:
+        for section in reversed(self.sections):
+            if section.debugger_blocks:
+                return section.debugger_blocks[-1]
+        return None
+
+    def guess_experiment(self) -> ExperimentDescription:
+        if (section := self.get_section("test")) and section.code_blocks:
+            return section.to_description()
+        elif (section := self.get_section("experiment")) and section.code_blocks:
+            return section.to_description()
+        elif (section := self.get_section("observation")) and section.code_blocks:
+            return section.to_description()
+        else:
+            code_block = self.find_last_code_block()
+            debugger_block = self.find_last_debugger_block()
+            return ExperimentDescription(kind="none", code_block=code_block, debugger_block=debugger_block)
 
 
 @dataclass
@@ -215,26 +264,24 @@ class Loop:
         self._remove_stop_word_residue(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
-        experiment = self._parse_experiment(relevant_text)
+        experiment = self._guess_experiment(relevant_text)
+
         test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
 
-        if not experiment.code_blocks:
+        if experiment.code_block is None:
             self.add_msg(response, State.INCOMPLETE_RESPONSE)
             return
 
-        if experiment.found_test:
+        if experiment.kind == "test":
             self.add_msg(response, State.TEST_STATED)
             return
-        elif experiment.found_experiment:
+        elif experiment.kind in ["experiment", "observation"]:
             self.add_msg(response, State.EXPERIMENT_STATED)
             return
-        elif experiment.found_observation:
-            self.add_msg(response, State.EXPERIMENT_STATED)
-            return
-        elif test_instructions_stated:
+        elif experiment.code_block and test_instructions_stated:
             self.add_msg(response, State.TEST_STATED)
             return
-        elif not test_instructions_stated:
+        elif experiment.code_block and not test_instructions_stated:
             self.add_msg(response, State.EXPERIMENT_STATED)
             return
         else:
@@ -243,15 +290,15 @@ class Loop:
 
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses()
-        experiment = self._parse_experiment(relevant_text)
+        experiment = self._guess_experiment(relevant_text)
 
-        if not experiment.code_blocks:
+        if not experiment.code_block:
             raise InvalidStateException(
                 State.EXPERIMENT_STATED, f"No code present but state is {State.EXPERIMENT_STATED.value}."
             )
+        experiment_code = experiment.code_block
+        debugger_script = experiment.debugger_block
 
-        experiment_code = experiment.code_blocks[-1]  # TODO: select better and maybe try multiple?
-        debugger_script = experiment.debugger_blocks[-1] if experiment.debugger_blocks else None
         validation_result = self.problem.validate_code(experiment_code)
         if not validation_result.valid:
             new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
@@ -267,8 +314,7 @@ class Loop:
         else:
             experiment_result = self.problem.run_experiment(experiment_code, debugger_script)
             new_message = self.prompts.experiment_results_template.render(
-                result=experiment_result,
-                is_observation=(experiment.found_observation and not experiment.found_experiment),
+                result=experiment_result, is_observation=(experiment.kind == "observation")
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
             self.experiments.append(
@@ -292,12 +338,12 @@ class Loop:
 
     def _run_test(self):
         relevant_text = self._concat_incomplete_responses()
+        experiment = self._guess_experiment(relevant_text)
 
-        python_blocks = extract_code_blocks(relevant_text, "python")
-        if not python_blocks:
+        if not experiment.code_block:
             raise InvalidStateException(State.TEST_STATED, f"No code present but state is {State.TEST_STATED.value}.")
+        test_code = experiment.code_block
 
-        test_code = python_blocks[-1]
         validation_result = self.problem.validate_code(test_code)
         if not validation_result.valid:
             new_message = self.prompts.test_doesnt_compile_template.render(
@@ -389,30 +435,54 @@ class Loop:
         relevant_text = "\n".join(msg.content for msg in relevant_messages)
         return relevant_text
 
-    def _parse_experiment(self, text: str) -> ExperimentDescription:
-        markdown_text = remove_code_blocks(text)
+    def _guess_experiment(self, text: str) -> ExperimentDescription:
+        return self._parse_experiment_description(text).guess_experiment()
 
-        code_blocks = extract_code_blocks(text, "python")
-        debugger_blocks = extract_code_blocks(text, "pdb") + extract_code_blocks(text, "debugger")
+    def _parse_experiment_description(self, text: str) -> ParsedExperiments:
+        sections = []
+        current_kind = "none"
+        current_code_lines = []
 
-        found_test = False
-        found_experiment = False
-        found_observation = False
-        for line in reversed(markdown_text.splitlines()):
-            if re.match(TEST_HEADLINE_REGEX, line):
-                found_test = True
-            elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
-                found_experiment = True
-            elif re.match(OBSERVATION_HEADLINE_REGEX, line):
-                found_observation = True
+        for line, is_code in detect_code_blocks(text):
+            if is_code:
+                current_code_lines.append(line)
+                continue
 
-        return ExperimentDescription(
-            code_blocks=code_blocks,
-            debugger_blocks=debugger_blocks,
-            found_test=found_test,
-            found_experiment=found_experiment,
-            found_observation=found_observation,
-        )
+            test_matches = re.match(TEST_HEADLINE_REGEX, line)
+            experiment_matches = re.match(EXPERIMENT_HEADLINE_REGEX, line)
+            observation_matches = re.match(OBSERVATION_HEADLINE_REGEX, line)
+            match = test_matches or experiment_matches or observation_matches
+
+            if match and (current_code_lines or current_kind != "none"):
+                current_code = "\n".join(current_code_lines)
+                code_blocks = extract_code_blocks(current_code, "python")
+                debugger_blocks = extract_code_blocks(current_code, "pdb") + extract_code_blocks(
+                    current_code, "debugger"
+                )
+                sections.append(
+                    ParsedExperimentsSection(
+                        kind=current_kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks
+                    )
+                )
+                current_kind = "none"
+                current_code_lines = []
+
+            if test_matches:
+                current_kind = "test"
+            elif experiment_matches:
+                current_kind = "experiment"
+            elif observation_matches:
+                current_kind = "observation"
+
+        if current_code_lines:
+            current_code = "\n".join(current_code_lines)
+            code_blocks = extract_code_blocks(current_code, "python")
+            debugger_blocks = extract_code_blocks(current_code, "pdb") + extract_code_blocks(current_code, "debugger")
+            sections.append(
+                ParsedExperimentsSection(kind=current_kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
+            )
+
+        return ParsedExperiments(sections=sections)
 
 
 class InvalidStateException(Exception):

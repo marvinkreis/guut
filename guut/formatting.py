@@ -4,7 +4,7 @@ import re
 from enum import Enum
 from os.path import realpath
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from guut.execution import ExecutionResult
 from guut.llm import AssistantMessage, Conversation, Message
@@ -163,19 +163,16 @@ def extract_code_blocks(response: str, language: str) -> List[str]:
     return code_blocks
 
 
-def remove_code_blocks(response: str) -> str:
+def detect_code_blocks(response: str) -> List[Tuple[str, bool]]:
     in_code_block = False
-    non_code_lines = []
-
+    lines = []
     for line in response.splitlines():
         if line.strip().startswith("```"):
             in_code_block = not in_code_block
-            continue
-
-        if not in_code_block:
-            non_code_lines.append(line)
-
-    return "\n".join(non_code_lines)
+            lines.append((line, True))
+        else:
+            lines.append((line, in_code_block))
+    return lines
 
 
 def format_problem(problem: Problem) -> str:
@@ -189,7 +186,7 @@ def format_problem(problem: Problem) -> str:
     return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}".strip()
 
 
-def format_test_result(test_result: ExecutionResult, char_limit: int = 1500):
+def format_test_result(test_result: ExecutionResult, char_limit: int = 2500):
     text = test_result.output.rstrip()
     text = shorten_stack_trace(text, test_result.cwd)
     text = shorten_paths(text, test_result.cwd)
@@ -197,7 +194,7 @@ def format_test_result(test_result: ExecutionResult, char_limit: int = 1500):
     return text
 
 
-def format_debugger_result(debugger_result: ExecutionResult, char_limit: int = 1500):
+def format_debugger_result(debugger_result: ExecutionResult, char_limit: int = 2500):
     text = debugger_result.output.rstrip()
     text = shorten_stack_trace(text, debugger_result.cwd)
     text = shorten_paths(text, debugger_result.cwd)

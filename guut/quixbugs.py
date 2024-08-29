@@ -184,8 +184,8 @@ class QuixbugsProblem(Problem):
         return "\n".join(comment_lines).strip()
 
     def construct_normalized_code(self, use_mutant: bool = False) -> str:
-        return f"{self.extract_code(use_mutant)}"
-        # return f"{self.extract_comment()}\n\n{self.extract_code(use_mutant)}"
+        # return f"{self.extract_code(use_mutant)}"
+        return f"{self.extract_comment()}\n\n{self.extract_code(use_mutant)}"
 
     def compute_mutant_diff(self, reverse: bool = False) -> str:
         correct_code = self.construct_normalized_code(use_mutant=False)
