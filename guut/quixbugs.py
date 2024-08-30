@@ -10,8 +10,9 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, List, Literal, override
 
 from guut.execution import ExecutionResult, run_debugger, run_script
+from guut.parsing import get_test_name
 from guut.formatting import format_problem
-from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult
+from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult, TestResult
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
@@ -118,6 +119,13 @@ class QuixbugsProblem(Problem):
             test_path.write_text(code)
 
             return run_debugger(test_path, debugger_script, cwd=Path(tempdir))
+
+    @override
+    def run_test(self, code: str) -> TestResult:
+        test_name = get_test_name(code)
+        if test_name:
+            code = f"{code}\n\n{test_name}()\n"  # add test call
+        return super().run_test(code)
 
     @override
     def validate(self):

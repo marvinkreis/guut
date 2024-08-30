@@ -29,32 +29,9 @@ Observation
 ```python
 from sieve import sieve
 
-output = sieve(10)
-assert len(output) > 0, "sieve must output prime numbers"
-```
-""",
-                """
-# Experiment
-
-```python
-from sieve import sieve
-
-output = sieve(10)
-assert len(output) > 0, "sieve must output prime numbers"
-```
-
-```pdb
-b sieve.py:5
-commands
-print(f"without mutant: added {n} to {primes}")
-silent
-c
-b mutant/sieve.py:5
-commands
-silent
-print(f"with mutant: added {n} to {primes}. This should not print!")
-c
-c
+def test_something():
+    output = sieve(10)
+    assert len(output) > 0, "sieve must output prime numbers"
 ```
 """,
             ],

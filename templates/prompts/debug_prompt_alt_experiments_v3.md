@@ -217,15 +217,17 @@ Keep experimenting until you found inputs for which the mutant produces a differ
 
 The test is different that an experiment. In the test, you don't import the mutant. Instead you write a test that passes on the correct code and fails when executed against the mutant.
 
-Output the test as a simple python snippet. Don't use any functions or testing frameworks.
+Output the test as single Python function called `test__<name>` with no parameters. Don't use any testing frameworks.
 
 ### Example Test
 
 ```python
 from sieve import sieve
 
-output = sieve(10)
-assert len(output) > 0, "sieve must output prime numbers"
+
+def test__sieve():
+    output = sieve(10)
+    assert len(output) > 0, "sieve must detect prime numbers"
 ```
 
 #### Example Test Results
@@ -240,13 +242,12 @@ Test on mutant:
 
 ```
 Traceback (most recent call last):
-File "test.py", line 4, in <module>
+File "test.py", line 6, in <module>
 assert len(output) > 0, "sieve must output prime numbers"
 ^^^^^^^^^^^^^^^
 AssertionError: sieve must output prime numbers
 ```
 The test exited with exitcode 1.
-
 
 
 # Output Format
