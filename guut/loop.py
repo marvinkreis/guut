@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
@@ -260,7 +260,7 @@ class Loop:
 
     def _prompt_for_hypothesis_or_test(self):
         response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_stop_words)
-        self._remove_stop_word_residue(response)
+        response = self._clean_response(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
         experiment = self._guess_experiment(relevant_text)
@@ -392,8 +392,12 @@ class Loop:
         else:
             raise InvalidStateException(None, f"No valid state before {State.INCOMPLETE_RESPONSE.value}.")
 
-    def _remove_stop_word_residue(self, msg: AssistantMessage):
-        lines = msg.content.splitlines()
+    def _clean_response(self, msg: AssistantMessage):
+        content = self._remove_stop_word_residue(msg.content)
+        return AssistantMessage(content=content + "\n", response=msg.response, usage=msg.usage, tag=msg.tag)
+
+    def _remove_stop_word_residue(self, text: str):
+        lines = text.splitlines()
 
         def condition(line: str):
             if not line:
@@ -405,7 +409,7 @@ class Loop:
             return False
 
         lines = reversed(list(dropwhile(condition, reversed(lines))))
-        return AssistantMessage(content="\n".join(lines), response=msg.response, usage=msg.usage)
+        return "\n".join(lines)
 
     def _print_and_log_conversation(self):
         if self.enable_print:
