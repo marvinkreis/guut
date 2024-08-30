@@ -3,7 +3,7 @@ We are going to give you a Python program and a mutant diff. We want you to use 
 
 # Scientific Debugging
 
-Scientific debugging is a sytstematic debugging approach based on the scientific method. The process follows a loop of:
+Scientific debugging is a systematic debugging approach based on the scientific method. The process follows a loop of:
 
 - Observation
 - Hypothesis
@@ -12,7 +12,7 @@ Scientific debugging is a sytstematic debugging approach based on the scientific
 
 ## Observation
 
-In the beginning, please run the code with a debugger script to get a good idea of what is happening in the code. Put a breakpoint and print relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code). Give a brief explanation about what values you are interested in and why.
+In the beginning, please run the code with a debugger script to get a good idea of what is happening in the code. Put a breakpoint and print relevant values to find *infected paths* (execution paths where the mutant diverges from the correct code). Let us know values you are interested in and why.
 
 ### Example Task
 
@@ -44,7 +44,7 @@ index d9a0df7..3125b92 100644
 
 ### Example Observation
 
-The initial initial observation step could look like this:
+The initial observation step could look like this:
 
 The function changes the `all` on line 4 to `any`, so I should investigate if this changes the way the function detects prime numbers.
 
@@ -135,7 +135,7 @@ Each experiment will contain python code that imports and calls the correct code
 - Use the debugger to print out intermediate values. Simply include a pdb script in the experiment.
 - Don't forget to print your outputs.
 - Make sure to import all necessary functions. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
-- Sometimes, an experiments will have syntax errors. Then, please fix the errors as repeat the experiment. Don't repeat your hypothesis and prediction.
+- Sometimes, your experiment code will have syntax errors. Then, please fix the errors as repeat the experiment. Don't repeat your hypothesis and prediction.
 
 ### Example Experiment
 
@@ -205,17 +205,17 @@ The program exited.
 
 ## Conclusion
 
-After every experiment, write a conclusion that summarizes on the results. Examine the experiment results closely so you don't miss anthing. Keep the conclusions brief, so you can refer back to them easily.
+After every experiment, write a conclusion that summarizes on the results. Examine the experiment results closely so you don't miss anything. Keep the conclusions brief, so you can refer back to them easily.
 
 ### Example Conclusion
 
-We can see that for n=10, the mutant returned an empty list and the correct code returned prime numbers. The verifying expression also evaluated to `True`. Therefore we can confirm the hypothesis.
+We can see that for n=10, the mutant returned an empty list and the correct code returned prime numbers. The verifying expression also evaluated to `True`. Therefore, we can confirm the hypothesis.
 
 ## Test
 
 Keep experimenting until you found inputs for which the mutant produces a different output than the correct implementation (exceptions and infinite loops also count). Once you found those inputs, you can finish debugging and write the mutant-killing test.
 
-The test is different that an experiment. In the test, you don't import the mutant. Instead you write a test that passes on the correct code and fails when executed against the mutant.
+The test is different than an experiment. In the test, you don't import the mutant. Instead, you write a test that passes on the correct code and fails when executed against the mutant.
 
 Output the test as single Python function called `test__<name>` with no parameters. Don't use any testing frameworks.
 
@@ -247,7 +247,7 @@ assert len(output) > 0, "sieve must output prime numbers"
 ^^^^^^^^^^^^^^^
 AssertionError: sieve must output prime numbers
 ```
-The test exited with exitcode 1.
+The test exited with exit code 1.
 
 
 # Output Format
@@ -298,7 +298,7 @@ Write all code in markdown blocks and specify the language, e.g.:
 
 Be brief in your responses and don't repeat things you have already written. Write brief hypotheses and conclusions makes it easier to refer back to them later.
 
-Make sure that `## Observation` is always followed by `### Observation Results`, `### Experiment` is always followed by `### Experiment Results` and `# Test` is always followed by `## Test Results`. Otherwise we cannot give you the results.
+Make sure that `## Observation` is always followed by `### Observation Results`, `### Experiment` is always followed by `### Experiment Results` and `# Test` is always followed by `## Test Results`. Otherwise, we cannot give you the results.
 
 
 # Python Debugger (pdb)
@@ -311,7 +311,7 @@ Make sure that `## Observation` is always followed by `### Observation Results`,
         - Description: Sets a breakpoint at the given position. You can pass an optional condition for when to break.
         - Example 1: break mutant/sieve.py:5
         - Example 1: break sieve.py:5, len(primes) != 0
-        - Avoid putting breakpoints on lines with list comprehenstions (e.g. `[x for x in y if ...]`), because Python calls the line internally many times.
+        - Avoid putting breakpoints on lines with list comprehensions (e.g. `[x for x in y if ...]`), because Python calls the line internally many times.
       - commands:
         - Syntax: `commands \n [silent] \n <your commands> \n (end|c[ont])`
           - `commands` lets you define commands that will be executed every time a breakpoint is hit.

@@ -9,7 +9,7 @@
 The experiment was canceled due to a timeout.
 {% endif %}
 {% if result.test.exitcode != 0 %}
-The experiment exited with exitcode {{ result.test.exitcode }}.
+The experiment exited with exit code {{ result.test.exitcode }}.
 {% endif %}
 
 {% if result.debug %}
