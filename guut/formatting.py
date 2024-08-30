@@ -154,6 +154,7 @@ def extract_code_blocks(response: str, language: str) -> List[str]:
         if line.strip().startswith("```"):
             if in_code_block:
                 code_blocks.append("\n".join(code_lines))
+                code_lines = []
                 in_code_block = False
                 continue
 

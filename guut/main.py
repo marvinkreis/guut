@@ -9,7 +9,7 @@ from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop
-from guut.prompts import debug_prompt_alt_experiments_v3, default_prompts
+from guut.prompts import default_prompts
 from guut.quixbugs import QuixbugsProblem
 
 
@@ -18,7 +18,7 @@ def main():
 
     endpoint = SafeguardLLMEndpoint(get_openai_endpoint())
 
-    if True:
+    if False:
         endpoint = ReplayLLMEndpoint.from_raw_messages(
             [
                 """
@@ -38,16 +38,15 @@ def test_something():
             select_messages=None,
         )
 
-    if False:
+    if True:
         endpoint = ReplayLLMEndpoint.from_pickled_conversation(
-            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-28 20:43:57%5D 51944bce_flatten.pickle"
+            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-30 14:37:51%5D d7284074_to_base.pickle"
         )
 
     problem = QuixbugsProblem(problem_name)
     problem.validate()
 
-    prompts = replace(default_prompts, debug_prompt=debug_prompt_alt_experiments_v3)
-
+    prompts = default_prompts
     conversation = None
 
     loop = Loop(

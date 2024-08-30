@@ -1,10 +1,9 @@
-import itertools
 import re
 from dataclasses import dataclass
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import List, Literal, Tuple
+from typing import List, Literal
 
 from loguru import logger
 
@@ -440,46 +439,38 @@ class Loop:
 
     def _parse_experiment_description(self, text: str) -> ParsedExperiments:
         sections = []
-        current_kind = "none"
         current_code_lines = []
 
-        for line, is_code in detect_code_blocks(text):
+        for line, is_code in reversed(detect_code_blocks(text)):
             if is_code:
                 current_code_lines.append(line)
                 continue
 
-            test_matches = re.match(TEST_HEADLINE_REGEX, line)
-            experiment_matches = re.match(EXPERIMENT_HEADLINE_REGEX, line)
-            observation_matches = re.match(OBSERVATION_HEADLINE_REGEX, line)
-            match = test_matches or experiment_matches or observation_matches
+            kind = "none"
+            if re.match(TEST_HEADLINE_REGEX, line):
+                kind = "test"
+            elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
+                kind = "experiment"
+            elif re.match(OBSERVATION_HEADLINE_REGEX, line):
+                kind = "observation"
 
-            if match and (current_code_lines or current_kind != "none"):
-                current_code = "\n".join(current_code_lines)
+            if kind != "none":
+                current_code = "\n".join(reversed(current_code_lines))
                 code_blocks = extract_code_blocks(current_code, "python")
                 debugger_blocks = extract_code_blocks(current_code, "pdb") + extract_code_blocks(
                     current_code, "debugger"
                 )
                 sections.append(
-                    ParsedExperimentsSection(
-                        kind=current_kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks
-                    )
+                    ParsedExperimentsSection(kind=kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
                 )
-                current_kind = "none"
                 current_code_lines = []
 
-            if test_matches:
-                current_kind = "test"
-            elif experiment_matches:
-                current_kind = "experiment"
-            elif observation_matches:
-                current_kind = "observation"
-
         if current_code_lines:
-            current_code = "\n".join(current_code_lines)
+            current_code = "\n".join(reversed(current_code_lines))
             code_blocks = extract_code_blocks(current_code, "python")
             debugger_blocks = extract_code_blocks(current_code, "pdb") + extract_code_blocks(current_code, "debugger")
             sections.append(
-                ParsedExperimentsSection(kind=current_kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
+                ParsedExperimentsSection(kind="none", code_blocks=code_blocks, debugger_blocks=debugger_blocks)
             )
 
         return ParsedExperiments(sections=sections)
