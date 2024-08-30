@@ -118,9 +118,3 @@ default_prompts = PromptCollection(
     conversation_aborted_template=ConversationAbortedTemplate("conversation_aborted_template.md"),
     incomplete_response_template=IncompleteResponseTemplate("incomplete_response_template.md"),
 )
-
-debug_prompt_old = DebugPrompt("prompts/debug_prompt_old.md")
-debug_prompt_short = DebugPrompt("prompts/debug_prompt_short.md")
-debug_prompt_alt_experiments = DebugPrompt("prompts/debug_prompt_alt_experiments.md")
-debug_prompt_alt_experiments_v2 = DebugPrompt("prompts/debug_prompt_alt_experiments_v2.md")
-debug_prompt_alt_experiments_v3 = DebugPrompt("prompts/debug_prompt_alt_experiments_v3.md")
