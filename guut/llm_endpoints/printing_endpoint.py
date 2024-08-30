@@ -2,7 +2,7 @@ from typing import override
 
 from llama_cpp.llama_cache import List
 
-from guut.formatting import pretty_message
+from guut.formatting import format_message_pretty
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message, Role
 
 
@@ -13,10 +13,10 @@ class PrintingLLMEndpoint(LLMEndpoint):
     @override
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
         for msg in self.get_new_messages(conversation):
-            print(pretty_message(msg))
+            print(format_message_pretty(msg))
 
         response = self.delegate.complete(conversation, stop=stop, **kwargs)
-        print(pretty_message(response))
+        print(format_message_pretty(response))
         return response
 
     def get_new_messages(self, conversation: Conversation) -> List[Message]:

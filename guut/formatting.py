@@ -4,21 +4,46 @@ import re
 from enum import Enum
 from os.path import realpath
 from pathlib import Path
-from typing import List, Tuple
+from typing import List
 
 from guut.execution import ExecutionResult
 from guut.llm import AssistantMessage, Conversation, Message
 from guut.problem import Problem
 
 
+def format_problem(problem: Problem) -> str:
+    cut = problem.class_under_test()
+    cut_formatted = f"{cut.name}:\n{format_markdown_code_block(cut.content, show_linenos=True)}"
+    deps_formatted = [
+        f"{snippet.name}:\n{format_markdown_code_block(snippet.content, show_linenos=False)}"
+        for snippet in problem.dependencies()
+    ]
+    diff_formatted = format_markdown_code_block(problem.mutant_diff(), show_linenos=False, name="mutant.diff")
+    return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}".strip()
+
+
 def format_markdown_code_block(
     content: str, language: str | None = None, name: str | None = None, show_linenos: bool = False
 ) -> str:
-    header = " ".join([language or "", name or ""])
+    header = " ".join([language or "", name or ""]).strip()
     content = add_line_numbers(content) if show_linenos else content
     return f"""```{header}
 {content.rstrip()}
 ```"""
+
+
+def add_line_numbers(code: str):
+    lines = code.splitlines()
+    digits = math.floor(math.log10(len(lines))) + 1
+    format_str = "{:0" + str(digits) + "d}"
+
+    def add_line_number(line: str, number: int):
+        if not line or line.isspace():
+            return format_str.format(number)
+        else:
+            return f"{format_str.format(number)}  {line}"
+
+    return "\n".join(add_line_number(line, i + 1) for i, line in enumerate(lines))
 
 
 def shorten_paths(text: str, path_to_omit: str | Path) -> str:
@@ -65,6 +90,13 @@ def shorten_stack_trace(stack_trace: str, path_to_include: str | Path) -> str:
 
 
 def limit_text(text: str, char_limit: int = 2000) -> str:
+    if len(text) > char_limit:
+        return text[:2000] + "<truncated>"
+    else:
+        return text
+
+
+def limit_text_by_line(text: str, char_limit: int = 2000) -> str:
     num_chars = 0
     lines = []
     for line in text.splitlines():
@@ -101,7 +133,7 @@ def wrap_text(text: str, width: int = 100) -> List[str]:
     return lines
 
 
-def wrap_in_box(text: str, width: int = 100, title: str = ""):
+def wrap_text_in_box(text: str, width: int = 100, title: str = ""):
     if title:
         title = f" {title} "
     wrapped_text = wrap_text(text, width)
@@ -111,11 +143,11 @@ def wrap_in_box(text: str, width: int = 100, title: str = ""):
 └{"─" * (width + 2)}┘"""
 
 
-def pretty_conversation(conversastion: Conversation) -> str:
-    return "\n".join(pretty_message(msg) for msg in conversastion)
+def format_conversation_pretty(conversastion: Conversation) -> str:
+    return "\n".join(format_message_pretty(msg) for msg in conversastion)
 
 
-def pretty_message(message: Message) -> str:
+def format_message_pretty(message: Message) -> str:
     title = []
     title.append(message.role.value)
     title.append(message.tag.value if isinstance(message.tag, Enum) else str(message.tag))
@@ -124,80 +156,12 @@ def pretty_message(message: Message) -> str:
             title.append(f"({message.usage.prompt_tokens}, {message.usage.completion_tokens})")
         else:
             title.append("None")
-    return wrap_in_box(message.content, title=", ".join(title))
+    return wrap_text_in_box(message.content, title=", ".join(title))
 
 
-def add_line_numbers(code: str):
-    lines = code.splitlines()
-    digits = math.floor(math.log10(len(lines))) + 1
-    format_str = "{:0" + str(digits) + "d}"
-
-    def add_line_number(line: str, number: int):
-        if not line or line.isspace():
-            return format_str.format(number)
-        else:
-            return f"{format_str.format(number)}  {line}"
-
-    return "\n".join(add_line_number(line, i + 1) for i, line in enumerate(lines))
-
-
-def extract_code_blocks(response: str, language: str) -> List[str]:
-    in_code_block = False
-    code_lines = []
-    code_blocks = []
-
-    for line in response.splitlines():
-        if line.strip().startswith(f"```{language}"):
-            in_code_block = True
-            continue
-
-        if line.strip().startswith("```"):
-            if in_code_block:
-                code_blocks.append("\n".join(code_lines))
-                code_lines = []
-                in_code_block = False
-                continue
-
-        if in_code_block:
-            code_lines.append(line)
-
-    return code_blocks
-
-
-def detect_code_blocks(response: str) -> List[Tuple[str, bool]]:
-    in_code_block = False
-    lines = []
-    for line in response.splitlines():
-        if line.strip().startswith("```"):
-            in_code_block = not in_code_block
-            lines.append((line, True))
-        else:
-            lines.append((line, in_code_block))
-    return lines
-
-
-def format_problem(problem: Problem) -> str:
-    cut = problem.class_under_test()
-    cut_formatted = f"{cut.name}:\n{format_markdown_code_block(cut.content, show_linenos=True)}"
-    deps_formatted = [
-        f"{snippet.name}:\n{format_markdown_code_block(snippet.content, show_linenos=False)}"
-        for snippet in problem.dependencies()
-    ]
-    diff_formatted = format_markdown_code_block(problem.mutant_diff(), show_linenos=False, name="mutant.diff")
-    return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}".strip()
-
-
-def format_test_result(test_result: ExecutionResult, char_limit: int = 2500):
+def format_execution_result(test_result: ExecutionResult, char_limit: int = 2500):
     text = test_result.output.rstrip()
     text = shorten_stack_trace(text, test_result.cwd)
     text = shorten_paths(text, test_result.cwd)
-    text = limit_text(text, char_limit)
-    return text
-
-
-def format_debugger_result(debugger_result: ExecutionResult, char_limit: int = 2500):
-    text = debugger_result.output.rstrip()
-    text = shorten_stack_trace(text, debugger_result.cwd)
-    text = shorten_paths(text, debugger_result.cwd)
     text = limit_text(text, char_limit)
     return text

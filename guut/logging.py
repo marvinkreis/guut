@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-from guut.formatting import pretty_conversation, pretty_message
+from guut.formatting import format_conversation_pretty, format_message_pretty
 from guut.llm import AssistantMessage, Conversation
 
 LOG_BASE_PATH = Path(os.environ["LOGGING_PATH"])
@@ -36,7 +36,7 @@ class Logger:
 
         pickle_path.write_bytes(pickle.dumps(conversation))
         json_path.write_text(json.dumps(conversation.to_json()))
-        text_path.write_text(pretty_conversation(conversation))
+        text_path.write_text(format_conversation_pretty(conversation))
 
     def log_message(self, message: AssistantMessage, name: str) -> None:
         if self.overwrite_old_logs:
@@ -53,4 +53,4 @@ class Logger:
 
         pickle_path.write_bytes(pickle.dumps(message))
         json_path.write_text(json.dumps(message.to_json()))
-        text_path.write_text(pretty_message(message))
+        text_path.write_text(format_message_pretty(message))

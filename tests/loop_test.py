@@ -1,11 +1,8 @@
-from contextlib import suppress
-
 from guut.dummy_problem import DummyProblem
 from guut.llm import AssistantMessage, Conversation, UserMessage
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.loop import Loop, State
 from guut.prompts import default_prompts
-
 
 code = """
 ```python

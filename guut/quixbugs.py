@@ -10,9 +10,9 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, List, Literal, override
 
 from guut.execution import ExecutionResult, run_debugger, run_script
-from guut.parsing import get_test_name
 from guut.formatting import format_problem
-from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult, TestResult
+from guut.parsing import parse_python_test_name
+from guut.problem import Problem, ProblemDescription, TestResult, TextFile, ValidationResult
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
@@ -39,6 +39,14 @@ class QuixbugsProblem(Problem):
         if self.is_graph_problem():
             return [TextFile(content=NODE_PATH.read_text(), name=NODE_PATH.name, language="python")]
         return []
+
+    @override
+    def allowed_languages(self) -> List[str]:
+        return ["python"]
+
+    @override
+    def allowed_debugger_languages(self) -> List[str]:
+        return ["pdb", "debugger"]
 
     @override
     def mutant_diff(self, reverse: bool = False) -> str:
@@ -122,13 +130,13 @@ class QuixbugsProblem(Problem):
 
     @override
     def run_test(self, code: str) -> TestResult:
-        test_name = get_test_name(code)
+        test_name = parse_python_test_name(code)
         if test_name:
             code = f"{code}\n\n{test_name}()\n"  # add test call
         return super().run_test(code)
 
     @override
-    def validate(self):
+    def validate_files(self):
         for path in [self.correct_file(), self.buggy_file(), *self.dependencies_paths()]:
             if not path.is_file():
                 path.read_text()
@@ -192,7 +200,6 @@ class QuixbugsProblem(Problem):
         return "\n".join(comment_lines).strip()
 
     def construct_normalized_code(self, use_mutant: bool = False) -> str:
-        # return f"{self.extract_code(use_mutant)}"
         return f"{self.extract_comment()}\n\n{self.extract_code(use_mutant)}"
 
     def compute_mutant_diff(self, reverse: bool = False) -> str:
@@ -233,7 +240,7 @@ def main() -> None:
     else:
         # Print selected problem
         problem = QuixbugsProblem(sys.argv[1])
-        problem.validate()
+        problem.validate_files()
         print(format_problem(problem))
 
 

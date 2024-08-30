@@ -1,10 +1,8 @@
 import sys
-from dataclasses import replace
 
 from loguru import logger
 from openai import OpenAI
 
-from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
@@ -40,11 +38,11 @@ def test_something():
 
     if True:
         endpoint = ReplayLLMEndpoint.from_pickled_conversation(
-            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-30 14:37:51%5D d7284074_to_base.pickle"
+            "file:///home/marvin/workspace/master-thesis-playground/chatlogs/loop/%5B2024-08-30 15:24:01%5D 3eb5e155_to_base.pickle"
         )
 
     problem = QuixbugsProblem(problem_name)
-    problem.validate()
+    problem.validate_files()
 
     prompts = default_prompts
     conversation = None

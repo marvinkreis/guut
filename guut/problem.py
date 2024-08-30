@@ -38,6 +38,14 @@ class Problem(ABC):
         pass
 
     @abstractmethod
+    def allowed_languages(self) -> Iterable[str]:
+        pass
+
+    @abstractmethod
+    def allowed_debugger_languages(self) -> Iterable[str]:
+        pass
+
+    @abstractmethod
     def mutant_diff(self, reverse: bool = False) -> str:
         pass
 
@@ -69,7 +77,7 @@ class Problem(ABC):
         )
 
     @abstractmethod
-    def validate(self):
+    def validate_files(self):
         pass
 
     @abstractmethod
@@ -80,7 +88,3 @@ class Problem(ABC):
     @abstractmethod
     def list_problems() -> Iterable[ProblemDescription]:
         pass
-
-
-# def extract_code
-# def extract_debugger_script

@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
@@ -8,10 +8,11 @@ from typing import List, Literal
 from loguru import logger
 
 from guut.execution import ExperimentResult, TestResult
-from guut.formatting import detect_code_blocks, extract_code_blocks, pretty_message
+from guut.formatting import format_message_pretty
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH
 from guut.logging import Logger as ConversationLogger
+from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
 from guut.problem import Problem, ValidationResult
 from guut.prompts import PromptCollection
 
@@ -414,7 +415,7 @@ class Loop:
     def _print_and_log_conversation(self):
         if self.enable_print:
             for msg in self.new_messages:
-                print(pretty_message(msg))
+                print(format_message_pretty(msg))
             self.new_messages = []
         if self.enable_log:
             self.conversation_logger.log_conversation(self.conversation, name=self.conversation.name or "")
@@ -443,14 +444,15 @@ class Loop:
 
     def _parse_experiment_description(self, text: str) -> ParsedExperiments:
         sections = []
-        current_code_lines = []
+        section_lines = []
 
-        for line, is_code in reversed(detect_code_blocks(text)):
+        for line, is_code in reversed(detect_markdown_code_blocks(text)):
+            section_lines.append(line)
+
             if is_code:
-                current_code_lines.append(line)
                 continue
 
-            kind = "none"
+            kind: ExperimentKind = "none"
             if re.match(TEST_HEADLINE_REGEX, line):
                 kind = "test"
             elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
@@ -459,25 +461,29 @@ class Loop:
                 kind = "observation"
 
             if kind != "none":
-                current_code = "\n".join(reversed(current_code_lines))
-                code_blocks = extract_code_blocks(current_code, "python")
-                debugger_blocks = extract_code_blocks(current_code, "pdb") + extract_code_blocks(
-                    current_code, "debugger"
-                )
-                sections.append(
-                    ParsedExperimentsSection(kind=kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
-                )
-                current_code_lines = []
+                section_text = "\n".join(reversed(section_lines))
+                sections.append(self._parse_experiment_section(section_text, kind))
+                section_lines = []
 
-        if current_code_lines:
-            current_code = "\n".join(reversed(current_code_lines))
-            code_blocks = extract_code_blocks(current_code, "python")
-            debugger_blocks = extract_code_blocks(current_code, "pdb") + extract_code_blocks(current_code, "debugger")
-            sections.append(
-                ParsedExperimentsSection(kind="none", code_blocks=code_blocks, debugger_blocks=debugger_blocks)
-            )
+        if section_lines:
+            section_text = "\n".join(reversed(section_lines))
+            if section := self._parse_experiment_section(section_text, "none"):
+                sections.append(section)
 
         return ParsedExperiments(sections=sections)
+
+    def _parse_experiment_section(self, text: str, kind: ExperimentKind) -> ParsedExperimentsSection | None:
+        markdown_blocks = extract_markdown_code_blocks(text)
+        code_langs = self.problem.allowed_languages()
+        dbg_langs = self.problem.allowed_debugger_languages()
+
+        code_blocks = [block.code for block in markdown_blocks if (block.language or "") in code_langs]
+        debugger_blocks = [block.code for block in markdown_blocks if (block.language or "") in dbg_langs]
+
+        if code_blocks or (kind != "none"):
+            return ParsedExperimentsSection(kind=kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
+        else:
+            return None
 
 
 class InvalidStateException(Exception):

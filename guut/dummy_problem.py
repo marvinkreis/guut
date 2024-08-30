@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Iterable, Literal, override
+from typing import Iterable, List, Literal, override
 
 from guut.execution import ExecutionResult
 from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult
@@ -19,6 +19,14 @@ class DummyProblem(Problem):
         return []
 
     @override
+    def allowed_languages(self) -> List[str]:
+        return ["python"]
+
+    @override
+    def allowed_debugger_languages(self) -> List[str]:
+        return ["pdb", "debugger"]
+
+    @override
     def mutant_diff(self, reverse: bool = False) -> str:
         return ""
 
@@ -33,7 +41,7 @@ class DummyProblem(Problem):
         return ExecutionResult(target=Path("."), args=[], cwd=Path("."), input="", output="")
 
     @override
-    def validate(self):
+    def validate_files(self):
         pass
 
     @override
