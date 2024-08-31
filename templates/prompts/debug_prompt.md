@@ -122,11 +122,11 @@ Hypotheses are the key aspect of scientific debugging, and should be written det
 - Don't repeat hypotheses you have already made.
 - Don't base hypotheses on untested assumptions.
 
-Hypotheses follow this template: I hypothesize that [assumption] holds when [mutant difference]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
+Hypotheses loosely follow this template: I hypothesize that [assumption] holds when [mutant difference]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 
 ### Example Hypothesis
 
-The observation step showed that the mutant didn't call the `append` function and returned an empty list. Therefore, I hypothesize that the mutant will also output an empty list for a different input n=10. I will verify this by calling both versions of sieve with n=10 and checking that the mutant outputs the empty list, while the correct code doesn't.
+The observation step showed that the mutant didn't call the `append` function and therefore returned an empty list. To confirm this I will reuse the same inputs, but also include a verifying expression: `len(output_mutant) == 0 and len(output_correct) > 0`. If this evaluates to True, my hypothesis is confirmed and I can write the mutant-killing test.
 
 ## Experiment
 
@@ -143,8 +143,8 @@ Each experiment will contain python code that imports and calls the correct code
 from sieve import sieve
 from mutant.sieve import sieve as sieve_mutant
 
-output_correct = sieve(10)
-output_mutant = sieve_mutant(10)
+output_correct = sieve(5)
+output_mutant = sieve_mutant(5)
 
 print(f"Correct output: {output_correct}")
 print(f"Mutant output: {output_mutant}")
@@ -171,7 +171,7 @@ This would yield the following output:
 
 Script output:
 ```
-Correct output: [2, 3, 5, 7]
+Correct output: [2, 3, 5]
 Mutant output: []
 Verifying expression: True
 ```
@@ -196,8 +196,7 @@ Breakpoint 2 at mutant/sieve.py:5
 without mutant: added 2 to primes []
 without mutant: added 3 to primes [2]
 without mutant: added 5 to primes [2, 3]
-without mutant: added 7 to primes [2, 3, 5]
-Correct output: [2, 3, 5, 7]
+Correct output: [2, 3, 5]
 Mutant output: []
 Verifying expression: True
 The program exited.
@@ -209,7 +208,7 @@ After every experiment, write a conclusion that summarizes on the results. Exami
 
 ### Example Conclusion
 
-We can see that for n=10, the mutant returned an empty list and the correct code returned prime numbers. The verifying expression also evaluated to `True`. Therefore, we can confirm the hypothesis.
+We can see that for n=5, the verifying expression evaluated to `True`. Therefore, we can confirm the hypothesis and write the test.
 
 ## Test
 
@@ -226,7 +225,7 @@ from sieve import sieve
 
 
 def test__sieve():
-    output = sieve(10)
+    output = sieve(5)
     assert len(output) > 0, "sieve must detect prime numbers"
 ```
 
