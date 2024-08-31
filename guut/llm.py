@@ -185,7 +185,7 @@ class EndpointDescription:
     model: str | None
 
 
-class LLMEndpoint(ABC):
+class LLMEndpoint:
     @abstractmethod
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
         pass

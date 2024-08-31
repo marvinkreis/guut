@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
 from itertools import dropwhile
@@ -91,7 +91,7 @@ class ExperimentOrTestDescription:
 @dataclass
 class ExperimentDescription(ExperimentOrTestDescription):
     debugger_script: str | None
-    kind: Literal["observation", "experiment"]
+    kind: Literal["observation", "experiment", "none"]
 
 
 @dataclass
@@ -143,7 +143,7 @@ class RawExperiment:
             code, debugger_script = self.guess_code_blocks(section)
             if code:
                 return ExperimentDescription(
-                    kind="experiment", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                    kind="none", text=section.text, code=code, debugger_script=debugger_script, raw=self
                 )
         else:
             return None
@@ -305,15 +305,20 @@ class Loop:
         if isinstance(experiment, TestDescription):
             self.add_msg(response, State.TEST_STATED)
             return
-        elif isinstance(experiment, ExperimentDescription):
-            self.add_msg(response, State.EXPERIMENT_STATED)
-            return
-        elif experiment.code and test_instructions_stated:
-            self.add_msg(response, State.TEST_STATED)
-            return
-        elif experiment.code and not test_instructions_stated:
-            self.add_msg(response, State.EXPERIMENT_STATED)
-            return
+
+        if isinstance(experiment, ExperimentDescription):
+            if experiment.kind == "experiment":
+                self.add_msg(response, State.EXPERIMENT_STATED)
+                return
+            elif experiment.kind == "observation":
+                self.add_msg(response, State.EXPERIMENT_STATED)
+                return
+            elif experiment.kind == "none" and test_instructions_stated:
+                self.add_msg(response, State.TEST_STATED)
+                return
+            elif experiment.kind == "none" and not test_instructions_stated:
+                self.add_msg(response, State.EXPERIMENT_STATED)
+                return
 
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses()
@@ -338,6 +343,7 @@ class Loop:
                 result=experiment_result, is_observation=(experiment.kind == "observation")
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
+            experiment = replace(experiment, kind="observation" if experiment.kind == "observation" else "experiment")
             self.experiments.append(
                 Experiment(validation_result=validation_result, result=experiment_result, description=experiment)
             )

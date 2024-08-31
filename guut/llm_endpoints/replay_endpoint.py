@@ -11,7 +11,7 @@ class ReplayLLMEndpoint(LLMEndpoint):
         index: int | None = None,
         path: str | None = None,
     ):
-        self.replay_messages = [msg.copy() for msg in self.replay_messages]
+        self.replay_messages = [msg.copy() for msg in replay_messages]
         for msg in replay_messages:
             msg.tag = None
 

@@ -4,17 +4,17 @@ from typing import List
 
 import jinja2
 
-from guut.formatting import add_line_numbers, format_execution_result, limit_text
+import guut.formatting as formatting
 from guut.llm import SystemMessage, UserMessage
 from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 
 templates_path = Path(__file__).parent.parent / "templates"
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), trim_blocks=True)
-jinja_env.filters["format_test_result"] = format_execution_result
-jinja_env.filters["format_debugger_result"] = format_execution_result
-jinja_env.filters["add_line_numbers"] = add_line_numbers
+jinja_env.filters["format_test_result"] = formatting.format_execution_result
+jinja_env.filters["format_debugger_result"] = formatting.format_execution_result
+jinja_env.filters["add_line_numbers"] = formatting.add_line_numbers
 jinja_env.filters["rtrim"] = lambda s: s.rstrip()
-jinja_env.filters["limit_text"] = limit_text
+jinja_env.filters["limit_text"] = formatting.limit_text
 
 
 class Template:
