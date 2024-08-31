@@ -35,7 +35,7 @@ class Logger:
         self.old_conversation_logs += [pickle_path, json_path, text_path]
 
         pickle_path.write_bytes(pickle.dumps(conversation))
-        json_path.write_text(json.dumps(conversation.to_json()))
+        json_path.write_text(json.dumps(conversation.to_json(), default=lambda x: None))
         text_path.write_text(format_conversation_pretty(conversation))
 
     def log_message(self, message: AssistantMessage, name: str) -> None:

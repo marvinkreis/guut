@@ -73,4 +73,4 @@ def msg_from_response(response: ChatCompletion) -> AssistantMessage:
         else None
     )
 
-    return AssistantMessage(content, response, usage)
+    return AssistantMessage(content=content, response=response.to_dict(), usage=usage, id=response.id)

@@ -1,11 +1,8 @@
 import copy
-import pickle
 from abc import ABC
 from dataclasses import dataclass
 from enum import Enum
-from pathlib import Path
-from typing import Any, List, cast, override
-from urllib.parse import unquote, urlparse
+from typing import Any, Dict, List, override
 
 
 class Role(Enum):
@@ -21,6 +18,9 @@ class Role(Enum):
     ASSISTANT = "assistant"
 
 
+Json = Dict[str, object]
+
+
 @dataclass
 class Usage:
     prompt_tokens: int
@@ -33,6 +33,14 @@ class Usage:
             "completion_tokens": self.completion_tokens,
             "total_tokens": self.total_tokens,
         }
+
+    @staticmethod
+    def from_json(json: Dict[str, Any]) -> "Usage":
+        return Usage(
+            prompt_tokens=json["prompt_tokens"],
+            completion_tokens=json["completion_tokens"],
+            total_tokens=json["total_tokens"],
+        )
 
 
 class Message(ABC):
@@ -61,6 +69,18 @@ class Message(ABC):
     def copy(self):
         return copy.deepcopy(self)
 
+    @staticmethod
+    def from_json(json: Dict[str, Any]) -> "Message":
+        role = json["role"]
+        if role == Role.SYSTEM.value:
+            return SystemMessage(json["content"], tag=json.get("tag"))
+        elif role == Role.USER.value:
+            return UserMessage(json["content"], tag=json.get("tag"))
+        elif role == Role.ASSISTANT.value:
+            return AssistantMessage.from_json(json)
+        else:
+            raise Exception(f"Unknown role: {role}")
+
 
 class SystemMessage(Message):
     def __init__(self, content: str, tag: Any = None):
@@ -79,25 +99,50 @@ class UserMessage(Message):
 
 
 class AssistantMessage(Message):
-    # The full response object from the API.
+    # The response object from the API, as a dict.
     response: Any | None
 
     # The token usage to generate this message.
     usage: Usage | None
 
-    def __init__(self, content: str, response: Any = None, usage: Usage | None = None, tag: Any = None):
+    # A unique id.
+    id: str | None
+
+    def __init__(
+        self,
+        content: str,
+        response: Any = None,
+        usage: Usage | None = None,
+        tag: Any | None = None,
+        id: str | None = None,
+    ):
         super().__init__()
         self.role = Role.ASSISTANT
         self.content = content
         self.response = response
         self.usage = usage
         self.tag = tag
+        self.id = id
 
     @override
     def to_json(self):
         json = super().to_json()
         json["usage"] = self.usage.to_json() if self.usage else None
+        json["response"] = self.response
+        json["id"] = self.id
         return json
+
+    @override
+    @staticmethod
+    def from_json(json: Dict[str, Any]) -> "AssistantMessage":
+        content = json["content"]
+        tag = json.get("tag")
+        usage = json.get("usage")
+        response = json.get("response")
+        id = json.get("id")
+        return AssistantMessage(
+            content=content, tag=tag, usage=(Usage.from_json(usage) if usage else None), response=response, id=id
+        )
 
 
 class FakeAssistantMessage(Message):
@@ -130,12 +175,8 @@ class Conversation(list):
         return Conversation([msg.copy() for msg in self])
 
     @staticmethod
-    def from_pickle(pickle_path: Path | str):
-        if isinstance(pickle_path, str):
-            pickle_path = Path(unquote(urlparse(pickle_path).path))
-
-        bytes = pickle_path.read_bytes()
-        return cast(Conversation, pickle.loads(bytes))
+    def from_json(json: List[Dict[str, Any]]):
+        return Conversation([Message.from_json(msg) for msg in json])
 
 
 class LLMEndpoint:

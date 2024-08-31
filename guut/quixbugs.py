@@ -136,7 +136,7 @@ class QuixbugsProblem(Problem):
         return super().run_test(code)
 
     @override
-    def validate_files(self):
+    def validate_self(self):
         for path in [self.correct_file(), self.buggy_file(), *self.dependencies_paths()]:
             if not path.is_file():
                 path.read_text()
@@ -240,7 +240,7 @@ def main() -> None:
     else:
         # Print selected problem
         problem = QuixbugsProblem(sys.argv[1])
-        problem.validate_files()
+        problem.validate_self()
         print(format_problem(problem))
 
 

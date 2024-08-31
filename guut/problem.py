@@ -26,6 +26,10 @@ class ValidationResult:
 
 class Problem(ABC):
     @abstractmethod
+    def __init__(self, name: str):
+        pass
+
+    @abstractmethod
     def name(self) -> str:
         pass
 
@@ -77,7 +81,7 @@ class Problem(ABC):
         )
 
     @abstractmethod
-    def validate_files(self):
+    def validate_self(self):
         pass
 
     @abstractmethod

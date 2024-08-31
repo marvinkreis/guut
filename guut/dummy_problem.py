@@ -7,6 +7,10 @@ from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult
 
 class DummyProblem(Problem):
     @override
+    def __init__(self, name: str):
+        pass
+
+    @override
     def name(self) -> str:
         return "dummy_problem"
 
@@ -41,7 +45,7 @@ class DummyProblem(Problem):
         return ExecutionResult(target=Path("."), args=[], cwd=Path("."), input="", output="")
 
     @override
-    def validate_files(self):
+    def validate_self(self):
         pass
 
     @override
@@ -51,4 +55,4 @@ class DummyProblem(Problem):
     @staticmethod
     @override
     def list_problems() -> Iterable[ProblemDescription]:
-        return [ProblemDescription("dummy_problem", lambda: DummyProblem())]
+        return [ProblemDescription("dummy_problem", lambda: DummyProblem("dummy_problem"))]

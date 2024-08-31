@@ -241,10 +241,9 @@ class Loop:
     def get_state(self) -> State:
         if not self.conversation:
             return State.EMPTY
-        elif self.conversation[-1].tag and isinstance(self.conversation[-1].tag, State):
-            return self.conversation[-1].tag
-        else:
-            return State.INVALID
+        elif tag := self.conversation[-1].tag:
+            return State(tag)
+        return State.INVALID
 
     def add_msg(self, msg: Message, tag: State | None):
         if tag:

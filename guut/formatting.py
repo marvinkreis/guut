@@ -13,12 +13,14 @@ from guut.problem import Problem
 
 def format_problem(problem: Problem) -> str:
     cut = problem.class_under_test()
-    cut_formatted = f"{cut.name}:\n{format_markdown_code_block(cut.content, show_linenos=True)}"
+    cut_formatted = format_markdown_code_block(cut.content, language=cut.language, name=cut.name, show_linenos=True)
     deps_formatted = [
-        f"{snippet.name}:\n{format_markdown_code_block(snippet.content, show_linenos=False)}"
+        format_markdown_code_block(snippet.content, language=snippet.language, name=snippet.name, show_linenos=False)
         for snippet in problem.dependencies()
     ]
-    diff_formatted = format_markdown_code_block(problem.mutant_diff(), show_linenos=False, name="mutant.diff")
+    diff_formatted = format_markdown_code_block(
+        problem.mutant_diff(), language="diff", name="mutant.diff", show_linenos=False
+    )
     return f"{cut_formatted}\n\n{''.join(dep + '\n\n' for dep in deps_formatted)}{diff_formatted}".strip()
 
 
