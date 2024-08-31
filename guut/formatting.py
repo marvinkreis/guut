@@ -6,9 +6,8 @@ from os.path import realpath
 from pathlib import Path
 from typing import List
 
-from guut.execution import ExecutionResult
 from guut.llm import AssistantMessage, Conversation, Message
-from guut.problem import Problem
+from guut.problem import ExecutionResult, Problem
 
 
 def format_problem(problem: Problem) -> str:

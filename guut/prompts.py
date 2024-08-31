@@ -4,10 +4,9 @@ from typing import List
 
 import jinja2
 
-from guut.execution import ExperimentResult, TestResult
 from guut.formatting import add_line_numbers, format_execution_result, limit_text
 from guut.llm import SystemMessage, UserMessage
-from guut.problem import Problem, ValidationResult
+from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 
 templates_path = Path(__file__).parent.parent / "templates"
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), trim_blocks=True)

@@ -58,11 +58,11 @@ def list_tasks(type: str):
     print(f'Showing available tasks for {type}. Use "show <type:name>" to show a task.\n')
     problems = ProblemType.list_problems()
     if problems:
-        for desc in problems:
-            if " " in desc.name:
-                print(f'- "{type}:{desc.name}"')
+        for name in problems:
+            if " " in name:
+                print(f'- "{type}:{name}"')
             else:
-                print(f"- {type}:{desc.name}")
+                print(f"- {type}:{name}")
 
 
 def show_task(type: str, problem_name: str):

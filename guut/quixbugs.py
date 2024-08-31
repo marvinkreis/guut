@@ -1,18 +1,15 @@
 import errno
 import itertools
 import os
-import sys
-from functools import partial
 from pathlib import Path
 from shutil import copyfile
 from subprocess import run
 from tempfile import TemporaryDirectory
 from typing import Iterable, List, Literal, override
 
-from guut.execution import ExecutionResult, run_debugger, run_script
-from guut.formatting import format_problem
+from guut.execution import run_debugger, run_script
 from guut.parsing import parse_python_test_name
-from guut.problem import Problem, ProblemDescription, TestResult, TextFile, ValidationResult
+from guut.problem import ExecutionResult, Problem, TestResult, TextFile, ValidationResult
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
@@ -144,7 +141,7 @@ class QuixbugsProblem(Problem):
 
     @staticmethod
     @override
-    def list_problems() -> List[ProblemDescription]:
+    def list_problems() -> List[str]:
         # List all buggy programs
         programs = [f for f in (QUIXBUGS_PATH / "python_programs").iterdir() if f.is_file()]
 
@@ -154,10 +151,7 @@ class QuixbugsProblem(Problem):
         # Exclude dependencies
         programs = [f for f in programs if "node.py" not in f.name]
 
-        return [
-            ProblemDescription(name=program.stem, constructor=partial(QuixbugsProblem, program.stem))
-            for program in programs
-        ]
+        return [program.stem for program in programs]
 
     def filename(self) -> str:
         return f"{self.name()}.py"
@@ -230,19 +224,3 @@ class QuixbugsProblem(Problem):
             return ValidationResult(True)
         except SyntaxError as e:
             return ValidationResult(False, e.msg)
-
-
-def main() -> None:
-    if len(sys.argv) < 2:
-        # List available problems
-        for description in QuixbugsProblem.list_problems():
-            print(description.name)
-    else:
-        # Print selected problem
-        problem = QuixbugsProblem(sys.argv[1])
-        problem.validate_self()
-        print(format_problem(problem))
-
-
-if __name__ == "__main__":
-    main()

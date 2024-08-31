@@ -1,37 +1,9 @@
 import inspect
-from dataclasses import dataclass
 from pathlib import Path
 from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
-from typing import List
 
 import guut.debugger_wrapper as debugger_wrapper
-
-
-# TODO: move to problem?
-@dataclass
-class ExecutionResult:
-    target: Path
-    args: List[str]
-    cwd: Path
-    input: str
-
-    output: str
-    exitcode: int = 0
-    timeout: bool = False
-
-
-# TODO: move to problem?
-@dataclass
-class ExperimentResult:
-    test: ExecutionResult
-    debug: ExecutionResult | None = None
-
-
-# TODO: move to problem?
-@dataclass
-class TestResult:
-    correct: ExecutionResult
-    mutant: ExecutionResult
+from guut.problem import ExecutionResult
 
 
 def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None, timeout_secs: int = 2) -> ExecutionResult:

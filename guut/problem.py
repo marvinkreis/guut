@@ -1,14 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Callable, Iterable, Literal
-
-from guut.execution import ExecutionResult, ExperimentResult, TestResult
-
-
-@dataclass
-class ProblemDescription:
-    name: str
-    constructor: Callable[[], "Problem"]
+from pathlib import Path
+from typing import Iterable, List, Literal
 
 
 @dataclass
@@ -22,6 +15,30 @@ class TextFile:
 class ValidationResult:
     valid: bool
     error: str | None = None
+
+
+@dataclass
+class ExecutionResult:
+    target: Path
+    args: List[str]
+    cwd: Path
+    input: str
+
+    output: str
+    exitcode: int = 0
+    timeout: bool = False
+
+
+@dataclass
+class ExperimentResult:
+    test: ExecutionResult
+    debug: ExecutionResult | None = None
+
+
+@dataclass
+class TestResult:
+    correct: ExecutionResult
+    mutant: ExecutionResult
 
 
 class Problem(ABC):
@@ -90,5 +107,5 @@ class Problem(ABC):
 
     @staticmethod
     @abstractmethod
-    def list_problems() -> Iterable[ProblemDescription]:
+    def list_problems() -> Iterable[str]:
         pass

@@ -70,4 +70,4 @@ def msg_from_response(response: CreateChatCompletionResponse) -> AssistantMessag
             prompt_tokens=response["usage"]["prompt_tokens"],
             total_tokens=response["usage"]["total_tokens"],
         )
-    return AssistantMessage(content, response, usage)
+    return AssistantMessage(content, response, usage, id=response["id"])

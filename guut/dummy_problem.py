@@ -1,13 +1,12 @@
 from pathlib import Path
 from typing import Iterable, List, Literal, override
 
-from guut.execution import ExecutionResult
-from guut.problem import Problem, ProblemDescription, TextFile, ValidationResult
+from guut.problem import ExecutionResult, Problem, TextFile, ValidationResult
 
 
 class DummyProblem(Problem):
     @override
-    def __init__(self, name: str):
+    def __init__(self):
         pass
 
     @override
@@ -54,5 +53,5 @@ class DummyProblem(Problem):
 
     @staticmethod
     @override
-    def list_problems() -> Iterable[ProblemDescription]:
-        return [ProblemDescription("dummy_problem", lambda: DummyProblem("dummy_problem"))]
+    def list_problems() -> Iterable[str]:
+        return ["dummy_problem"]

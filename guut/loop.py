@@ -7,13 +7,12 @@ from typing import List, Literal
 
 from loguru import logger
 
-from guut.execution import ExperimentResult, TestResult
 from guut.formatting import format_message_pretty
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH
 from guut.logging import Logger as ConversationLogger
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
-from guut.problem import Problem, ValidationResult
+from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 from guut.prompts import PromptCollection
 
 LOG_PATH = LOG_BASE_PATH / "loop"
