@@ -14,6 +14,7 @@ from loguru import logger
 from guut.llm import (
     AssistantMessage,
     Conversation,
+    EndpointDescription,
     FakeAssistantMessage,
     LLMEndpoint,
     Message,
@@ -39,6 +40,10 @@ class LlamacppEndpoint(LLMEndpoint):
         logger.info(f"Requesting completion for conversation {json.dumps(log_data)}")
         response = self.client.create_chat_completion(messages=messages, stop=stop, **kwargs)
         return msg_from_response(response)  # pyright: ignore (create_chat_completion can also return an iterable)
+
+    @override
+    def get_description(self) -> EndpointDescription:
+        return EndpointDescription("llamacpp", self.client.model_path)
 
 
 def msg_to_api(message: Message) -> ChatCompletionRequestMessage:

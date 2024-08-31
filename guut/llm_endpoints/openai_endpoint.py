@@ -11,6 +11,7 @@ from openai.types.chat.chat_completion_user_message_param import ChatCompletionU
 from guut.llm import (
     AssistantMessage,
     Conversation,
+    EndpointDescription,
     FakeAssistantMessage,
     LLMEndpoint,
     Message,
@@ -39,6 +40,10 @@ class OpenAIEndpoint(LLMEndpoint):
             model=self.model, messages=messages, stop=stop, max_tokens=2000, **kwargs
         )
         return msg_from_response(response)
+
+    @override
+    def get_description(self) -> EndpointDescription:
+        return EndpointDescription("openai", self.model)
 
 
 def msg_to_api(message: Message) -> ChatCompletionMessageParam:

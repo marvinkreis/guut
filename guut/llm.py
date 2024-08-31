@@ -1,5 +1,5 @@
 import copy
-from abc import ABC
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, override
@@ -179,6 +179,17 @@ class Conversation(list):
         return Conversation([Message.from_json(msg) for msg in json])
 
 
-class LLMEndpoint:
+@dataclass
+class EndpointDescription:
+    provider: str
+    model: str | None
+
+
+class LLMEndpoint(ABC):
+    @abstractmethod
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
-        raise NotImplementedError()
+        pass
+
+    @abstractmethod
+    def get_description(self) -> EndpointDescription:
+        pass

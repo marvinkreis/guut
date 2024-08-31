@@ -1,6 +1,6 @@
 from typing import List, override
 
-from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Role
+from guut.llm import AssistantMessage, Conversation, EndpointDescription, LLMEndpoint, Role
 
 
 class ReplayLLMEndpoint(LLMEndpoint):
@@ -9,31 +9,38 @@ class ReplayLLMEndpoint(LLMEndpoint):
         replay_messages: List[AssistantMessage],
         delegate: LLMEndpoint | None = None,
         index: int | None = None,
+        path: str | None = None,
     ):
-        if not index:
-            self.replay_messages = replay_messages
-        else:
-            self.replay_messages = replay_messages[:index]
-
         self.replay_messages = [msg.copy() for msg in self.replay_messages]
         for msg in replay_messages:
             msg.tag = None
 
         self.delegate = delegate
+        self.path = path
+
+    @override
+    def get_description(self) -> EndpointDescription:
+        return EndpointDescription("replay", self.path)
 
     @staticmethod
     def from_conversation(
-        replay_conversation: Conversation, delegate: LLMEndpoint | None = None, index: int | None = None
+        replay_conversation: Conversation,
+        delegate: LLMEndpoint | None = None,
+        index: int | None = None,
+        path: str | None = None,
     ):
         replay_messages = [msg.copy() for msg in replay_conversation if msg.role == Role.ASSISTANT]
-        return ReplayLLMEndpoint(replay_messages, delegate, index=index)
+        return ReplayLLMEndpoint(replay_messages, delegate, path=path)
 
     @staticmethod
     def from_raw_messages(
-        raw_replay_messages: List[str], delegate: LLMEndpoint | None = None, index: int | None = None
+        raw_replay_messages: List[str],
+        delegate: LLMEndpoint | None = None,
+        index: int | None = None,
+        path: str | None = None,
     ):
         replay_messages = [AssistantMessage(msg) for msg in raw_replay_messages]
-        return ReplayLLMEndpoint(replay_messages, delegate, index=index)
+        return ReplayLLMEndpoint(replay_messages, delegate, path=path)
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:

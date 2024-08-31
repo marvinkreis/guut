@@ -143,14 +143,14 @@ def run(
     if replay:
         if replay.endswith(".pickle"):
             conversation = pickle.loads(Path(replay).read_bytes())
-            endpoint = ReplayLLMEndpoint.from_conversation(conversation)
+            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay)
         elif replay.endswith(".json"):
             json_data = json.loads(Path(replay).read_text())
             conversation = Conversation.from_json(json_data)
-            endpoint = ReplayLLMEndpoint.from_conversation(conversation)
+            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay)
         elif replay.endswith(".yaml"):
             raw_messages = yaml.load(Path(replay).read_text(), Loader=yaml.FullLoader)
-            endpoint = ReplayLLMEndpoint.from_raw_messages(raw_messages)
+            endpoint = ReplayLLMEndpoint.from_raw_messages(raw_messages, path=replay)
         else:
             raise Exception("Unknown filetype for replay conversation.")
     else:

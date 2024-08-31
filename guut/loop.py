@@ -1,14 +1,15 @@
 import re
 from dataclasses import dataclass
+from datetime import datetime
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import List, Literal
+from typing import Dict, List, Literal, Tuple
 
 from loguru import logger
 
 from guut.formatting import format_message_pretty
-from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
+from guut.llm import AssistantMessage, Conversation, EndpointDescription, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH
 from guut.logging import Logger as ConversationLogger
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
@@ -80,77 +81,107 @@ class State(str, Enum):
     INVALID = "invalid"
 
 
-ExperimentKind = Literal["observation", "experiment", "test", "none"]
+@dataclass
+class ExperimentOrTestDescription:
+    text: str
+    code: str
+    raw: "RawExperiment"
 
 
 @dataclass
-class ExperimentDescription:
-    code_block: str | None
-    debugger_block: str | None
-    kind: ExperimentKind
+class ExperimentDescription(ExperimentOrTestDescription):
+    debugger_script: str | None
+    kind: Literal["observation", "experiment"]
 
 
 @dataclass
-class ParsedExperimentsSection:
+class TestDescription(ExperimentOrTestDescription):
+    pass
+
+
+@dataclass
+class RawExperimentSection:
+    text: str
     code_blocks: List[str]
     debugger_blocks: List[str]
-    kind: ExperimentKind
-
-    def to_description(self) -> ExperimentDescription:
-        return ExperimentDescription(
-            kind=self.kind,
-            code_block=self.code_blocks[-1],
-            debugger_block=self.debugger_blocks[-1] if self.debugger_blocks else None,
-        )
+    kind: Literal["observation", "experiment", "test", "none"]
 
 
 @dataclass
-class ParsedExperiments:
-    sections: List[ParsedExperimentsSection]
+class RawExperiment:
+    text: str
+    sections: List[RawExperimentSection]
 
-    def get_section(self, kind: ExperimentKind) -> ParsedExperimentsSection | None:
+    def get_section(self, kind: Literal["observation", "experiment", "test", "none"]) -> RawExperimentSection | None:
         matches = [s for s in self.sections if s.kind == kind]
         return matches[-1] if matches else None
 
-    def find_last_code_block(self) -> str | None:
-        for section in reversed(self.sections):
-            if section.code_blocks:
-                return section.code_blocks[-1]
-        return None
+    def guess_code_blocks(self, section: RawExperimentSection) -> Tuple[str | None, str | None]:
+        return (
+            section.code_blocks[-1] if section.code_blocks else None,
+            section.debugger_blocks[-1] if section.debugger_blocks else None,
+        )
 
-    def find_last_debugger_block(self) -> str | None:
-        for section in reversed(self.sections):
-            if section.debugger_blocks:
-                return section.debugger_blocks[-1]
-        return None
-
-    def guess_experiment(self) -> ExperimentDescription:
+    def guess_experiment(self) -> ExperimentDescription | TestDescription | None:
         if (section := self.get_section("test")) and section.code_blocks:
-            return section.to_description()
+            code, debugger_script = self.guess_code_blocks(section)
+            if code:
+                return TestDescription(text=section.text, code=code, raw=self)
         elif (section := self.get_section("experiment")) and section.code_blocks:
-            return section.to_description()
+            code, debugger_script = self.guess_code_blocks(section)
+            if code:
+                return ExperimentDescription(
+                    kind="experiment", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                )
         elif (section := self.get_section("observation")) and section.code_blocks:
-            return section.to_description()
+            code, debugger_script = self.guess_code_blocks(section)
+            if code:
+                return ExperimentDescription(
+                    kind="observation", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                )
+        elif (section := self.get_section("none")) and section.code_blocks:
+            code, debugger_script = self.guess_code_blocks(section)
+            if code:
+                return ExperimentDescription(
+                    kind="experiment", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                )
         else:
-            code_block = self.find_last_code_block()
-            debugger_block = self.find_last_debugger_block()
-            return ExperimentDescription(kind="none", code_block=code_block, debugger_block=debugger_block)
+            return None
 
 
 @dataclass
 class TestCase:
-    code: str
+    description: TestDescription
     validation_result: ValidationResult
     result: TestResult | None
-    valid: bool
+    kills_mutant: bool
 
 
 @dataclass
 class Experiment:
-    code: str
-    debugger_script: str | None
+    description: ExperimentDescription
     validation_result: ValidationResult
     result: ExperimentResult | None
+
+
+@dataclass
+class Result:
+    # main info
+    tests: List[TestCase]
+    experiments: List[Experiment]
+    conversation: Conversation
+
+    # extra info
+    timestamp: datetime
+    endpoint: EndpointDescription
+    prompts: Dict[str, str]
+    problem: str
+    max_retries_for_invalid_test: int
+    max_num_incomplete_responses: int
+    max_num_experiments: int
+
+    def get_killing_test(self) -> TestCase | None:
+        return next(filter(lambda test: test.kills_mutant, self.tests), None)
 
 
 TEST_HEADLINE_REGEX = re.compile(r"^#+ (unit )?test", re.IGNORECASE)
@@ -192,7 +223,7 @@ class Loop:
         self.testcases: List[TestCase] = []
 
         self.conversation.name = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
-        self.conversation_logger = ConversationLogger(LOG_PATH, overwrite_old_logs=True)
+        self.conversation_logger = ConversationLogger(LOG_PATH)
 
     def perform_next_step(self):
         self._print_and_log_conversation()
@@ -262,66 +293,53 @@ class Loop:
         response = self._clean_response(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
-        experiment = self._guess_experiment(relevant_text)
+        raw_experiment = self._parse_experiment_description(relevant_text)
+        experiment = raw_experiment.guess_experiment()
 
         test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
 
-        if experiment.code_block is None:
+        if experiment is None:
             self.add_msg(response, State.INCOMPLETE_RESPONSE)
             return
 
-        if experiment.kind == "test":
+        if isinstance(experiment, TestDescription):
             self.add_msg(response, State.TEST_STATED)
             return
-        elif experiment.kind in ["experiment", "observation"]:
+        elif isinstance(experiment, ExperimentDescription):
             self.add_msg(response, State.EXPERIMENT_STATED)
             return
-        elif experiment.code_block and test_instructions_stated:
+        elif experiment.code and test_instructions_stated:
             self.add_msg(response, State.TEST_STATED)
             return
-        elif experiment.code_block and not test_instructions_stated:
+        elif experiment.code and not test_instructions_stated:
             self.add_msg(response, State.EXPERIMENT_STATED)
-            return
-        else:
-            self.add_msg(response, State.INCOMPLETE_RESPONSE)
             return
 
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses()
-        experiment = self._guess_experiment(relevant_text)
+        raw_experiment = self._parse_experiment_description(relevant_text)
+        experiment = raw_experiment.guess_experiment()
 
-        if not experiment.code_block:
+        if not isinstance(experiment, ExperimentDescription):
             raise InvalidStateException(
-                State.EXPERIMENT_STATED, f"No code present but state is {State.EXPERIMENT_STATED.value}."
+                State.EXPERIMENT_STATED, f"No experiment present but state is {State.EXPERIMENT_STATED.value}."
             )
-        experiment_code = experiment.code_block
-        debugger_script = experiment.debugger_block
 
-        validation_result = self.problem.validate_code(experiment_code)
+        validation_result = self.problem.validate_code(experiment.code)
         if not validation_result.valid:
             new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
             self.add_msg(new_message, State.EXPERIMENT_DOESNT_COMPILE)
             self.experiments.append(
-                Experiment(
-                    code=experiment_code,
-                    debugger_script=debugger_script,
-                    validation_result=validation_result,
-                    result=None,
-                )
+                Experiment(validation_result=validation_result, result=None, description=experiment)
             )
         else:
-            experiment_result = self.problem.run_experiment(experiment_code, debugger_script)
+            experiment_result = self.problem.run_experiment(experiment.code, experiment.debugger_script)
             new_message = self.prompts.experiment_results_template.render(
                 result=experiment_result, is_observation=(experiment.kind == "observation")
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
             self.experiments.append(
-                Experiment(
-                    code=experiment_code,
-                    debugger_script=debugger_script,
-                    validation_result=validation_result,
-                    result=experiment_result,
-                )
+                Experiment(validation_result=validation_result, result=experiment_result, description=experiment)
             )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
@@ -336,35 +354,35 @@ class Loop:
 
     def _run_test(self):
         relevant_text = self._concat_incomplete_responses()
-        experiment = self._guess_experiment(relevant_text)
+        raw_experiment = self._parse_experiment_description(relevant_text)
+        test = raw_experiment.guess_experiment()
 
-        if not experiment.code_block:
-            raise InvalidStateException(State.TEST_STATED, f"No code present but state is {State.TEST_STATED.value}.")
-        test_code = experiment.code_block
+        if not isinstance(test, TestDescription):
+            raise InvalidStateException(State.TEST_STATED, f"No test present but state is {State.TEST_STATED.value}.")
 
-        validation_result = self.problem.validate_code(test_code)
+        validation_result = self.problem.validate_code(test.code)
         if not validation_result.valid:
             new_message = self.prompts.test_doesnt_compile_template.render(
                 result=validation_result,
             )
             self.add_msg(new_message, State.TEST_DOESNT_COMPILE)
             self.testcases.append(
-                TestCase(code=test_code, validation_result=validation_result, result=None, valid=False)
+                TestCase(description=test, validation_result=validation_result, result=None, kills_mutant=False)
             )
         else:
-            result = self.problem.run_test(test_code)
+            result = self.problem.run_test(test.code)
 
             if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
-                new_message = self.prompts.results_template.render(test=test_code, result=result)
+                new_message = self.prompts.results_template.render(test=test.code, result=result)
                 self.add_msg(new_message, State.DONE)
                 self.testcases.append(
-                    TestCase(code=test_code, validation_result=validation_result, result=result, valid=True)
+                    TestCase(description=test, validation_result=validation_result, result=result, kills_mutant=True)
                 )
             else:
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
                 self.testcases.append(
-                    TestCase(code=test_code, validation_result=validation_result, result=result, valid=False)
+                    TestCase(description=test, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
         num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_DOESNT_COMPILE])
@@ -437,10 +455,7 @@ class Loop:
         relevant_text = "\n".join(msg.content for msg in relevant_messages)
         return relevant_text
 
-    def _guess_experiment(self, text: str) -> ExperimentDescription:
-        return self._parse_experiment_description(text).guess_experiment()
-
-    def _parse_experiment_description(self, text: str) -> ParsedExperiments:
+    def _parse_experiment_description(self, text: str) -> RawExperiment:
         sections = []
         section_lines = []
 
@@ -450,7 +465,7 @@ class Loop:
             if is_code:
                 continue
 
-            kind: ExperimentKind = "none"
+            kind = "none"
             if re.match(TEST_HEADLINE_REGEX, line):
                 kind = "test"
             elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
@@ -468,9 +483,11 @@ class Loop:
             if section := self._parse_experiment_section(section_text, "none"):
                 sections.append(section)
 
-        return ParsedExperiments(sections=sections)
+        return RawExperiment(text=text, sections=sections)
 
-    def _parse_experiment_section(self, text: str, kind: ExperimentKind) -> ParsedExperimentsSection | None:
+    def _parse_experiment_section(
+        self, text: str, kind: Literal["observation", "experiment", "test", "none"]
+    ) -> RawExperimentSection | None:
         markdown_blocks = extract_markdown_code_blocks(text)
         code_langs = self.problem.allowed_languages()
         dbg_langs = self.problem.allowed_debugger_languages()
@@ -479,7 +496,7 @@ class Loop:
         debugger_blocks = [block.code for block in markdown_blocks if (block.language or "") in dbg_langs]
 
         if code_blocks or (kind != "none"):
-            return ParsedExperimentsSection(kind=kind, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
+            return RawExperimentSection(kind=kind, text=text, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
         else:
             return None
 

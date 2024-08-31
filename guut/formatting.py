@@ -1,6 +1,7 @@
 import math
 import os
 import re
+from datetime import datetime
 from enum import Enum
 from os.path import realpath
 from pathlib import Path
@@ -166,3 +167,7 @@ def format_execution_result(test_result: ExecutionResult, char_limit: int = 2500
     text = shorten_paths(text, test_result.cwd)
     text = limit_text(text, char_limit)
     return text
+
+
+def format_timestamp(timestamp: datetime) -> str:
+    return timestamp.strftime("%Y-%m-%d %H:%M:%S")

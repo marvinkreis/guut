@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, List, Literal
 
+from guut.prompts import PromptCollection
+
 
 @dataclass
 class TextFile:
@@ -42,6 +44,9 @@ class TestResult:
 
 
 class Problem(ABC):
+    type: str
+    default_prompts: PromptCollection
+
     @abstractmethod
     def __init__(self, name: str):
         pass
@@ -106,6 +111,5 @@ class Problem(ABC):
         pass
 
     @staticmethod
-    @abstractmethod
     def list_problems() -> Iterable[str]:
-        pass
+        return []

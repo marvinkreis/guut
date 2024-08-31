@@ -10,13 +10,15 @@ from typing import Iterable, List, Literal, override
 from guut.execution import run_debugger, run_script
 from guut.parsing import parse_python_test_name
 from guut.problem import ExecutionResult, Problem, TestResult, TextFile, ValidationResult
+from guut.prompts import default_prompts
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
 
 
 class QuixbugsProblem(Problem):
-    _name: str
+    type = "quixbugs"
+    default_prompts = default_prompts
 
     def __init__(self, name: str):
         self._name = name

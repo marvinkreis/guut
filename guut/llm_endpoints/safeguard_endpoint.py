@@ -3,7 +3,7 @@ from typing import override
 from llama_cpp.llama_cache import List
 from loguru import logger
 
-from guut.llm import AssistantMessage, Conversation, LLMEndpoint
+from guut.llm import AssistantMessage, Conversation, EndpointDescription, LLMEndpoint
 
 
 class SafeguardLLMEndpoint(LLMEndpoint):
@@ -20,3 +20,7 @@ class SafeguardLLMEndpoint(LLMEndpoint):
             elif answer.strip() == "n":
                 logger.info("Denied completion.")
                 raise Exception("Denied completion.")
+
+    @override
+    def get_description(self) -> EndpointDescription:
+        return self.delegate.get_description()
