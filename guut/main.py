@@ -83,6 +83,7 @@ def show_task(type: str, problem_name: str):
 
 @main.command()
 @click.argument("task_id", nargs=1, type=str, required=True)
+@click.argument("output_dir", nargs=1, type=str, required=False)
 @click.option(
     "--replay",
     nargs=1,
@@ -118,6 +119,7 @@ def show_task(type: str, problem_name: str):
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable logging.")
 def run(
     task_id: str,
+    output_dir: str | None,
     replay: str | None,
     resume: str | None,
     index: int | None,
@@ -127,6 +129,8 @@ def run(
 ):
     if replay and resume:
         raise Exception("Cannot use --replay and --continue together.")
+    if index and not resume:
+        raise Exception("Cannot use --index wihtout --continue.")
 
     type, problem_name = parse_problem_id(task_id)
     ProblemType = problem_types.get(type)

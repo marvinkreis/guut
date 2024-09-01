@@ -222,7 +222,7 @@ class Loop:
         self.experiments: List[Experiment] = []
         self.testcases: List[TestCase] = []
 
-        self.conversation.name = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
+        self.id = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
         self.conversation_logger = ConversationLogger(LOG_PATH)
         self.timestamp = datetime.now()
 
@@ -456,7 +456,7 @@ class Loop:
                 print(format_message_pretty(msg))
             self.new_messages = []
         if self.enable_log:
-            self.conversation_logger.log_conversation(self.conversation, name=self.conversation.name or "")
+            self.conversation_logger.log_conversation(self.conversation, name=self.id)
 
     def _concat_incomplete_responses(self, include_message: Message | None = None):
         if include_message:

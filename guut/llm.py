@@ -159,7 +159,6 @@ class Conversation(list):
             super().__init__(messages)
         else:
             super().__init__()
-        self.name: str | None = None  # TODO: move this to loop
 
     def to_json(self):
         """Converts the conversation into JSON for logging."""
