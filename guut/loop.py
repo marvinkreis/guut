@@ -4,12 +4,12 @@ from datetime import datetime
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import Dict, List, Literal, Tuple
+from typing import List, Literal, Tuple
 
 from loguru import logger
 
 from guut.formatting import format_message_pretty
-from guut.llm import AssistantMessage, Conversation, EndpointDescription, LLMEndpoint, Message
+from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import LOG_BASE_PATH
 from guut.logging import Logger as ConversationLogger
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
@@ -173,9 +173,9 @@ class Result:
 
     # extra info
     timestamp: datetime
-    endpoint: EndpointDescription
-    prompts: Dict[str, str]
-    problem: str
+    endpoint: LLMEndpoint
+    prompts: PromptCollection
+    problem: Problem
     max_retries_for_invalid_test: int
     max_num_incomplete_responses: int
     max_num_experiments: int
@@ -224,6 +224,7 @@ class Loop:
 
         self.conversation.name = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
         self.conversation_logger = ConversationLogger(LOG_PATH)
+        self.timestamp = datetime.now()
 
     def perform_next_step(self):
         self._print_and_log_conversation()
@@ -274,6 +275,21 @@ class Loop:
         elif tag := self.conversation[-1].tag:
             return State(tag)
         return State.INVALID
+
+    def get_result(self) -> Result:
+        # TODO: translate timestamps, problem and endpoint
+        return Result(
+            tests=self.testcases,
+            experiments=self.experiments,
+            conversation=self.conversation,
+            timestamp=self.timestamp,
+            endpoint=self.endpoint,
+            problem=self.problem,
+            prompts=self.prompts,
+            max_num_experiments=self.max_num_experiments,
+            max_num_incomplete_responses=self.max_num_incimplete_responses,
+            max_retries_for_invalid_test=self.max_retries_for_invalid_test,
+        )
 
     def add_msg(self, msg: Message, tag: State | None):
         if tag:

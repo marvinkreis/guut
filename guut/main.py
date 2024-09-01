@@ -184,6 +184,9 @@ def run(
     loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
 
+    result = loop.get_result()
+    # TODO: write result
+
 
 def parse_problem_id(problem_id: str) -> Tuple[str, str | None]:
     split = problem_id.split(":", maxsplit=1)
