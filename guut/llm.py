@@ -159,7 +159,7 @@ class Conversation(list):
             super().__init__(messages)
         else:
             super().__init__()
-        self.name: str | None = None
+        self.name: str | None = None  # TODO: move this to loop
 
     def to_json(self):
         """Converts the conversation into JSON for logging."""
@@ -176,7 +176,12 @@ class Conversation(list):
 
     @staticmethod
     def from_json(json: List[Dict[str, Any]]):
-        return Conversation([Message.from_json(msg) for msg in json])
+        return Conversation(
+            [
+                Message.from_json(msg) if msg["role"] != Role.ASSISTANT.value else AssistantMessage.from_json(msg)
+                for msg in json
+            ]
+        )
 
 
 @dataclass
