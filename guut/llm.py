@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, override
+import json as json_module
 
 
 class Role(Enum):
@@ -58,7 +59,14 @@ class Message(ABC):
 
     def to_json(self):
         """Converts the message into JSON for logging."""
-        return {"role": self.role.value, "content": self.content, "tag": self.tag}
+        json: Dict[str, Any] = {"role": self.role.value, "content": self.content}
+        try:
+            json_module.dumps(self.tag)
+            json["tag"] = self.tag
+        except TypeError:
+            json["tag"] = None
+            pass
+        return json
 
     def __str__(self):
         return self.content
@@ -128,8 +136,13 @@ class AssistantMessage(Message):
     def to_json(self):
         json = super().to_json()
         json["usage"] = self.usage.to_json() if self.usage else None
-        json["response"] = self.response
         json["id"] = self.id
+        try:
+            json_module.dumps(self.response)
+            json["response"] = self.response
+        except TypeError:
+            json["response"] = None
+            pass
         return json
 
     @override
@@ -175,12 +188,7 @@ class Conversation(list):
 
     @staticmethod
     def from_json(json: List[Dict[str, Any]]):
-        return Conversation(
-            [
-                Message.from_json(msg) if msg["role"] != Role.ASSISTANT.value else AssistantMessage.from_json(msg)
-                for msg in json
-            ]
-        )
+        return Conversation([Message.from_json(msg) for msg in json])
 
 
 @dataclass
