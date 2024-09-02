@@ -30,12 +30,7 @@ class OpenAIEndpoint(LLMEndpoint):
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
         messages = conversation_to_api(conversation)
         stop = stop or kwargs.get("stop")
-        log_data = {"args": kwargs, "stop": stop, "num_messages": len(conversation)}
-        if conversation.name:
-            log_data["conversation"] = conversation.name
-        logger.info(
-            f"Requesting completion: conversation={conversation.name}, num_messages={len(conversation)}, stop={stop}, args={kwargs}"
-        )
+        logger.info(f"Requesting completion: num_messages={len(conversation)}, stop={stop}, args={kwargs}")
         response = self.client.chat.completions.create(
             model=self.model, messages=messages, stop=stop, max_tokens=2000, **kwargs
         )
