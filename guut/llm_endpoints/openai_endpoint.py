@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, override
 
 from loguru import logger
@@ -38,7 +39,12 @@ class OpenAIEndpoint(LLMEndpoint):
 
     @override
     def get_description(self) -> EndpointDescription:
-        return EndpointDescription("openai", self.model)
+        return OpenAIEndpointDescription("openai", model=self.model)
+
+
+@dataclass
+class OpenAIEndpointDescription(EndpointDescription):
+    model: str
 
 
 def msg_to_api(message: Message) -> ChatCompletionMessageParam:

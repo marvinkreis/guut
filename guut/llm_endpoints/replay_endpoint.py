@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List, override
 
 from guut.llm import AssistantMessage, Conversation, EndpointDescription, LLMEndpoint, Role
@@ -10,6 +12,7 @@ class ReplayLLMEndpoint(LLMEndpoint):
         delegate: LLMEndpoint | None = None,
         index: int | None = None,
         path: str | None = None,
+        replay_file: Path | None = None,
     ):
         self.replay_messages = [msg.copy() for msg in replay_messages]
         for msg in replay_messages:
@@ -17,10 +20,11 @@ class ReplayLLMEndpoint(LLMEndpoint):
 
         self.delegate = delegate
         self.path = path
+        self.replay_file = replay_file
 
     @override
     def get_description(self) -> EndpointDescription:
-        return EndpointDescription("replay", self.path)
+        return ReplayEndpointDescription("openai", replay_file=self.replay_file)
 
     @staticmethod
     def from_conversation(
@@ -28,9 +32,10 @@ class ReplayLLMEndpoint(LLMEndpoint):
         delegate: LLMEndpoint | None = None,
         index: int | None = None,
         path: str | None = None,
+        replay_file: Path | None = None,
     ):
         replay_messages = [msg.copy() for msg in replay_conversation if msg.role == Role.ASSISTANT]
-        return ReplayLLMEndpoint(replay_messages, delegate, path=path)
+        return ReplayLLMEndpoint(replay_messages, delegate, path=path, replay_file=replay_file)
 
     @staticmethod
     def from_raw_messages(
@@ -38,9 +43,10 @@ class ReplayLLMEndpoint(LLMEndpoint):
         delegate: LLMEndpoint | None = None,
         index: int | None = None,
         path: str | None = None,
+        replay_file: Path | None = None,
     ):
         replay_messages = [AssistantMessage(msg) for msg in raw_replay_messages]
-        return ReplayLLMEndpoint(replay_messages, delegate, path=path)
+        return ReplayLLMEndpoint(replay_messages, delegate, path=path, replay_file=replay_file)
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
@@ -53,3 +59,8 @@ class ReplayLLMEndpoint(LLMEndpoint):
             return self.delegate.complete(conversation, stop=stop, **kwargs)
         else:
             raise StopIteration("No more messages to replay.")
+
+
+@dataclass
+class ReplayEndpointDescription(EndpointDescription):
+    replay_file: Path | None

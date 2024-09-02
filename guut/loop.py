@@ -10,14 +10,10 @@ from loguru import logger
 
 from guut.formatting import format_message_pretty
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
-from guut.logging import LOG_BASE_PATH
-from guut.logging import Logger as ConversationLogger
+from guut.logging import ConversationLogger
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
 from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 from guut.prompts import PromptCollection
-
-LOG_PATH = LOG_BASE_PATH / "loop"
-LOG_PATH.mkdir(parents=True, exist_ok=True)
 
 
 class State(str, Enum):
@@ -82,21 +78,17 @@ class State(str, Enum):
 
 
 @dataclass
-class ExperimentOrTestDescription:
+class ExperimentDescription:
     text: str
     code: str
-    raw: "RawExperiment"
-
-
-@dataclass
-class ExperimentDescription(ExperimentOrTestDescription):
     debugger_script: str | None
     kind: Literal["observation", "experiment", "none"]
 
 
 @dataclass
-class TestDescription(ExperimentOrTestDescription):
-    pass
+class TestDescription:
+    text: str
+    code: str
 
 
 @dataclass
@@ -126,24 +118,33 @@ class RawExperiment:
         if (section := self.get_section("test")) and section.code_blocks:
             code, debugger_script = self.guess_code_blocks(section)
             if code:
-                return TestDescription(text=section.text, code=code, raw=self)
+                return TestDescription(text=section.text, code=code)
         elif (section := self.get_section("experiment")) and section.code_blocks:
             code, debugger_script = self.guess_code_blocks(section)
             if code:
                 return ExperimentDescription(
-                    kind="experiment", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                    kind="experiment",
+                    text=section.text,
+                    code=code,
+                    debugger_script=debugger_script,
                 )
         elif (section := self.get_section("observation")) and section.code_blocks:
             code, debugger_script = self.guess_code_blocks(section)
             if code:
                 return ExperimentDescription(
-                    kind="observation", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                    kind="observation",
+                    text=section.text,
+                    code=code,
+                    debugger_script=debugger_script,
                 )
         elif (section := self.get_section("none")) and section.code_blocks:
             code, debugger_script = self.guess_code_blocks(section)
             if code:
                 return ExperimentDescription(
-                    kind="none", text=section.text, code=code, debugger_script=debugger_script, raw=self
+                    kind="none",
+                    text=section.text,
+                    code=code,
+                    debugger_script=debugger_script,
                 )
         else:
             return None
@@ -165,20 +166,27 @@ class Experiment:
 
 
 @dataclass
+class LoopSettings:
+    max_retries_for_invalid_test: int = 2
+    max_num_incomplete_responses: int = 2
+    max_num_experiments: int = 10
+
+
+@dataclass
 class Result:
     # main info
     tests: List[TestCase]
     experiments: List[Experiment]
     conversation: Conversation
+    success: bool
 
     # extra info
     timestamp: datetime
     endpoint: LLMEndpoint
     prompts: PromptCollection
     problem: Problem
-    max_retries_for_invalid_test: int
-    max_num_incomplete_responses: int
-    max_num_experiments: int
+    settings: LoopSettings
+    id: str
 
     def get_killing_test(self) -> TestCase | None:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
@@ -195,16 +203,15 @@ class Loop:
         problem: Problem,
         endpoint: LLMEndpoint,
         prompts: PromptCollection,
-        conversation: Conversation | None = None,
+        settings: LoopSettings,
         enable_log: bool = True,
         enable_print: bool = False,
-        max_retries_for_invalid_test: int = 2,
-        max_num_incomplete_responses: int = 2,
-        max_num_experiments: int = 8,
+        conversation: Conversation | None = None,
     ):
         self.problem = problem
         self.endpoint = endpoint
         self.prompts = prompts
+        self.settings = settings
         self.enable_log = enable_log
         self.enable_print = enable_print
 
@@ -215,16 +222,11 @@ class Loop:
             self.conversation = conversation
             self.new_messages = conversation[::]
 
-        self.max_retries_for_invalid_test = max_retries_for_invalid_test
-        self.max_num_incimplete_responses = max_num_incomplete_responses
-        self.max_num_experiments = max_num_experiments
-
         self.experiments: List[Experiment] = []
         self.testcases: List[TestCase] = []
 
-        self.id = "{}_{}".format("".join(f"{b:x}" for b in randbytes(4)), self.problem.name())
-        self.conversation_logger = ConversationLogger(LOG_PATH)
-        self.timestamp = datetime.now()
+        self.conversation_logger = ConversationLogger()
+        self.id = self.generate_id()
 
     def perform_next_step(self):
         self._print_and_log_conversation()
@@ -277,18 +279,18 @@ class Loop:
         return State.INVALID
 
     def get_result(self) -> Result:
-        # TODO: translate timestamps, problem and endpoint
+        killing_test_found = any([test.kills_mutant for test in self.testcases])
         return Result(
             tests=self.testcases,
             experiments=self.experiments,
             conversation=self.conversation,
-            timestamp=self.timestamp,
+            timestamp=datetime.now(),
             endpoint=self.endpoint,
             problem=self.problem,
             prompts=self.prompts,
-            max_num_experiments=self.max_num_experiments,
-            max_num_incomplete_responses=self.max_num_incimplete_responses,
-            max_retries_for_invalid_test=self.max_retries_for_invalid_test,
+            settings=self.settings,
+            success=killing_test_found,
+            id=self.id,
         )
 
     def add_msg(self, msg: Message, tag: State | None):
@@ -305,7 +307,7 @@ class Loop:
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
     def _prompt_for_hypothesis_or_test(self):
-        response = self.endpoint.complete(self.conversation, stop=self.prompts.debug_stop_words)
+        response = self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)
         response = self._clean_response(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
@@ -365,10 +367,10 @@ class Loop:
             )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
-        if num_experiments == self.max_num_experiments:
+        if num_experiments == self.settings.max_num_experiments:
             new_message = self.prompts.test_prompt.render(max_iterations=True)
             self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
-        elif num_experiments > self.max_num_experiments:
+        elif num_experiments > self.settings.max_num_experiments:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="too_many_experiments", extra_reason="The LLM exceeded the allowed number of tests."
             )
@@ -408,7 +410,7 @@ class Loop:
                 )
 
         num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_DOESNT_COMPILE])
-        if num_retries >= self.max_retries_for_invalid_test:
+        if num_retries >= self.settings.max_retries_for_invalid_test:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
             )
@@ -416,7 +418,7 @@ class Loop:
 
     def _handle_incomplete_response(self):
         num_tries = len([msg for msg in self.conversation if msg.tag == State.INCOMPLETE_RESPONSE])
-        if num_tries > self.max_num_incimplete_responses:
+        if num_tries > self.settings.max_num_incomplete_responses:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="incomplete_response", extra_reason="The LLM has given too many incomplete responses."
             )
@@ -521,6 +523,11 @@ class Loop:
             return RawExperimentSection(kind=kind, text=text, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
         else:
             return None
+
+    def generate_id(self) -> str:
+        randchars = "".join(f"{b:x}" for b in randbytes(4))
+        id = "{}:{}:{}".format(self.problem.get_type(), self.problem.description(), randchars)
+        return id
 
 
 class InvalidStateException(Exception):

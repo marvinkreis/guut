@@ -19,6 +19,7 @@ jinja_env.filters["limit_text"] = formatting.limit_text
 
 class Template:
     def __init__(self, template_path: str):
+        self.path = template_path
         self.template = jinja_env.get_template(template_path)
 
 
@@ -83,8 +84,7 @@ class PromptCollection:
     debug_prompt: DebugPrompt
     test_prompt: TestPrompt
 
-    debug_stop_words: List[str]
-    test_stop_words: List[str]
+    stop_words: List[str]
 
     problem_template: ProblemTemplate
     experiment_doesnt_compile_template: ExperimentDoesntCompileTemplate
@@ -105,8 +105,7 @@ default_prompts = PromptCollection(
     debug_prompt=DebugPrompt("prompts/debug_prompt.md"),
     test_prompt=TestPrompt("prompts/test_prompt.md"),
     #
-    debug_stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
-    test_stop_words=[],
+    stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
     #
     problem_template=ProblemTemplate("problem_template.md"),
     experiment_doesnt_compile_template=ExperimentDoesntCompileTemplate("experiment_doesnt_compile_template.md"),

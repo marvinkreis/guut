@@ -46,11 +46,7 @@ class Problem(ABC):
     default_prompts: "PromptCollection"  # noqa: F821  # pyright: ignore
 
     @abstractmethod
-    def __init__(self, name: str):
-        pass
-
-    @abstractmethod
-    def name(self) -> str:
+    def __init__(self, args: str):
         pass
 
     @abstractmethod
@@ -111,3 +107,17 @@ class Problem(ABC):
     @staticmethod
     def list_problems() -> Iterable[str]:
         return []
+
+    @staticmethod
+    @abstractmethod
+    def get_default_prompts() -> "PromptCollection":  # noqa: F821  # pyright: ignore
+        pass
+
+    @staticmethod
+    @abstractmethod
+    def get_type() -> str:
+        pass
+
+    @abstractmethod
+    def get_args(self) -> str:
+        pass

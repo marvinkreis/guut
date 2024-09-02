@@ -1,7 +1,6 @@
 import json
 import pickle
 from pathlib import Path
-from typing import Tuple
 
 import click
 import yaml
@@ -14,8 +13,9 @@ from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop
-from guut.prompts import default_prompts
+from guut.output import write_result_dir
 from guut.quixbugs import QuixbugsProblem
+from tests.loop_test import LoopSettings
 
 problem_types = {"quixbugs": QuixbugsProblem}
 
@@ -28,26 +28,21 @@ def main():
 @main.command(
     "list",
     short_help="Lists task types. Lists tasks. Shows tasks.",
-    help="Use <no args> to list task types. Use <type> to list tasks. Use <type:name> to show a task.",
+    help="Use 'list' to list task types. Use 'list <type>' to list tasks of that type. Use 'list <type> <args>' to show a task.",
 )
-@click.argument("task_id", nargs=1, type=str, required=False)
-def _list(task_id: str | None):
-    if not task_id:
-        list_types()
+@click.argument("task_type", nargs=1, type=str, required=False)
+@click.argument("task_args", nargs=1, type=str, required=False)
+def _list(task_type: str | None, task_args: str | None):
+    if not task_type:
+        for type in problem_types.keys():
+            print(type)
         return
 
-    type, problem_name = parse_problem_id(task_id)
-    if not problem_name:
-        list_tasks(type)
+    if not task_args:
+        list_tasks(task_type)
         return
 
-    show_task(type, problem_name)
-
-
-def list_types():
-    print('Showing available task types. Use "show <type>" to list tasks.\n')
-    for type in problem_types.keys():
-        print(f"- {type}")
+    show_task(task_type, task_args)
 
 
 def list_tasks(type: str):
@@ -55,49 +50,49 @@ def list_tasks(type: str):
     if not ProblemType:
         raise Exception(f'Unknown task type: "{type}".')
 
-    print(f'Showing available tasks for {type}. Use "show <type:name>" to show a task.\n')
     problems = ProblemType.list_problems()
-    if problems:
-        for name in problems:
-            if " " in name:
-                print(f'- "{type}:{name}"')
-            else:
-                print(f"- {type}:{name}")
+    for args in problems:
+        if " " in args:
+            print(f'"{args}"')
+        else:
+            print(args)
 
 
-def show_task(type: str, problem_name: str):
+def show_task(type: str, problem_description: str):
     ProblemType = problem_types.get(type)
     if not ProblemType:
         raise Exception(f'Unknown task type: "{type}".')
-    if not problem_name:
+    if not problem_description:
         raise Exception()
 
-    if " " in problem_name:
-        print(f'Showing task "{type}:{problem_name}".\n')
-    else:
-        print(f"Showing task {type}:{problem_name}.\n")
-
-    problem = ProblemType(problem_name)
+    problem = ProblemType(problem_description)
     print(format_problem(problem))
 
 
 @main.command()
-@click.argument("task_id", nargs=1, type=str, required=True)
-@click.argument("output_dir", nargs=1, type=str, required=False)
+@click.argument("task_type", nargs=1, type=str, required=True)
+@click.argument("task_args", nargs=1, type=str, required=True)
+@click.option(
+    "--outdir",
+    nargs=1,
+    type=click.Path(exists=True, file_okay=False),
+    required=False,
+    help="Write results to the given directory. Otherwise the working directory is used.",
+)
 @click.option(
     "--replay",
     nargs=1,
-    type=click.Path(exists=True),
+    type=click.Path(exists=True, dir_okay=False),
     required=False,
-    help="Replay LLM responses instead of requesting completions. Path can be a logged .pickle or .json conversation file or a .yaml file containing a list of strings. Iplies -y.",
+    help="Replay LLM responses instead of requesting completions. Path can be a logged .pickle or .json conversation log or a .yaml file containing a list of strings. Implies -y.",
 )
 @click.option(
     "--continue",
     "resume",
     nargs=1,
-    type=click.Path(exists=True),
+    type=click.Path(exists=True, dir_okay=False),
     required=False,
-    help="Continue a conversation from a logged .pickle or .json conversation file.",
+    help="Continue a conversation from a .pickle or .json log file.",
 )
 @click.option(
     "--index",
@@ -105,7 +100,7 @@ def show_task(type: str, problem_name: str):
     nargs=1,
     type=int,
     required=False,
-    help="Use with --continue. Selects the number of messages to pick from the conversation (including all messages). Use negative numbers to exclude messages starting from the end.",
+    help="Use with --continue. Selects the number of messages to pick from the conversation (including messages of all roles). Use negative numbers to exclude messages starting from the end.",
 )
 @click.option(
     "-y",
@@ -116,9 +111,10 @@ def show_task(type: str, problem_name: str):
     help="Request completions without confirmation. Implies no -s.",
 )
 @click.option("--silent", "-s", is_flag=True, default=False, help="Don't print the conversation during computation.")
-@click.option("--nologs", "-n", is_flag=True, default=False, help="Disable logging.")
+@click.option("--nologs", "-n", is_flag=True, default=False, help="Disable logging of conversations.")
 def run(
-    task_id: str,
+    task_type: str,
+    task_args: str,
     output_dir: str | None,
     replay: str | None,
     resume: str | None,
@@ -130,31 +126,27 @@ def run(
     if replay and resume:
         raise Exception("Cannot use --replay and --continue together.")
     if index and not resume:
-        raise Exception("Cannot use --index wihtout --continue.")
+        raise Exception("Cannot use --index without --continue.")
 
-    type, problem_name = parse_problem_id(task_id)
-    ProblemType = problem_types.get(type)
+    ProblemType = problem_types.get(task_type)
     if not ProblemType:
-        raise Exception(f'Unknown task type: "{type}".')
+        raise Exception(f'Unknown task type: "{task_type}".')
 
-    if not problem_name:
-        raise Exception("No task name.")
-
-    problem_instance = ProblemType(problem_name)
+    problem_instance = ProblemType(task_args)
     problem_instance.validate_self()
 
     endpoint = None
     if replay:
         if replay.endswith(".pickle"):
             conversation = pickle.loads(Path(replay).read_bytes())
-            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay)
+            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay, replay_file=Path(replay))
         elif replay.endswith(".json"):
             json_data = json.loads(Path(replay).read_text())
             conversation = Conversation.from_json(json_data)
-            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay)
+            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay, replay_file=Path(replay))
         elif replay.endswith(".yaml"):
             raw_messages = yaml.load(Path(replay).read_text(), Loader=yaml.FullLoader)
-            endpoint = ReplayLLMEndpoint.from_raw_messages(raw_messages, path=replay)
+            endpoint = ReplayLLMEndpoint.from_raw_messages(raw_messages, path=replay, replay_file=Path(replay))
         else:
             raise Exception("Unknown filetype for replay conversation.")
     else:
@@ -175,28 +167,18 @@ def run(
         if index:
             conversation = Conversation(conversation[:index])
 
-    prompts = default_prompts
     loop = Loop(
         problem=problem_instance,
         endpoint=endpoint,
-        prompts=prompts,
+        prompts=problem_instance.get_default_prompts(),
         enable_print=not silent,
         enable_log=not nologs,
         conversation=conversation,
+        settings=LoopSettings(),
     )
 
     loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
 
     result = loop.get_result()
-    # TODO: write result
-
-
-def parse_problem_id(problem_id: str) -> Tuple[str, str | None]:
-    split = problem_id.split(":", maxsplit=1)
-    if len(split) == 1:
-        return (split[0], None)
-    elif len(split) == 2:
-        return (split[0], split[1])
-    else:
-        raise Exception
+    write_result_dir(result)

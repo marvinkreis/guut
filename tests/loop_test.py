@@ -1,7 +1,7 @@
 from guut.dummy_problem import DummyProblem
 from guut.llm import AssistantMessage, Conversation, UserMessage
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
-from guut.loop import Loop, State
+from guut.loop import Loop, LoopSettings, State
 from guut.prompts import default_prompts
 
 code = """
@@ -33,6 +33,7 @@ def test__single_experiment_gets_detected():
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
+        settings=LoopSettings(),
     )
 
     loop.perform_next_step()
@@ -49,6 +50,7 @@ def test__single_test_gets_deteted():
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
+        settings=LoopSettings(),
     )
 
     loop.perform_next_step()
@@ -65,6 +67,7 @@ def test__test_is_preferred_over_experiment_if_no_test_instructions_were_given()
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
+        settings=LoopSettings(),
     )
 
     loop.perform_next_step()
@@ -88,6 +91,7 @@ def test__test_is_preferred_over_experiment_if_test_instructions_were_given():
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
+        settings=LoopSettings(),
     )
 
     loop.perform_next_step()
@@ -108,6 +112,7 @@ def test__code_is_interpreted_as_experiment_if_no_test_instructions_were_given()
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
+        settings=LoopSettings(),
     )
 
     loop.perform_next_step()
@@ -131,6 +136,7 @@ def test__code_is_interpreted_as_test_if_test_instructions_were_given():
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
+        settings=LoopSettings(),
     )
 
     loop.perform_next_step()
@@ -153,7 +159,7 @@ def test__test_instructions_are_given_after_max_experiments_are_reached():
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
-        max_num_experiments=2,
+        settings=LoopSettings(max_num_experiments=2),
     )
 
     loop.perform_next_step()
@@ -191,7 +197,7 @@ print("something")
         problem=DummyProblem(),
         enable_print=False,
         enable_log=False,
-        max_num_experiments=2,
+        settings=LoopSettings(max_num_experiments=2),
     )
 
     loop.perform_next_step()

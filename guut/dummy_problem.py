@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Iterable, List, Literal, override
 
 from guut.problem import ExecutionResult, Problem, TextFile, ValidationResult
+from guut.prompts import PromptCollection, default_prompts
 
 
 class DummyProblem(Problem):
@@ -10,7 +11,7 @@ class DummyProblem(Problem):
         pass
 
     @override
-    def name(self) -> str:
+    def description(self) -> str:
         return "dummy_problem"
 
     @override
@@ -51,7 +52,17 @@ class DummyProblem(Problem):
     def validate_code(self, code: str) -> ValidationResult:
         return ValidationResult(True)
 
-    @staticmethod
     @override
+    @staticmethod
     def list_problems() -> Iterable[str]:
         return ["dummy_problem"]
+
+    @override
+    @staticmethod
+    def get_type() -> str:
+        return "dummy_problem"
+
+    @override
+    @staticmethod
+    def get_default_prompts() -> PromptCollection:
+        return default_prompts

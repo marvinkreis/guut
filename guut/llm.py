@@ -1,9 +1,9 @@
 import copy
+import json as json_module
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, override
-import json as json_module
 
 
 class Role(Enum):
@@ -194,7 +194,6 @@ class Conversation(list):
 @dataclass
 class EndpointDescription:
     provider: str
-    model: str | None
 
 
 class LLMEndpoint:

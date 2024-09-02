@@ -10,22 +10,15 @@ from typing import Iterable, List, Literal, override
 from guut.execution import run_debugger, run_script
 from guut.parsing import parse_python_test_name
 from guut.problem import ExecutionResult, Problem, TestResult, TextFile, ValidationResult
-from guut.prompts import default_prompts
+from guut.prompts import PromptCollection, default_prompts
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
 
 
 class QuixbugsProblem(Problem):
-    type = "quixbugs"
-    default_prompts = default_prompts
-
-    def __init__(self, name: str):
-        self._name = name
-
-    @override
-    def name(self) -> str:
-        return self._name
+    def __init__(self, args: str):
+        self._name = args
 
     @override
     def class_under_test(self) -> TextFile:
@@ -155,21 +148,37 @@ class QuixbugsProblem(Problem):
 
         return [program.stem for program in programs]
 
+    @override
+    @staticmethod
+    def get_type() -> str:
+        return "quixbugs"
+
+    @override
+    def get_args(
+        self,
+    ) -> str:
+        return self._name
+
+    @override
+    @staticmethod
+    def get_default_prompts() -> PromptCollection:
+        return default_prompts
+
     def filename(self) -> str:
-        return f"{self.name()}.py"
+        return f"{self._name}.py"
 
     def correct_file(self) -> Path:
-        return QUIXBUGS_PATH / "correct_python_programs" / f"{self.name()}.py"
+        return QUIXBUGS_PATH / "correct_python_programs" / self.filename()
 
     def buggy_file(self) -> Path:
-        return QUIXBUGS_PATH / "python_programs" / f"{self.name()}.py"
+        return QUIXBUGS_PATH / "python_programs" / self.filename()
 
     def dependencies_paths(self) -> List[Path]:
         return [NODE_PATH] if self.is_graph_problem() else []
 
     def is_graph_problem(self) -> bool:
         """Check if the QuixBugs program is a graph problem. They depend on node.py but don't import it."""
-        return self.name() in [
+        return self._name in [
             "breadth_first_search",
             "depth_first_search",
             "detect_cycle",
@@ -203,9 +212,9 @@ class QuixbugsProblem(Problem):
         buggy_code = self.construct_normalized_code(use_mutant=True)
 
         with TemporaryDirectory() as tempdir:
-            correct_file = Path(tempdir) / f"{self.name()}.py"
+            correct_file = Path(tempdir) / f"{self._name}.py"
             correct_file.write_text(correct_code.strip() + "\n")
-            buggy_file = Path(tempdir) / f"{self.name()}_mutant.py"
+            buggy_file = Path(tempdir) / f"{self._name}_mutant.py"
             buggy_file.write_text(buggy_code.strip() + "\n")
 
             left_file = buggy_file if reverse else correct_file
@@ -218,7 +227,7 @@ class QuixbugsProblem(Problem):
                 capture_output=True,
                 timeout=2,
             )
-            return result.stdout.decode().replace(f"{self.name()}_mutant.py", f"{self.name()}.py")
+            return result.stdout.decode().replace(f"{self._name}_mutant.py", f"{self._name}.py")
 
     def validate_code(self, code: str) -> ValidationResult:
         try:

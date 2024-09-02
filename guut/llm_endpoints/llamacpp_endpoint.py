@@ -1,4 +1,6 @@
 import json
+from dataclasses import dataclass
+from pathlib import Path
 from typing import List, override
 
 from llama_cpp import (
@@ -43,7 +45,12 @@ class LlamacppEndpoint(LLMEndpoint):
 
     @override
     def get_description(self) -> EndpointDescription:
-        return EndpointDescription("llamacpp", self.client.model_path)
+        return LlamacppEndpointDescription("llamacpp", model_path=Path(self.client.model_path))
+
+
+@dataclass
+class LlamacppEndpointDescription(EndpointDescription):
+    model_path: Path
 
 
 def msg_to_api(message: Message) -> ChatCompletionRequestMessage:
