@@ -115,7 +115,7 @@ def show_task(type: str, problem_description: str):
 def run(
     task_type: str,
     task_args: str,
-    output_dir: str | None,
+    outdir: str | None,
     replay: str | None,
     resume: str | None,
     index: int | None,
@@ -181,4 +181,4 @@ def run(
     logger.info(f"Stopped with state {loop.get_state()}")
 
     result = loop.get_result()
-    write_result_dir(result)
+    write_result_dir(result, out_dir=outdir)

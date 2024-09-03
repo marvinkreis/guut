@@ -526,7 +526,7 @@ class Loop:
 
     def generate_id(self) -> str:
         randchars = "".join(f"{b:x}" for b in randbytes(4))
-        id = "{}:{}:{}".format(self.problem.get_type(), self.problem.description(), randchars)
+        id = "{}_{}".format(self.problem.get_description().format(), randchars)
         return id
 
 

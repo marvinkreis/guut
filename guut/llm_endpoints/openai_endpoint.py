@@ -23,9 +23,10 @@ from guut.llm import (
 
 
 class OpenAIEndpoint(LLMEndpoint):
-    def __init__(self, client: OpenAI, model: str):
+    def __init__(self, client: OpenAI, model: str, temperature: int = 1):
         self.client = client
         self.model = model
+        self.temperature = 1
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
@@ -39,12 +40,13 @@ class OpenAIEndpoint(LLMEndpoint):
 
     @override
     def get_description(self) -> EndpointDescription:
-        return OpenAIEndpointDescription("openai", model=self.model)
+        return OpenAIEndpointDescription("openai", model=self.model, temperature=self.temperature)
 
 
 @dataclass
 class OpenAIEndpointDescription(EndpointDescription):
     model: str
+    temperature: float
 
 
 def msg_to_api(message: Message) -> ChatCompletionMessageParam:

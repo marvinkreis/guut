@@ -6,7 +6,6 @@ from datetime import datetime
 from json import JSONEncoder
 from pathlib import Path
 
-from guut.formatting import format_timestamp
 from guut.llm import Conversation, LLMEndpoint, Message
 from guut.loop import Result
 from guut.problem import Problem
@@ -49,17 +48,17 @@ def clean_filename(name: str) -> str:
 class CustomJSONEncoder(JSONEncoder):
     def default(self, o):
         if isinstance(o, Problem):
-            return {"type": o.get_type(), "description": o.description()}
+            return o.get_description()
+        elif isinstance(o, LLMEndpoint):
+            return o.get_description()
         if isinstance(o, Conversation):
             return o.to_json()
         if isinstance(o, Message):
             return o.to_json()
         if isinstance(o, Template):
             return o.path
-        elif isinstance(o, LLMEndpoint):
-            return o.get_description()
         elif isinstance(o, datetime):
-            return format_timestamp(o)
+            return o.timestamp()
         elif isinstance(o, Path):
             return str(o)
         elif dataclasses.is_dataclass(o):

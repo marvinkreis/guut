@@ -24,7 +24,7 @@ class ReplayLLMEndpoint(LLMEndpoint):
 
     @override
     def get_description(self) -> EndpointDescription:
-        return ReplayEndpointDescription("openai", replay_file=self.replay_file)
+        return ReplayEndpointDescription("replay", replay_file=self.replay_file)
 
     @staticmethod
     def from_conversation(

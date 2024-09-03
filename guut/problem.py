@@ -41,10 +41,15 @@ class TestResult:
     mutant: ExecutionResult
 
 
-class Problem(ABC):
+@dataclass
+class ProblemDescription:
     type: str
-    default_prompts: "PromptCollection"  # noqa: F821  # pyright: ignore
 
+    def format(self):
+        return self.type
+
+
+class Problem(ABC):
     @abstractmethod
     def __init__(self, args: str):
         pass
@@ -113,11 +118,6 @@ class Problem(ABC):
     def get_default_prompts() -> "PromptCollection":  # noqa: F821  # pyright: ignore
         pass
 
-    @staticmethod
     @abstractmethod
-    def get_type() -> str:
-        pass
-
-    @abstractmethod
-    def get_args(self) -> str:
+    def get_description(self) -> ProblemDescription:
         pass

@@ -193,7 +193,7 @@ class Conversation(list):
 
 @dataclass
 class EndpointDescription:
-    provider: str
+    type: str
 
 
 class LLMEndpoint:

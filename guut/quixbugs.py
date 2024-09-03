@@ -1,6 +1,7 @@
 import errno
 import itertools
 import os
+from dataclasses import dataclass
 from pathlib import Path
 from shutil import copyfile
 from subprocess import run
@@ -9,11 +10,19 @@ from typing import Iterable, List, Literal, override
 
 from guut.execution import run_debugger, run_script
 from guut.parsing import parse_python_test_name
-from guut.problem import ExecutionResult, Problem, TestResult, TextFile, ValidationResult
+from guut.problem import ExecutionResult, Problem, ProblemDescription, TestResult, TextFile, ValidationResult
 from guut.prompts import PromptCollection, default_prompts
 
 QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
+
+
+@dataclass
+class QuixbugsProblemDescription(ProblemDescription):
+    name: str
+
+    def format(self):
+        return f"{self.type}_{self.name}"
 
 
 class QuixbugsProblem(Problem):
@@ -150,19 +159,11 @@ class QuixbugsProblem(Problem):
 
     @override
     @staticmethod
-    def get_type() -> str:
-        return "quixbugs"
-
-    @override
-    def get_args(
-        self,
-    ) -> str:
-        return self._name
-
-    @override
-    @staticmethod
     def get_default_prompts() -> PromptCollection:
         return default_prompts
+
+    def get_description(self) -> QuixbugsProblemDescription:
+        return QuixbugsProblemDescription("quixbugs", name=self._name)
 
     def filename(self) -> str:
         return f"{self._name}.py"
