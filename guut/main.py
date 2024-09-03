@@ -7,15 +7,15 @@ import yaml
 from loguru import logger
 from openai import OpenAI
 
+import guut.config as config
 from guut.formatting import format_problem
 from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
-from guut.loop import Loop
+from guut.loop import Loop, LoopSettings
 from guut.output import write_result_dir
 from guut.quixbugs import QuixbugsProblem
-from tests.loop_test import LoopSettings
 
 problem_types = {"quixbugs": QuixbugsProblem}
 
@@ -150,7 +150,9 @@ def run(
         else:
             raise Exception("Unknown filetype for replay conversation.")
     else:
-        endpoint = OpenAIEndpoint(OpenAI(), "gpt-4o-mini")
+        endpoint = OpenAIEndpoint(
+            OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), "gpt-4o-mini"
+        )
         if not unsafe:
             silent = False
             endpoint = SafeguardLLMEndpoint(endpoint)

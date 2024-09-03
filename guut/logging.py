@@ -1,16 +1,15 @@
 import json
-import os
 import pickle
 import re
 from datetime import datetime
 from pathlib import Path
 from typing import List
 
+import guut.config as config
 from guut.formatting import format_conversation_pretty, format_timestamp
 from guut.llm import Conversation
 
 FILENAME_REPLACEMENET_REGEX = r"[^0-9a-zA-Z]+"
-LOG_PATH = Path(os.environ["LOGGING_PATH"])
 
 
 def clean_filename(name: str) -> str:
@@ -18,9 +17,12 @@ def clean_filename(name: str) -> str:
 
 
 class ConversationLogger:
-    def __init__(self, directory: Path = LOG_PATH):
+    def __init__(self, directory: Path | None = None):
         self.old_logs: List[Path] = []
-        self.directory = directory
+        if directory:
+            self.directory = directory
+        else:
+            self.directory = Path(config.logging_path)
 
     def log_conversation(self, conversation: Conversation, name: str) -> None:
         for path in self.old_logs:

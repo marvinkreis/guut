@@ -8,12 +8,13 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 from typing import Iterable, List, Literal, override
 
+import guut.config as config
 from guut.execution import run_debugger, run_script
 from guut.parsing import parse_python_test_name
 from guut.problem import ExecutionResult, Problem, ProblemDescription, TestResult, TextFile, ValidationResult
 from guut.prompts import PromptCollection, default_prompts
 
-QUIXBUGS_PATH = Path(os.environ["QUIXBUGS_PATH"])
+QUIXBUGS_PATH = Path(config.quixbugs_path)
 NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
 
 
