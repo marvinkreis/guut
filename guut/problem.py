@@ -109,15 +109,19 @@ class Problem(ABC):
     def validate_code(self, code: str) -> ValidationResult:
         pass
 
-    @staticmethod
-    def list_problems() -> Iterable[str]:
-        return []
-
-    @staticmethod
     @abstractmethod
-    def get_default_prompts() -> "PromptCollection":  # noqa: F821  # pyright: ignore
+    def get_default_prompts(self) -> "PromptCollection":  # noqa: F821  # pyright: ignore
         pass
 
     @abstractmethod
     def get_description(self) -> ProblemDescription:
+        pass
+
+    @staticmethod
+    def list_problems() -> Iterable[str]:
+        return []
+
+    @abstractmethod
+    @staticmethod
+    def get_type() -> str:
         pass

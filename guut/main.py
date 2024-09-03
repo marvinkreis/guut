@@ -1,13 +1,14 @@
 import json
 import pickle
 from pathlib import Path
+from typing_extensions import get_type_hints
 
 import click
 import yaml
 from loguru import logger
 from openai import OpenAI
 
-import guut.config as config
+from guut.config import config
 from guut.formatting import format_problem
 from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
@@ -17,7 +18,7 @@ from guut.loop import Loop, LoopSettings
 from guut.output import write_result_dir
 from guut.quixbugs import QuixbugsProblem
 
-problem_types = {"quixbugs": QuixbugsProblem}
+problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
 
 
 @click.group()
@@ -39,6 +40,9 @@ def _list(task_type: str | None, task_args: str | None):
         return
 
     if not task_args:
+        if task_type is QuixbugsProblem.get_type():
+            config.validate("quixbugs_path")
+
         list_tasks(task_type)
         return
 

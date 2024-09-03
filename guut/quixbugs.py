@@ -8,14 +8,13 @@ from subprocess import run
 from tempfile import TemporaryDirectory
 from typing import Iterable, List, Literal, override
 
-import guut.config as config
+from guut.config import config
 from guut.execution import run_debugger, run_script
 from guut.parsing import parse_python_test_name
 from guut.problem import ExecutionResult, Problem, ProblemDescription, TestResult, TextFile, ValidationResult
 from guut.prompts import PromptCollection, default_prompts
 
 QUIXBUGS_PATH = Path(config.quixbugs_path)
-NODE_PATH = QUIXBUGS_PATH / "python_programs" / "node.py"
 
 
 @dataclass
@@ -27,8 +26,9 @@ class QuixbugsProblemDescription(ProblemDescription):
 
 
 class QuixbugsProblem(Problem):
-    def __init__(self, args: str):
-        self._name = args
+    def __init__(self, args: str, quixbugs_path: Path = QUIXBUGS_PATH):
+        self.name = args
+        self.quixbugs_path = quixbugs_path
 
     @override
     def class_under_test(self) -> TextFile:
@@ -38,8 +38,9 @@ class QuixbugsProblem(Problem):
 
     @override
     def dependencies(self) -> Iterable[TextFile]:
+        node_path = self.quixbugs_path / "python_programs" / "node.py"
         if self.is_graph_problem():
-            return [TextFile(content=NODE_PATH.read_text(), name=NODE_PATH.name, language="python")]
+            return [TextFile(content=node_path.read_text(), name=node_path.name, language="python")]
         return []
 
     @override
@@ -146,9 +147,14 @@ class QuixbugsProblem(Problem):
 
     @staticmethod
     @override
-    def list_problems() -> List[str]:
+    def get_type() -> str:
+        return "quixbugs"
+
+    @staticmethod
+    @override
+    def list_problems(quixbugs_path: Path = QUIXBUGS_PATH) -> List[str]:
         # List all buggy programs
-        programs = [f for f in (QUIXBUGS_PATH / "python_programs").iterdir() if f.is_file()]
+        programs = [f for f in (quixbugs_path / "python_programs").iterdir() if f.is_file()]
 
         # Exclude tests
         programs = [f for f in programs if "test" not in f.stem]
@@ -159,28 +165,28 @@ class QuixbugsProblem(Problem):
         return [program.stem for program in programs]
 
     @override
-    @staticmethod
-    def get_default_prompts() -> PromptCollection:
+    def get_default_prompts(self) -> PromptCollection:
         return default_prompts
 
     def get_description(self) -> QuixbugsProblemDescription:
-        return QuixbugsProblemDescription("quixbugs", name=self._name)
+        return QuixbugsProblemDescription(type=self.get_type(), name=self.name)
 
     def filename(self) -> str:
-        return f"{self._name}.py"
+        return f"{self.name}.py"
 
     def correct_file(self) -> Path:
-        return QUIXBUGS_PATH / "correct_python_programs" / self.filename()
+        return self.quixbugs_path / "correct_python_programs" / self.filename()
 
     def buggy_file(self) -> Path:
-        return QUIXBUGS_PATH / "python_programs" / self.filename()
+        return self.quixbugs_path / "python_programs" / self.filename()
 
     def dependencies_paths(self) -> List[Path]:
-        return [NODE_PATH] if self.is_graph_problem() else []
+        node_path = self.quixbugs_path / "python_programs" / "node.py"
+        return [node_path] if self.is_graph_problem() else []
 
     def is_graph_problem(self) -> bool:
         """Check if the QuixBugs program is a graph problem. They depend on node.py but don't import it."""
-        return self._name in [
+        return self.name in [
             "breadth_first_search",
             "depth_first_search",
             "detect_cycle",
@@ -214,9 +220,9 @@ class QuixbugsProblem(Problem):
         buggy_code = self.construct_normalized_code(use_mutant=True)
 
         with TemporaryDirectory() as tempdir:
-            correct_file = Path(tempdir) / f"{self._name}.py"
+            correct_file = Path(tempdir) / f"{self.name}.py"
             correct_file.write_text(correct_code.strip() + "\n")
-            buggy_file = Path(tempdir) / f"{self._name}_mutant.py"
+            buggy_file = Path(tempdir) / f"{self.name}_mutant.py"
             buggy_file.write_text(buggy_code.strip() + "\n")
 
             left_file = buggy_file if reverse else correct_file
@@ -229,7 +235,7 @@ class QuixbugsProblem(Problem):
                 capture_output=True,
                 timeout=2,
             )
-            return result.stdout.decode().replace(f"{self._name}_mutant.py", f"{self._name}.py")
+            return result.stdout.decode().replace(f"{self.name}_mutant.py", f"{self.name}.py")
 
     def validate_code(self, code: str) -> ValidationResult:
         try:

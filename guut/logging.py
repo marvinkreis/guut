@@ -5,7 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import List
 
-import guut.config as config
+from guut.config import config
 from guut.formatting import format_conversation_pretty, format_timestamp
 from guut.llm import Conversation
 
