@@ -14,8 +14,6 @@ from guut.parsing import parse_python_test_name
 from guut.problem import ExecutionResult, Problem, ProblemDescription, TestResult, TextFile, ValidationResult
 from guut.prompts import PromptCollection, default_prompts
 
-QUIXBUGS_PATH = Path(config.quixbugs_path)
-
 
 @dataclass
 class QuixbugsProblemDescription(ProblemDescription):
@@ -26,8 +24,10 @@ class QuixbugsProblemDescription(ProblemDescription):
 
 
 class QuixbugsProblem(Problem):
-    def __init__(self, args: str, quixbugs_path: Path = QUIXBUGS_PATH):
+    def __init__(self, args: str, quixbugs_path: Path | None = None):
         self.name = args
+        if quixbugs_path is None:
+            quixbugs_path = Path(config.quixbugs_path)
         self.quixbugs_path = quixbugs_path
 
     @override
@@ -152,7 +152,10 @@ class QuixbugsProblem(Problem):
 
     @staticmethod
     @override
-    def list_problems(quixbugs_path: Path = QUIXBUGS_PATH) -> List[str]:
+    def list_problems(quixbugs_path: Path | None = None) -> List[str]:
+        if quixbugs_path is None:
+            quixbugs_path = Path(config.quixbugs_path)
+
         # List all buggy programs
         programs = [f for f in (quixbugs_path / "python_programs").iterdir() if f.is_file()]
 

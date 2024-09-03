@@ -121,7 +121,7 @@ class Problem(ABC):
     def list_problems() -> Iterable[str]:
         return []
 
-    @abstractmethod
     @staticmethod
+    @abstractmethod
     def get_type() -> str:
         pass

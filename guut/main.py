@@ -1,7 +1,6 @@
 import json
 import pickle
 from pathlib import Path
-from typing_extensions import get_type_hints
 
 import click
 import yaml
@@ -40,9 +39,6 @@ def _list(task_type: str | None, task_args: str | None):
         return
 
     if not task_args:
-        if task_type is QuixbugsProblem.get_type():
-            config.validate("quixbugs_path")
-
         list_tasks(task_type)
         return
 
