@@ -202,16 +202,24 @@ class Loop:
         self,
         problem: Problem,
         endpoint: LLMEndpoint,
-        prompts: PromptCollection,
-        settings: LoopSettings,
+        prompts: PromptCollection | None = None,
+        settings: LoopSettings | None = None,
         enable_log: bool = True,
         enable_print: bool = False,
         conversation: Conversation | None = None,
     ):
+        if prompts is None:
+            self.prompts = problem.get_default_prompts()
+        else:
+            self.prompts = prompts
+
+        if settings is None:
+            self.settings = LoopSettings()
+        else:
+            self.settings = settings
+
         self.problem = problem
         self.endpoint = endpoint
-        self.prompts = prompts
-        self.settings = settings
         self.enable_log = enable_log
         self.enable_print = enable_print
 
@@ -267,9 +275,10 @@ class Loop:
         elif state is None:
             raise InvalidStateException(None)
 
-    def iterate(self):
+    def iterate(self) -> Result:
         while self.get_state() not in [State.DONE, State.ABORTED, State.INVALID, None]:
             self.perform_next_step()
+        return self.get_result()
 
     def get_state(self) -> State:
         if not self.conversation:

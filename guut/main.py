@@ -179,8 +179,6 @@ def run(
         settings=LoopSettings(),
     )
 
-    loop.iterate()
+    result = loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
-
-    result = loop.get_result()
     write_result_dir(result, out_dir=outdir or ".")
