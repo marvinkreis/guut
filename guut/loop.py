@@ -434,13 +434,7 @@ class Loop:
             self.add_msg(new_message, State.ABORTED)
             return
 
-        msg_before = [msg for msg in self.conversation if msg.tag != State.INCOMPLETE_RESPONSE][-1]
-        if isinstance(msg_before.tag, State):
-            self.add_msg(
-                self.prompts.incomplete_response_template.render(), State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN
-            )
-        else:
-            raise InvalidStateException(None, f"No valid state before {State.INCOMPLETE_RESPONSE.value}.")
+        self.add_msg(self.prompts.incomplete_response_template.render(), State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN)
 
     def _clean_response(self, msg: AssistantMessage):
         content = self._remove_stop_word_residue(msg.content)
