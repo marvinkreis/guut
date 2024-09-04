@@ -438,7 +438,7 @@ class Loop:
 
     def _clean_response(self, msg: AssistantMessage):
         content = self._remove_stop_word_residue(msg.content)
-        return AssistantMessage(content=content + "\n", response=msg.response, usage=msg.usage, tag=msg.tag)
+        return AssistantMessage(content=content + "\n", response=msg.response, usage=msg.usage, tag=msg.tag, id=msg.id)
 
     def _remove_stop_word_residue(self, text: str):
         lines = text.splitlines()
