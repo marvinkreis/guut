@@ -37,7 +37,7 @@ def _test(*text):
     return f"## Test\n{"\n\n".join(text)}"
 
 
-Loop = partial(Loop, enable_print=False, enable_log=False)
+Loop = partial(Loop, printer=None, logger=None)
 
 
 def test__observation_with_code_and_debugger_script_gets_detected():

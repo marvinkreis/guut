@@ -1,15 +1,19 @@
 import dataclasses
 import json
+import pickle
 import os
 import re
 from datetime import datetime
 from json import JSONEncoder
 from pathlib import Path
+from typing import List
 
+from guut.config import config
 from guut.llm import Conversation, LLMEndpoint, Message
 from guut.loop import Result
 from guut.problem import Problem
 from guut.prompts import Template
+from guut.formatting import format_conversation_pretty, format_message_pretty, format_problem, format_timestamp
 
 FILENAME_REPLACEMENET_REGEX = r"[^0-9a-zA-Z]+"
 

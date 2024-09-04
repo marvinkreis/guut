@@ -15,6 +15,7 @@ from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.loop import Loop, LoopSettings
+from guut.logging import ConversationLogger, MessagePrinter
 from guut.output import write_result_dir
 from guut.quixbugs import QuixbugsProblem
 
@@ -111,8 +112,8 @@ def show_task(type: str, problem_description: str):
     default=False,
     help="Request completions without confirmation. Implies no -s.",
 )
-@click.option("--silent", "-s", is_flag=True, default=False, help="Don't print the conversation during computation.")
-@click.option("--nologs", "-n", is_flag=True, default=False, help="Disable logging of conversations.")
+@click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
+@click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 def run(
     task_type: str,
@@ -172,13 +173,16 @@ def run(
         if index:
             conversation = Conversation(conversation[:index])
 
+    conversation_logger = ConversationLogger() if not nologs else None
+    message_printer = MessagePrinter() if not silent else None
+
     LoopCls = Loop if not baseline else BaselineLoop
     loop = LoopCls(
         problem=problem_instance,
         endpoint=endpoint,
         prompts=problem_instance.get_default_prompts(),
-        enable_print=not silent,
-        enable_log=not nologs,
+        printer=message_printer,
+        logger=conversation_logger,
         conversation=conversation,
         settings=LoopSettings(),
     )

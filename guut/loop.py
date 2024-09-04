@@ -8,9 +8,8 @@ from typing import List, Literal, Tuple
 
 from loguru import logger
 
-from guut.formatting import format_message_pretty
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
-from guut.logging import ConversationLogger
+from guut.logging import ConversationLogger, MessagePrinter
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
 from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 from guut.prompts import PromptCollection
@@ -227,8 +226,8 @@ class Loop:
         endpoint: LLMEndpoint,
         prompts: PromptCollection | None = None,
         settings: LoopSettings | None = None,
-        enable_log: bool = True,
-        enable_print: bool = False,
+        logger: ConversationLogger | None = None,
+        printer: MessagePrinter | None = None,
         conversation: Conversation | None = None,
     ):
         if prompts is None:
@@ -243,28 +242,32 @@ class Loop:
 
         self.problem = problem
         self.endpoint = endpoint
-        self.enable_log = enable_log
-        self.enable_print = enable_print
+        self.logger = logger
+        self.printer = printer
 
         if conversation is None:
             self.conversation = Conversation()
-            self.new_messages: List[Message] = []
         else:
             self.conversation = conversation
-            self.new_messages = conversation[::]
 
         self.experiments: List[Experiment] = []
         self.tests: List[Test] = []
-
-        self.conversation_logger = ConversationLogger()
         self.id = self._generate_id()
 
     def perform_next_step(self):
-        self._print_and_log_conversation()
+        if self.printer:
+            self.printer.print_new_messages(self.conversation)
+
         state = self.get_state()
         logger.info(state)
+
         self._perform_next_step(state)
-        self._print_and_log_conversation()
+
+        if self.printer:
+            self.printer.print_new_messages(self.conversation)
+
+        if self.logger:
+            self.logger.log_conversation(self.conversation, name=self.id)
 
     def _perform_next_step(self, state: State):
         if state == State.EMPTY:
@@ -329,7 +332,6 @@ class Loop:
         if tag:
             msg.tag = tag
         self.conversation.append(msg)
-        self.new_messages.append(msg)
 
     def _init_conversation(self):
         """it's hard to do sometimes"""
@@ -477,14 +479,6 @@ class Loop:
 
         lines = reversed(list(dropwhile(condition, reversed(lines))))
         return "\n".join(lines)
-
-    def _print_and_log_conversation(self):
-        if self.enable_print:
-            for msg in self.new_messages:
-                print(format_message_pretty(msg))
-            self.new_messages = []
-        if self.enable_log:
-            self.conversation_logger.log_conversation(self.conversation, name=self.id)
 
     def _concat_incomplete_responses(self, include_message: Message | None = None):
         if include_message:

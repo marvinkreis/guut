@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import List
 
 from guut.config import config
-from guut.formatting import format_conversation_pretty, format_timestamp
+from guut.formatting import format_conversation_pretty, format_timestamp, format_message_pretty
 from guut.llm import Conversation
 
 FILENAME_REPLACEMENET_REGEX = r"[^0-9a-zA-Z]+"
@@ -42,3 +42,14 @@ class ConversationLogger:
 
     def construct_file_name(self, name: str, suffix: str, timestamp: datetime) -> Path:
         return self.directory / f"[{format_timestamp(timestamp)}] {name}.{suffix}"
+
+
+class MessagePrinter:
+    def __init__(self):
+        self.seen_messages = []
+
+    def print_new_messages(self, conversation: Conversation):
+        new_messages = [msg for msg in conversation if msg not in conversation]
+        for msg in new_messages:
+            print(format_message_pretty(msg))
+        self.seen_messages += new_messages
