@@ -151,7 +151,7 @@ class RawExperiment:
 
 
 @dataclass
-class TestCase:
+class Test:
     description: TestDescription
     validation_result: ValidationResult
     result: TestResult | None
@@ -175,7 +175,7 @@ class LoopSettings:
 @dataclass
 class Result:
     # main info
-    tests: List[TestCase]
+    tests: List[Test]
     experiments: List[Experiment]
     conversation: Conversation
     success: bool
@@ -188,7 +188,7 @@ class Result:
     settings: LoopSettings
     id: str
 
-    def get_killing_test(self) -> TestCase | None:
+    def get_killing_test(self) -> Test | None:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
 
 
@@ -231,7 +231,7 @@ class Loop:
             self.new_messages = conversation[::]
 
         self.experiments: List[Experiment] = []
-        self.testcases: List[TestCase] = []
+        self.tests: List[Test] = []
 
         self.conversation_logger = ConversationLogger()
         self.id = self.generate_id()
@@ -288,9 +288,9 @@ class Loop:
         return State.INVALID
 
     def get_result(self) -> Result:
-        killing_test_found = any([test.kills_mutant for test in self.testcases])
+        killing_test_found = any([test.kills_mutant for test in self.tests])
         return Result(
-            tests=self.testcases,
+            tests=self.tests,
             experiments=self.experiments,
             conversation=self.conversation,
             timestamp=datetime.now(),
@@ -399,8 +399,8 @@ class Loop:
                 result=validation_result,
             )
             self.add_msg(new_message, State.TEST_DOESNT_COMPILE)
-            self.testcases.append(
-                TestCase(description=test, validation_result=validation_result, result=None, kills_mutant=False)
+            self.tests.append(
+                Test(description=test, validation_result=validation_result, result=None, kills_mutant=False)
             )
         else:
             result = self.problem.run_test(test.code)
@@ -408,14 +408,14 @@ class Loop:
             if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
                 new_message = self.prompts.results_template.render(test=test.code, result=result)
                 self.add_msg(new_message, State.DONE)
-                self.testcases.append(
-                    TestCase(description=test, validation_result=validation_result, result=result, kills_mutant=True)
+                self.tests.append(
+                    Test(description=test, validation_result=validation_result, result=result, kills_mutant=True)
                 )
             else:
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
-                self.testcases.append(
-                    TestCase(description=test, validation_result=validation_result, result=result, kills_mutant=False)
+                self.tests.append(
+                    Test(description=test, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
         num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_DOESNT_COMPILE])
