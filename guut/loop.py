@@ -234,7 +234,7 @@ class Loop:
         self.tests: List[Test] = []
 
         self.conversation_logger = ConversationLogger()
-        self.id = self.generate_id()
+        self.id = self._generate_id()
 
     def perform_next_step(self):
         self._print_and_log_conversation()
@@ -316,7 +316,7 @@ class Loop:
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
     def _prompt_for_hypothesis_or_test(self):
-        response = self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)
+        response = self._complete()
         response = self._clean_response(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
@@ -527,10 +527,13 @@ class Loop:
         else:
             return None
 
-    def generate_id(self) -> str:
+    def _generate_id(self) -> str:
         randchars = "".join(f"{b:x}" for b in randbytes(4))
         id = "{}_{}".format(self.problem.get_description().format(), randchars)
         return id
+
+    def _complete(self) -> AssistantMessage:
+        return self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)
 
 
 class InvalidStateException(Exception):

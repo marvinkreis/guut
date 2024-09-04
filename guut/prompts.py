@@ -34,8 +34,8 @@ class DebugPrompt(Template):
 
 
 class ProblemTemplate(Template):
-    def render(self, problem: Problem) -> UserMessage:
-        return UserMessage(self.template.render(problem=problem).strip() + "\n")
+    def render(self, problem: Problem, is_baseline: bool = False) -> UserMessage:
+        return UserMessage(self.template.render(problem=problem, is_baseline=is_baseline).strip() + "\n")
 
 
 class ExperimentDoesntCompileTemplate(Template):
@@ -78,13 +78,20 @@ class IncompleteResponseTemplate(Template):
         return UserMessage(self.template.render().strip() + "\n")
 
 
+class BaselinePrompt(Template):
+    def render(self, problem: Problem) -> UserMessage:
+        return UserMessage(self.template.render().strip() + "\n")
+
+
 @dataclass
 class PromptCollection:
     system_prompt: SystemPrompt | None
     debug_prompt: DebugPrompt
     test_prompt: TestPrompt
+    baseline_prompt: BaselinePrompt
 
     stop_words: List[str]
+    baseline_stop_words: List[str]
 
     problem_template: ProblemTemplate
     experiment_doesnt_compile_template: ExperimentDoesntCompileTemplate
@@ -104,8 +111,10 @@ default_prompts = PromptCollection(
     system_prompt=SystemPrompt("prompts/system_prompt.md"),
     debug_prompt=DebugPrompt("prompts/debug_prompt.md"),
     test_prompt=TestPrompt("prompts/test_prompt.md"),
+    baseline_prompt=BaselinePrompt("baseline/baseline_prompt.md"),
     #
     stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
+    baseline_stop_words=["# Test Result"],
     #
     problem_template=ProblemTemplate("problem_template.md"),
     experiment_doesnt_compile_template=ExperimentDoesntCompileTemplate("experiment_doesnt_compile_template.md"),

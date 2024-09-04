@@ -16,4 +16,8 @@
 {{ problem.mutant_diff() | rtrim }}
 ```
 
+{% if is_baseline %}
+# Test
+{% else %}
 # Debugging
+{% endif %}

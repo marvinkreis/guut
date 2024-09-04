@@ -7,6 +7,7 @@ import yaml
 from loguru import logger
 from openai import OpenAI
 
+from guut.baseline_loop import BaselineLoop
 from guut.config import config
 from guut.formatting import format_problem
 from guut.llm import Conversation
@@ -112,6 +113,7 @@ def show_task(type: str, problem_description: str):
 )
 @click.option("--silent", "-s", is_flag=True, default=False, help="Don't print the conversation during computation.")
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable logging of conversations.")
+@click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 def run(
     task_type: str,
     task_args: str,
@@ -122,6 +124,7 @@ def run(
     unsafe: bool = False,
     silent: bool = False,
     nologs: bool = False,
+    baseline: bool = False,
 ):
     if replay and resume:
         raise Exception("Cannot use --replay and --continue together.")
@@ -169,7 +172,8 @@ def run(
         if index:
             conversation = Conversation(conversation[:index])
 
-    loop = Loop(
+    LoopCls = Loop if not baseline else BaselineLoop
+    loop = LoopCls(
         problem=problem_instance,
         endpoint=endpoint,
         prompts=problem_instance.get_default_prompts(),
