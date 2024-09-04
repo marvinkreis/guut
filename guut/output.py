@@ -23,7 +23,7 @@ def write_result_dir(result: Result, out_dir: Path | str | None = None):
     write_result(result, out_dir=result_dir)
 
     if test := result.get_killing_test():
-        write_test(test.description.code, out_dir=result_dir)
+        write_test(test.code, out_dir=result_dir)
 
 
 def write_result(result: Result, out_dir: Path | str | None = None):

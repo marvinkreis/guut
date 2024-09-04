@@ -151,18 +151,41 @@ class RawExperiment:
 
 
 @dataclass
-class Test:
-    description: TestDescription
+class Test(TestDescription):
     validation_result: ValidationResult
     result: TestResult | None
     kills_mutant: bool
 
+    @staticmethod
+    def with_description(
+        description: TestDescription, validation_result: ValidationResult, result: TestResult | None, kills_mutant: bool
+    ) -> "Test":
+        return Test(
+            text=description.text,
+            code=description.code,
+            validation_result=validation_result,
+            result=result,
+            kills_mutant=kills_mutant,
+        )
+
 
 @dataclass
-class Experiment:
-    description: ExperimentDescription
+class Experiment(ExperimentDescription):
     validation_result: ValidationResult
     result: ExperimentResult | None
+
+    @staticmethod
+    def with_description(
+        description: ExperimentDescription, validation_result: ValidationResult, result: ExperimentResult | None
+    ) -> "Experiment":
+        return Experiment(
+            text=description.text,
+            code=description.code,
+            debugger_script=description.debugger_script,
+            kind=description.kind,
+            validation_result=validation_result,
+            result=result,
+        )
 
 
 @dataclass
@@ -362,7 +385,7 @@ class Loop:
             new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
             self.add_msg(new_message, State.EXPERIMENT_DOESNT_COMPILE)
             self.experiments.append(
-                Experiment(validation_result=validation_result, result=None, description=experiment)
+                Experiment.with_description(experiment, validation_result=validation_result, result=None)
             )
         else:
             experiment_result = self.problem.run_experiment(experiment.code, experiment.debugger_script)
@@ -372,7 +395,7 @@ class Loop:
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
             experiment = replace(experiment, kind="observation" if experiment.kind == "observation" else "experiment")
             self.experiments.append(
-                Experiment(validation_result=validation_result, result=experiment_result, description=experiment)
+                Experiment.with_description(experiment, validation_result=validation_result, result=experiment_result)
             )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
@@ -400,7 +423,7 @@ class Loop:
             )
             self.add_msg(new_message, State.TEST_DOESNT_COMPILE)
             self.tests.append(
-                Test(description=test, validation_result=validation_result, result=None, kills_mutant=False)
+                Test.with_description(test, validation_result=validation_result, result=None, kills_mutant=False)
             )
         else:
             result = self.problem.run_test(test.code)
@@ -409,13 +432,13 @@ class Loop:
                 new_message = self.prompts.results_template.render(test=test.code, result=result)
                 self.add_msg(new_message, State.DONE)
                 self.tests.append(
-                    Test(description=test, validation_result=validation_result, result=result, kills_mutant=True)
+                    Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=True)
                 )
             else:
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
                 self.tests.append(
-                    Test(description=test, validation_result=validation_result, result=result, kills_mutant=False)
+                    Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
         num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_DOESNT_COMPILE])

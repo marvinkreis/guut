@@ -49,10 +49,10 @@ def test__observation_with_code_and_debugger_script_gets_detected():
     assert loop.get_state() == State.EXPERIMENT_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].description.kind == "observation"
-    assert code_raw in loop.experiments[0].description.code
-    assert loop.experiments[0].description.debugger_script is not None
-    assert debugger_script_raw in loop.experiments[0].description.debugger_script
+    assert loop.experiments[0].kind == "observation"
+    assert code_raw in loop.experiments[0].code
+    assert loop.experiments[0].debugger_script is not None
+    assert debugger_script_raw in loop.experiments[0].debugger_script
 
 
 def test__observation_with_just_code_gets_detected():
@@ -64,9 +64,9 @@ def test__observation_with_just_code_gets_detected():
     assert loop.get_state() == State.EXPERIMENT_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].description.kind == "observation"
-    assert code_raw in loop.experiments[0].description.code
-    assert loop.experiments[0].description.debugger_script is None
+    assert loop.experiments[0].kind == "observation"
+    assert code_raw in loop.experiments[0].code
+    assert loop.experiments[0].debugger_script is None
 
 
 def test__observation_with_only_debugger_script_leads_to_incomple_response():
@@ -87,10 +87,10 @@ def test__experiment_with_code_and_debugger_script_gets_detected():
     assert loop.get_state() == State.EXPERIMENT_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].description.kind == "experiment"
-    assert code_raw in loop.experiments[0].description.code
-    assert loop.experiments[0].description.debugger_script is not None
-    assert debugger_script_raw in loop.experiments[0].description.debugger_script
+    assert loop.experiments[0].kind == "experiment"
+    assert code_raw in loop.experiments[0].code
+    assert loop.experiments[0].debugger_script is not None
+    assert debugger_script_raw in loop.experiments[0].debugger_script
 
 
 def test__experiment_with_just_code_gets_detected():
@@ -102,9 +102,9 @@ def test__experiment_with_just_code_gets_detected():
     assert loop.get_state() == State.EXPERIMENT_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].description.kind == "experiment"
-    assert code_raw in loop.experiments[0].description.code
-    assert loop.experiments[0].description.debugger_script is None
+    assert loop.experiments[0].kind == "experiment"
+    assert code_raw in loop.experiments[0].code
+    assert loop.experiments[0].debugger_script is None
 
 
 def test__experiment_with_only_debugger_script_leads_to_incomple_response():
@@ -125,8 +125,8 @@ def test__test_with_code_and_debugger_script_gets_detected_but_debugger_script_g
     assert loop.get_state() == State.TEST_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.TEST_DOESNT_DETECT_MUTANT  # TODO: mock problem
-    assert code_raw in loop.tests[0].description.code
-    assert not hasattr(loop.tests[0].description, "debugger_script")
+    assert code_raw in loop.tests[0].code
+    assert not hasattr(loop.tests[0], "debugger_script")
 
 
 def test__test_with_just_code_gets_detected():
@@ -138,8 +138,8 @@ def test__test_with_just_code_gets_detected():
     assert loop.get_state() == State.TEST_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.TEST_DOESNT_DETECT_MUTANT  # TODO: mock problem
-    assert code_raw in loop.tests[0].description.code
-    assert not hasattr(loop.tests[0].description, "debugger_script")
+    assert code_raw in loop.tests[0].code
+    assert not hasattr(loop.tests[0], "debugger_script")
 
 
 def test__test_with_only_debugger_script_leads_to_incomple_response():
