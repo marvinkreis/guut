@@ -108,10 +108,10 @@ class PromptCollection:
 
 
 default_prompts = PromptCollection(
-    system_prompt=SystemPrompt("prompts/system_prompt.md"),
-    debug_prompt=DebugPrompt("prompts/debug_prompt.md"),
-    test_prompt=TestPrompt("prompts/test_prompt.md"),
-    baseline_prompt=BaselinePrompt("baseline/baseline_prompt.md"),
+    system_prompt=SystemPrompt("system_prompt.md"),
+    debug_prompt=DebugPrompt("debug_prompt.md"),
+    test_prompt=TestPrompt("test_prompt.md"),
+    baseline_prompt=BaselinePrompt("baseline_prompt.md"),
     #
     stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
     baseline_stop_words=["# Test Result"],
