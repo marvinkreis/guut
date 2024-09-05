@@ -1,5 +1,4 @@
 import json
-import pickle
 from pathlib import Path
 
 import click
@@ -86,7 +85,7 @@ def show_task(type: str, problem_description: str):
     nargs=1,
     type=click.Path(exists=True, dir_okay=False),
     required=False,
-    help="Replay LLM responses instead of requesting completions. Path can be a logged .pickle or .json conversation log or a .yaml file containing a list of strings. Implies -y.",
+    help="Replay LLM responses instead of requesting completions. Path can be a logged .json conversation log or a .yaml file containing a list of strings. Implies -y.",
 )
 @click.option(
     "--continue",
@@ -94,7 +93,7 @@ def show_task(type: str, problem_description: str):
     nargs=1,
     type=click.Path(exists=True, dir_okay=False),
     required=False,
-    help="Continue a conversation from a .pickle or .json log file.",
+    help="Continue a conversation from a .json log file.",
 )
 @click.option(
     "--index",
@@ -141,10 +140,7 @@ def run(
 
     endpoint = None
     if replay:
-        if replay.endswith(".pickle"):
-            conversation = pickle.loads(Path(replay).read_bytes())
-            endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay, replay_file=Path(replay))
-        elif replay.endswith(".json"):
+        if replay.endswith(".json"):
             json_data = json.loads(Path(replay).read_text())
             conversation = Conversation.from_json(json_data)
             endpoint = ReplayLLMEndpoint.from_conversation(conversation, path=replay, replay_file=Path(replay))
@@ -163,9 +159,7 @@ def run(
 
     conversation = None
     if resume:
-        if resume.endswith(".pickle"):
-            conversation = pickle.loads(Path(resume).read_bytes())
-        elif resume.endswith(".json"):
+        if resume.endswith(".json"):
             json_data = json.loads(Path(resume).read_text())
             conversation = Conversation.from_json(json_data)
         else:

@@ -1,19 +1,16 @@
 import dataclasses
 import json
-import pickle
 import os
 import re
 from datetime import datetime
 from json import JSONEncoder
 from pathlib import Path
-from typing import List
 
-from guut.config import config
+from guut.formatting import format_conversation_pretty
 from guut.llm import Conversation, LLMEndpoint, Message
 from guut.loop import Result
 from guut.problem import Problem
 from guut.prompts import Template
-from guut.formatting import format_conversation_pretty, format_message_pretty, format_problem, format_timestamp
 
 FILENAME_REPLACEMENET_REGEX = r"[^0-9a-zA-Z]+"
 
@@ -29,10 +26,13 @@ def write_result_dir(result: Result, out_dir: Path | str | None = None):
     if test := result.get_killing_test():
         write_test(test.code, out_dir=result_dir)
 
+    write_conversation(result.conversation, out_dir=result_dir)
+
 
 def write_result(result: Result, out_dir: Path | str | None = None):
     if not out_dir:
         out_dir = os.getcwd()
+
     result_path = Path(out_dir) / "result.json"
     with result_path.open("w") as file:
         json.dump(result, file, cls=CustomJSONEncoder)
@@ -41,8 +41,23 @@ def write_result(result: Result, out_dir: Path | str | None = None):
 def write_test(test_code: str, out_dir: Path | str | None = None):
     if not out_dir:
         out_dir = os.getcwd()
+
     result_path = Path(out_dir) / "test.py"
     result_path.write_text(test_code)
+
+
+def write_conversation(conversation: Conversation, out_dir: Path | str | None = None):
+    if not out_dir:
+        out_dir = os.getcwd()
+
+    json_path = Path(out_dir) / "conversation.json"
+    md_path = Path(out_dir) / "conversation.md"
+    txt_path = Path(out_dir) / "conversation.txt"
+
+    with json_path.open("w") as file:
+        json.dump(conversation.to_json(), file)
+    md_path.write_text("\n\n".join(msg.content for msg in conversation))
+    txt_path.write_text(format_conversation_pretty(conversation))
 
 
 def clean_filename(name: str) -> str:
