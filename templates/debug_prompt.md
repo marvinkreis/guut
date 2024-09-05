@@ -248,10 +248,21 @@ AssertionError: sieve must output prime numbers
 ```
 The test exited with exit code 1.
 
+{% if include_equivalence %}
+## Equivalent Mutant
+
+Some mutants may be equivalent. Equivalent mutants don't change the behavior of the code, so they cannot be detected by a test. An example is changing `x=a+b` to `x=b+a`. If you believe a mutant to be equivalent, please use this as your hypothesis and run an experiment to show it. Then you may claim the mutant as equivalent by writing the `## Equivalent Mutant` headline and giving a short description of why you think the mutant is equivalent. Include some information from your experiments to back up your claims.
+
+### Example Equivalent Mutant
+
+I believe the mutant is equivalent. The change [mutant change] doesn't affect the way [some result] is computed. My experiments show that [tried inputs] did not result in any different behavior in the mutant, which suggest [more explanation].
+
+{% endif %}
 
 # Output Format
 
-Please use this format for your solution:
+Please use the following format for your solution.
+Do NOT include any markdown headlines other then the ones shown here.
 
     # Task
     [we give you the code and the mutant]
@@ -284,6 +295,11 @@ Please use this format for your solution:
 
     ## Test Results
     [we will give you the results]
+
+    {% if include_equivalence %}
+    [if you believe the mutant to be equivalent]
+    ## Equivalent Mutant
+    [a short explanation about why the mutant is equivalent]
 
 Write all code in markdown blocks and specify the language, e.g.:
 
