@@ -223,7 +223,6 @@ Output the test as single Python function called `test__<name>` with no paramete
 ```python
 from sieve import sieve
 
-
 def test__sieve():
     output = sieve(5)
     assert len(output) > 0, "sieve must detect prime numbers"
@@ -314,7 +313,7 @@ Write all code in markdown blocks and specify the language, e.g.:
 
 Be brief in your responses and don't repeat things you have already written. Write brief hypotheses and conclusions makes it easier to refer back to them later.
 
-Make sure that `## Observation` is always followed by `### Observation Results`, `### Experiment` is always followed by `### Experiment Results` and `# Test` is always followed by `## Test Results`. Otherwise, we cannot give you the results.
+Make sure that `## Observation` is always followed by `### Observation Results`, `### Experiment` is always followed by `### Experiment Results` and `# Test` is always followed by `## Test Results`. This is important for parsing your reposnses.
 
 
 # Python Debugger (pdb)
