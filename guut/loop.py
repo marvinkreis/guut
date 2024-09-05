@@ -466,6 +466,7 @@ class Loop:
                 self.tests.append(
                     Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=True)
                 )
+                return
             else:
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
@@ -473,8 +474,8 @@ class Loop:
                     Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
-        num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_DOESNT_COMPILE])
-        if num_retries >= self.settings.max_retries_for_invalid_test:
+        num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_STATED])
+        if num_retries > (self.settings.max_retries_for_invalid_test + 1):
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
             )

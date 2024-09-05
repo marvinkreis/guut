@@ -6,7 +6,7 @@ import yaml
 from loguru import logger
 from openai import OpenAI
 
-from guut.baseline_loop import BaselineLoop
+from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
 from guut.formatting import format_problem
 from guut.llm import Conversation
@@ -171,6 +171,7 @@ def run(
     message_printer = MessagePrinter() if not silent else None
 
     LoopCls = Loop if not baseline else BaselineLoop
+    settings = LoopSettings() if not baseline else BaselineSettings()
     loop = LoopCls(
         problem=problem_instance,
         endpoint=endpoint,
@@ -178,7 +179,7 @@ def run(
         printer=message_printer,
         logger=conversation_logger,
         conversation=conversation,
-        settings=LoopSettings(),
+        settings=settings,
     )
 
     result = loop.iterate()

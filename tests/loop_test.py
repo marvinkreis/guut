@@ -377,6 +377,46 @@ def test__conversation_is_aborted_if_an_incomplete_response_beyond_the_max_is_su
     assert loop.get_state() == State.ABORTED
 
 
+def test__conversation_is_aborted_if_a_test_beyond_the_max_is_submitted():
+    conversation = Conversation(
+        [
+            UserMessage("", tag=State.INITIAL),
+            *(
+                [
+                    AssistantMessage(_test(code), tag=State.TEST_STATED),
+                    UserMessage("", tag=State.TEST_DOESNT_DETECT_MUTANT),
+                ]
+                * 2
+            ),
+        ]
+    )
+    endpoint = ReplayLLMEndpoint.from_raw_messages([_test(code)] * 2)
+
+    problem = DummyProblem()
+    problem.run_test = MagicMock(
+        return_value=TestResult(
+            correct=ExecutionResult(input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=0),
+            mutant=ExecutionResult(input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=0),
+        )
+    )
+
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=DummyProblem(),
+        settings=LoopSettings(max_retries_for_invalid_test=2),
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == State.TEST_STATED
+    loop.perform_next_step()
+    assert loop.get_state() == State.TEST_DOESNT_DETECT_MUTANT
+    loop.perform_next_step()
+    assert loop.get_state() == State.TEST_STATED
+    loop.perform_next_step()
+    assert loop.get_state() == State.ABORTED
+
+
 def test__experiment_doesnt_compile():
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages([experiment(code)])

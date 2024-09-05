@@ -10,6 +10,21 @@ from guut.loop import (
     State,
     TestDescription,
 )
+from tests.loop_test import LoopSettings
+
+
+class BaselineSettings(LoopSettings):
+    @override
+    def __init__(
+        self,
+        max_retries_for_invalid_test: int = 10,
+        max_num_incomplete_responses: int = 2,
+    ):
+        super().__init__(
+            max_retries_for_invalid_test=max_retries_for_invalid_test,
+            max_num_incomplete_responses=max_num_incomplete_responses,
+            max_num_experiments=0,
+        )
 
 
 class BaselineReponse(Response):
