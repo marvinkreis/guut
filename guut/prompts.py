@@ -66,8 +66,11 @@ class TestDoesntDetectMutantTemplate(Template):
 
 
 class ResultsTemplate(Template):
-    def render(self, test: str, result: TestResult) -> UserMessage:
+    def render_for_test(self, test: str, result: TestResult) -> UserMessage:
         return UserMessage(self.template.render(test=test, result=result).strip() + "\n")
+
+    def render_for_equivalence(self) -> UserMessage:
+        return UserMessage(self.template.render(test=None, result=None, claimed_equivalent=True).strip() + "\n")
 
 
 class ConversationAbortedTemplate(Template):

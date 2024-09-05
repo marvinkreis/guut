@@ -1,7 +1,8 @@
+import re
 from typing import override
 
 from guut.llm import AssistantMessage
-from guut.loop import InvalidStateException, Loop, RawExperiment, RawExperimentSection, State
+from guut.loop import EQUIVALENCE_HEADLINE_REGEX, InvalidStateException, Loop, Response, ResponseSection, State
 from guut.parsing import extract_markdown_code_blocks
 
 
@@ -11,21 +12,21 @@ class BaselineLoop(Loop):
         if state == State.EMPTY:
             self._init_conversation()
         elif state == State.INITIAL:
-            self._prompt_for_hypothesis_or_test()
+            self._prompt_for_action()
         elif state == State.TEST_INSTRUCTIONS_GIVEN:
-            self._prompt_for_hypothesis_or_test()
+            self._prompt_for_action()
         elif state == State.TEST_STATED:
             self._run_test()
         elif state == State.TEST_DOESNT_COMPILE:
-            self._prompt_for_hypothesis_or_test()
+            self._prompt_for_action()
         elif state == State.TEST_DOESNT_DETECT_MUTANT:
-            self._prompt_for_hypothesis_or_test()
+            self._prompt_for_action()
         elif state == State.DONE:
             raise InvalidStateException(State.DONE)
         elif state == State.INCOMPLETE_RESPONSE:
             self._handle_incomplete_response()
         elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
-            self._prompt_for_hypothesis_or_test()
+            self._prompt_for_action()
         elif state == State.ABORTED:
             raise InvalidStateException(State.ABORTED)
         elif state == State.INVALID:
@@ -44,13 +45,13 @@ class BaselineLoop(Loop):
         self.add_msg(self.prompts.problem_template.render(self.problem, is_baseline=True), State.INITIAL)
 
     @override
-    def _prompt_for_hypothesis_or_test(self):
+    def _prompt_for_action(self):
         response = self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)
         response = self._clean_response(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
-        raw_experiment = self._parse_experiment_description(relevant_text)
-        experiment = raw_experiment.guess_experiment()
+        raw_experiment = self._parse_response(relevant_text)
+        experiment = raw_experiment.guess_action()
 
         if experiment is None:
             self.add_msg(response, State.INCOMPLETE_RESPONSE)
@@ -60,7 +61,13 @@ class BaselineLoop(Loop):
             return
 
     @override
-    def _parse_experiment_description(self, text: str) -> RawExperiment:
+    def _parse_response(self, text: str) -> Response:
+        if re.match(EQUIVALENCE_HEADLINE_REGEX, text):
+            return Response(
+                text=text,
+                sections=[ResponseSection(kind="equivalence", text=text, code_blocks=[], debugger_blocks=[])],
+            )
+
         code_blocks = extract_markdown_code_blocks(text)
 
         code_blocks_with_allowed_lang = [
@@ -69,10 +76,10 @@ class BaselineLoop(Loop):
             if block.language is not None and block.language in self.problem.allowed_languages()
         ]
         if code_blocks_with_allowed_lang:
-            return RawExperiment(
+            return Response(
                 text=text,
                 sections=[
-                    RawExperimentSection(
+                    ResponseSection(
                         kind="test", text=text, code_blocks=code_blocks_with_allowed_lang, debugger_blocks=[]
                     )
                 ],
@@ -80,18 +87,16 @@ class BaselineLoop(Loop):
 
         code_blocks_without_lang = [block.code for block in code_blocks if block.language is None]
         if code_blocks_without_lang:
-            return RawExperiment(
+            return Response(
                 text=text,
                 sections=[
-                    RawExperimentSection(
-                        kind="test", text=text, code_blocks=code_blocks_without_lang, debugger_blocks=[]
-                    )
+                    ResponseSection(kind="test", text=text, code_blocks=code_blocks_without_lang, debugger_blocks=[])
                 ],
             )
 
-        return RawExperiment(
+        return Response(
             text=text,
-            sections=[RawExperimentSection(kind="none", text=text, code_blocks=[], debugger_blocks=[])],
+            sections=[ResponseSection(kind="none", text=text, code_blocks=[], debugger_blocks=[])],
         )
 
     @override

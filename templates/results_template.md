@@ -1,5 +1,8 @@
 # Results
 
+{% if not claimed_equivalent %}
+The LLM found a test case that detects the mutant.
+
 ## Test Case
 
 ```python
@@ -28,4 +31,7 @@ The test was canceled due to a timeout.
 {% endif %}
 {% if result.mutant.exitcode != 0 %}
 The test exited with exit code {{ result.mutant.exitcode }}.
+{% endif %}
+{% else %}
+The LLM claimed the mutant to be equivalent.
 {% endif %}

@@ -14,8 +14,8 @@ from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
-from guut.loop import Loop, LoopSettings
 from guut.logging import ConversationLogger, MessagePrinter
+from guut.loop import Loop, LoopSettings
 from guut.output import write_result_dir
 from guut.quixbugs import QuixbugsProblem
 
