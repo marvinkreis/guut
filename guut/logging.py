@@ -49,7 +49,7 @@ class MessagePrinter:
         self.seen_messages = []
 
     def print_new_messages(self, conversation: Conversation):
-        new_messages = [msg for msg in conversation if msg not in conversation]
+        new_messages = [msg for msg in conversation if msg not in self.seen_messages]
         for msg in new_messages:
             print(format_message_pretty(msg))
         self.seen_messages += new_messages
