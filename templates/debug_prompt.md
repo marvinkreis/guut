@@ -296,11 +296,11 @@ Do NOT include any markdown headlines other then the ones shown here.
     ## Test Results
     [we will give you the results]
 
-  {% if include_equivalence %}
+{% if include_equivalence %}
     [if you believe the mutant to be equivalent]
     ## Equivalent Mutant
     [a short explanation about why the mutant is equivalent]
-  {% endif %}
+{% endif %}
 
 Write all code in markdown blocks and specify the language, e.g.:
 
