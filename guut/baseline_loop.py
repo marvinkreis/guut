@@ -1,9 +1,29 @@
-import re
 from typing import override
 
 from guut.llm import AssistantMessage
-from guut.loop import EQUIVALENCE_HEADLINE_REGEX, InvalidStateException, Loop, Response, ResponseSection, State
-from guut.parsing import extract_markdown_code_blocks
+from guut.loop import (
+    EquivalenceClaim,
+    ExperimentDescription,
+    InvalidStateException,
+    Loop,
+    Response,
+    State,
+    TestDescription,
+)
+
+
+class BaselineReponse(Response):
+    def __init__(self, response: Response):
+        self.text = response.text
+        self.sections = response.sections
+
+    @override
+    def guess_action(self) -> ExperimentDescription | TestDescription | EquivalenceClaim | None:
+        for section in self.sections:
+            if section.kind == "equivalence":
+                return EquivalenceClaim(text=section.text)
+            elif section.code_blocks:
+                return TestDescription(text=section.text, code=section.code_blocks[-1])
 
 
 class BaselineLoop(Loop):
@@ -23,6 +43,8 @@ class BaselineLoop(Loop):
             self._prompt_for_action()
         elif state == State.DONE:
             raise InvalidStateException(State.DONE)
+        elif state == State.CLAIMED_EQUIVALENT:
+            self._write_equivalence_result()
         elif state == State.INCOMPLETE_RESPONSE:
             self._handle_incomplete_response()
         elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
@@ -45,59 +67,9 @@ class BaselineLoop(Loop):
         self.add_msg(self.prompts.problem_template.render(self.problem, is_baseline=True), State.INITIAL)
 
     @override
-    def _prompt_for_action(self):
-        response = self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)
-        response = self._clean_response(response)
-
-        relevant_text = self._concat_incomplete_responses(include_message=response)
-        raw_experiment = self._parse_response(relevant_text)
-        experiment = raw_experiment.guess_action()
-
-        if experiment is None:
-            self.add_msg(response, State.INCOMPLETE_RESPONSE)
-            return
-        else:
-            self.add_msg(response, State.TEST_STATED)
-            return
-
-    @override
     def _parse_response(self, text: str) -> Response:
-        if re.match(EQUIVALENCE_HEADLINE_REGEX, text):
-            return Response(
-                text=text,
-                sections=[ResponseSection(kind="equivalence", text=text, code_blocks=[], debugger_blocks=[])],
-            )
-
-        code_blocks = extract_markdown_code_blocks(text)
-
-        code_blocks_with_allowed_lang = [
-            block.code
-            for block in code_blocks
-            if block.language is not None and block.language in self.problem.allowed_languages()
-        ]
-        if code_blocks_with_allowed_lang:
-            return Response(
-                text=text,
-                sections=[
-                    ResponseSection(
-                        kind="test", text=text, code_blocks=code_blocks_with_allowed_lang, debugger_blocks=[]
-                    )
-                ],
-            )
-
-        code_blocks_without_lang = [block.code for block in code_blocks if block.language is None]
-        if code_blocks_without_lang:
-            return Response(
-                text=text,
-                sections=[
-                    ResponseSection(kind="test", text=text, code_blocks=code_blocks_without_lang, debugger_blocks=[])
-                ],
-            )
-
-        return Response(
-            text=text,
-            sections=[ResponseSection(kind="none", text=text, code_blocks=[], debugger_blocks=[])],
-        )
+        response = super()._parse_response(text)
+        return BaselineReponse(response)
 
     @override
     def _generate_id(self) -> str:

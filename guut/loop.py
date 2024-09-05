@@ -312,6 +312,8 @@ class Loop:
             self._prompt_for_action()
         elif state == State.DONE:
             raise InvalidStateException(State.DONE)
+        elif state == State.CLAIMED_EQUIVALENT:
+            self._write_equivalence_result()
         elif state == State.INCOMPLETE_RESPONSE:
             self._handle_incomplete_response()
         elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
@@ -398,7 +400,6 @@ class Loop:
 
         if isinstance(action, EquivalenceClaim):
             self.add_msg(response, State.CLAIMED_EQUIVALENT)
-            self.add_msg(self.prompts.results_template.render_for_equivalence(), State.DONE)
             return
 
     def _run_experiment(self):
@@ -489,6 +490,9 @@ class Loop:
             return
 
         self.add_msg(self.prompts.incomplete_response_template.render(), State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN)
+
+    def _write_equivalence_result(self):
+        self.add_msg(self.prompts.results_template.render_for_equivalence(), State.DONE)
 
     def _clean_response(self, msg: AssistantMessage):
         content = self._remove_stop_word_residue(msg.content)
