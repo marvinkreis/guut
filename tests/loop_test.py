@@ -466,3 +466,100 @@ def test__response_when_successful_test():
     assert loop.get_state() == State.TEST_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.DONE
+
+
+@pytest.mark.parametrize(
+    argnames=["section_name", "expected_state"],
+    argvalues=[
+        ("Observation", State.EXPERIMENT_STATED),
+        ("Experiment", State.EXPERIMENT_STATED),
+        ("Test", State.TEST_STATED),
+    ],
+)
+def test__subsections_get_combined(section_name, expected_state):
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            f"""
+# {section_name}
+
+bla bla bla
+
+## {section_name} Code
+
+{code}
+"""
+        ]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == expected_state
+
+
+@pytest.mark.parametrize(
+    argnames=["section_name", "expected_state"],
+    argvalues=[
+        ("Observation", State.EXPERIMENT_STATED),
+        ("Experiment", State.EXPERIMENT_STATED),
+        ("Test", State.TEST_STATED),
+    ],
+)
+def test__same_level_sections_get_combined(section_name, expected_state):
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            f"""
+# {section_name}
+
+bla bla bla
+
+# {section_name} Code
+
+{code}
+"""
+        ]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == expected_state
+
+
+def test__mixed_subsections_dont_get_combined():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            f"""
+# Test
+
+bla bla bla
+
+## Experiment
+
+{code}
+"""
+        ]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == State.EXPERIMENT_STATED
