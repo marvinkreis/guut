@@ -214,9 +214,9 @@ class Result:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
 
 
-TEST_HEADLINE_REGEX = re.compile(r"^#+ (unit )?test", re.IGNORECASE)
-EXPERIMENT_HEADLINE_REGEX = re.compile(r"^#+ experiment", re.IGNORECASE)
-OBSERVATION_HEADLINE_REGEX = re.compile(r"^#+ observ", re.IGNORECASE)
+TEST_HEADLINE_REGEX = re.compile(r"^(#+) (unit )?test", re.IGNORECASE)
+EXPERIMENT_HEADLINE_REGEX = re.compile(r"^(#+) experiment", re.IGNORECASE)
+OBSERVATION_HEADLINE_REGEX = re.compile(r"^(#+) observ", re.IGNORECASE)
 
 
 class Loop:
@@ -501,30 +501,44 @@ class Loop:
 
     def _parse_experiment_description(self, text: str) -> RawExperiment:
         sections = []
+
+        section_kind = "none"
+        section_level = 0
         section_lines = []
 
-        for line, is_code in reversed(detect_markdown_code_blocks(text)):
-            section_lines.append(line)
-
+        for line, is_code in detect_markdown_code_blocks(text):
             if is_code:
+                section_lines.append(line)
                 continue
 
             kind = "none"
-            if re.match(TEST_HEADLINE_REGEX, line):
+            level = 99
+            if match := re.match(TEST_HEADLINE_REGEX, line):
                 kind = "test"
-            elif re.match(EXPERIMENT_HEADLINE_REGEX, line):
+                level = len(match.group(1))
+            elif match := re.match(EXPERIMENT_HEADLINE_REGEX, line):
                 kind = "experiment"
-            elif re.match(OBSERVATION_HEADLINE_REGEX, line):
+                level = len(match.group(1))
+            elif match := re.match(OBSERVATION_HEADLINE_REGEX, line):
                 kind = "observation"
+                level = len(match.group(1))
 
-            if kind != "none":
-                section_text = "\n".join(reversed(section_lines))
-                sections.append(self._parse_experiment_section(section_text, kind))
-                section_lines = []
+            if kind == "none":
+                section_lines.append(line)
+                continue
+
+            if kind != section_kind or level <= section_level:
+                # Start new section
+                if section := self._parse_experiment_section("\n".join(section_lines), kind=section_kind):
+                    sections.append(section)
+                section_kind = kind
+                section_level = level
+                section_lines = [line]
+
+            section_lines.append(line)
 
         if section_lines:
-            section_text = "\n".join(reversed(section_lines))
-            if section := self._parse_experiment_section(section_text, "none"):
+            if section := self._parse_experiment_section("\n".join(section_lines), kind=section_kind):
                 sections.append(section)
 
         return RawExperiment(text=text, sections=sections)
