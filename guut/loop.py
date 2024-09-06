@@ -235,7 +235,7 @@ class Result:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
 
 
-TEST_HEADLINE_REGEX = re.compile(r"^(#+) (unit )?test", re.IGNORECASE)
+TEST_HEADLINE_REGEX = re.compile(r"^(#+) (final )?(unit )?test", re.IGNORECASE)
 EXPERIMENT_HEADLINE_REGEX = re.compile(r"^(#+) experiment", re.IGNORECASE)
 OBSERVATION_HEADLINE_REGEX = re.compile(r"^(#+) observ", re.IGNORECASE)
 EQUIVALENCE_HEADLINE_REGEX = re.compile(r"^(#+) equiv", re.IGNORECASE)

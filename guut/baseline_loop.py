@@ -34,7 +34,7 @@ class BaselineReponse(Response):
 
     @override
     def guess_action(self) -> ExperimentDescription | TestDescription | EquivalenceClaim | None:
-        for section in self.sections:
+        for section in reversed(self.sections):
             if section.kind == "equivalence":
                 return EquivalenceClaim(text=section.text)
             elif section.code_blocks:
