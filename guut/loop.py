@@ -230,6 +230,7 @@ class Result:
     problem: Problem
     settings: LoopSettings
     id: str
+    implementation: str
 
     def get_killing_test(self) -> Test | None:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
@@ -352,6 +353,7 @@ class Loop:
             mutant_killed=killing_test_found,
             claimed_equivalent=claimed_equivalent,
             id=self.id,
+            implementation="loop",
         )
 
     def add_msg(self, msg: Message, tag: State | None):

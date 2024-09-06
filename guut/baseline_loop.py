@@ -7,6 +7,7 @@ from guut.loop import (
     InvalidStateException,
     Loop,
     Response,
+    Result,
     State,
     TestDescription,
 )
@@ -90,5 +91,12 @@ class BaselineLoop(Loop):
     def _generate_id(self) -> str:
         return f"baseline_{super()._generate_id()}"
 
+    @override
     def _complete(self) -> AssistantMessage:
         return self.endpoint.complete(self.conversation, stop=self.prompts.baseline_stop_words)
+
+    @override
+    def get_result(self) -> Result:
+        result = super().get_result()
+        result.implementation = "baseline"
+        return result
