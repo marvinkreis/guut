@@ -1,5 +1,6 @@
 import inspect
 import json
+import signal
 from pathlib import Path
 from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
 from typing import List
@@ -25,7 +26,7 @@ class PythonExecutor:
             python_interpreter = self.python_interpreter
 
         # run python with unbuffered output, so it can be reliably captured on timeout
-        command = [python_interpreter, "-u", str(target)]
+        command = [str(python_interpreter), "-u", str(target)]
 
         return run(command=command, cwd=cwd or target.parent, timeout_secs=timeout_secs)
 
@@ -41,7 +42,7 @@ class PythonExecutor:
             python_interpreter = self.python_interpreter
 
         # run python with unbuffered output, so it can be reliably captured on timeout
-        command = [python_interpreter, "-u", inspect.getfile(debugger_wrapper), str(target)]
+        command = [str(python_interpreter), "-u", inspect.getfile(debugger_wrapper), str(target)]
         stdin = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
 
         return run(command=command, cwd=cwd or target.parent, stdin=stdin, timeout_secs=timeout_secs)
@@ -59,10 +60,10 @@ class PythonExecutor:
         cwd = cwd or target.parent
 
         # run python with unbuffered output, so it can be reliably captured on timeout
-        exec_command = [python_interpreter, "-u", "-m", "coverage", "run", "--branch", str(target)]
+        exec_command = [str(python_interpreter), "-u", "-m", "coverage", "run", "--branch", str(target)]
         exec_result = run(command=exec_command, cwd=cwd, timeout_secs=timeout_secs)
 
-        report_command = [python_interpreter, "-m", "coverage", "json"] + (
+        report_command = [str(python_interpreter), "-m", "coverage", "json"] + (
             ["--include", ",".join(map(str, include_files))] if include_files else []
         )
         run(command=report_command, cwd=cwd)
@@ -76,7 +77,7 @@ class PythonExecutor:
             coverage_json = json.load(coverage_file)
 
         cut_coverage = coverage_json["files"].get(str(cut_file.relative_to(cwd)))
-        if not coverage_path.is_file():
+        if not cut_coverage:
             logger.error(f"Could't find CUT coverage in coverage file: '{coverage_path}'")
             return exec_result
 
@@ -116,4 +117,16 @@ def run(command: List[str], cwd: Path, stdin: str | None = None, timeout_secs: i
             timeout=True,
         )
     finally:
-        process.terminate()
+        if process.poll() is None:
+            logger.debug(f"Sending SIGINT to {command}")
+            process.send_signal(sig=signal.SIGINT)
+        if process.poll() is None:
+            process.wait(2)
+        if process.poll() is None:
+            logger.debug(f"Terminating {command}")
+            process.terminate()
+        if process.poll() is None:
+            process.wait(2)
+        if process.poll() is None:
+            logger.debug(f"Killing {command}")
+            process.kill()
