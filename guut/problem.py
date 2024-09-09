@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Literal
+from typing import Any, Iterable, List, Literal
 
 
 @dataclass
@@ -18,15 +18,22 @@ class ValidationResult:
 
 
 @dataclass
+class Coverage:
+    covered_lines: List[int]
+    missing_lines: List[int]
+    raw: Any
+
+
+@dataclass
 class ExecutionResult:
-    target: Path
-    args: List[str]
+    command: List[str]
     cwd: Path
     input: str
 
     output: str
     exitcode: int = 0
     timeout: bool = False
+    coverage: Coverage | None = None
 
 
 @dataclass
@@ -75,7 +82,9 @@ class Problem(ABC):
         pass
 
     @abstractmethod
-    def run_code(self, code: str, use_mutant: Literal["no", "yes", "insert"]) -> ExecutionResult:
+    def run_code(
+        self, code: str, use_mutant: Literal["no", "yes", "insert"], collect_coverage: bool
+    ) -> ExecutionResult:
         pass
 
     @abstractmethod
@@ -84,21 +93,21 @@ class Problem(ABC):
     ) -> ExecutionResult:
         pass
 
-    def run_experiment(self, code: str, debugger_script: str | None) -> ExperimentResult:
+    def run_experiment(self, code: str, debugger_script: str | None, collect_coverage: bool) -> ExperimentResult:
         if debugger_script:
             return ExperimentResult(
-                test=self.run_code(code, use_mutant="insert"),
+                test=self.run_code(code, use_mutant="insert", collect_coverage=collect_coverage),
                 debug=self.run_debugger(code, debugger_script, use_mutant="insert"),
             )
         else:
             return ExperimentResult(
-                test=self.run_code(code, use_mutant="insert"),
+                test=self.run_code(code, use_mutant="insert", collect_coverage=collect_coverage),
             )
 
-    def run_test(self, code: str) -> TestResult:
+    def run_test(self, code: str, collect_coverage: bool) -> TestResult:
         return TestResult(
-            correct=self.run_code(code, use_mutant="no"),
-            mutant=self.run_code(code, use_mutant="yes"),
+            correct=self.run_code(code, use_mutant="no", collect_coverage=collect_coverage),
+            mutant=self.run_code(code, use_mutant="yes", collect_coverage=collect_coverage),
         )
 
     @abstractmethod

@@ -1,46 +1,92 @@
 import inspect
+import json
 from pathlib import Path
 from subprocess import PIPE, STDOUT, Popen, TimeoutExpired
+from typing import List
+
+from loguru import logger
 
 import guut.debugger_wrapper as debugger_wrapper
-from guut.problem import ExecutionResult
+from guut.problem import Coverage, ExecutionResult
 
 
-def run_debugger(target: Path, debugger_script: str, cwd: Path | None = None, timeout_secs: int = 2) -> ExecutionResult:
-    process_input = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
-    # run python with unbuffered output, so it can be reliably captured on timeout
-    process_command = ["python", "-u", inspect.getfile(debugger_wrapper), str(target)]
-    process_cwd = cwd or target.parent
+class PythonExecutor:
+    def __init__(self, python_interpreter: Path):
+        self.python_interpreter = python_interpreter
 
-    process = Popen(process_command, cwd=process_cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
-    try:
-        output, _ = process.communicate(input=process_input.encode(), timeout=timeout_secs)
-        return ExecutionResult(
-            target=target,
-            args=[],
-            cwd=process_cwd,
-            input=process_input,
-            output=output.decode(),
-            exitcode=process.returncode,
+    def run_script(
+        self,
+        target: Path,
+        cwd: Path | None = None,
+        timeout_secs: int = 2,
+        python_interpreter: Path | None = None,
+    ) -> ExecutionResult:
+        if not python_interpreter:
+            python_interpreter = self.python_interpreter
+
+        # run python with unbuffered output, so it can be reliably captured on timeout
+        command = [python_interpreter, "-u", str(target)]
+
+        return run(command=command, cwd=cwd or target.parent, timeout_secs=timeout_secs)
+
+    def run_debugger(
+        self,
+        target: Path,
+        debugger_script: str,
+        cwd: Path | None = None,
+        timeout_secs: int = 2,
+        python_interpreter: Path | None = None,
+    ) -> ExecutionResult:
+        if not python_interpreter:
+            python_interpreter = self.python_interpreter
+
+        # run python with unbuffered output, so it can be reliably captured on timeout
+        command = [python_interpreter, "-u", inspect.getfile(debugger_wrapper), str(target)]
+        stdin = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
+
+        return run(command=command, cwd=cwd or target.parent, stdin=stdin, timeout_secs=timeout_secs)
+
+    def run_script_with_coverage(
+        self,
+        target: Path,
+        cut_file: Path,
+        include_files: List[Path] | None = None,
+        cwd: Path | None = None,
+        timeout_secs: int = 2,
+        python_interpreter: Path | None = None,
+    ) -> ExecutionResult:
+        python_interpreter = python_interpreter or self.python_interpreter
+        cwd = cwd or target.parent
+
+        # run python with unbuffered output, so it can be reliably captured on timeout
+        exec_command = [python_interpreter, "-u", "-m", "coverage", "run", "--branch", str(target)]
+        exec_result = run(command=exec_command, cwd=cwd, timeout_secs=timeout_secs)
+
+        report_command = [python_interpreter, "-m", "coverage", "json"] + (
+            ["--include", ",".join(map(str, include_files))] if include_files else []
         )
-    except TimeoutExpired as timeout:
-        output = timeout.stdout or b""
-        return ExecutionResult(
-            target=target,
-            args=[],
-            cwd=process_cwd,
-            input=process_input,
-            output=output.decode(),
-            exitcode=1,
-            timeout=True,
-        )
-    finally:
-        process.terminate()
+        run(command=report_command, cwd=cwd)
+
+        coverage_path = cwd / "coverage.json"
+        if not coverage_path.is_file():
+            logger.error(f"Could't find coverage file: '{coverage_path}'")
+            return exec_result
+
+        with coverage_path.open() as coverage_file:
+            coverage_json = json.load(coverage_file)
+
+        cut_coverage = coverage_json["files"].get(str(cut_file.relative_to(cwd)))
+        if not coverage_path.is_file():
+            logger.error(f"Could't find CUT coverage in coverage file: '{coverage_path}'")
+            return exec_result
+
+        covered_lines = cut_coverage["executed_lines"]
+        missing_lines = cut_coverage["missing_lines"]
+        exec_result.coverage = Coverage(covered_lines, missing_lines, coverage_json)
+        return exec_result
 
 
-def run_script(
-    script: Path, stdin: str | None = None, cwd: Path | None = None, timeout_secs: int = 2
-) -> ExecutionResult:
+def run(command: List[str], cwd: Path, stdin: str | None = None, timeout_secs: int | None = None) -> ExecutionResult:
     if stdin:
         if stdin.endswith("\n"):
             process_input = stdin
@@ -49,17 +95,12 @@ def run_script(
     else:
         process_input = ""
 
-    # run python with unbuffered output, so it can be reliably captured on timeout
-    process_command = ["python", "-u", script]
-    process_cwd = cwd or script.parent
-
-    process = Popen(process_command, cwd=process_cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
+    process = Popen(command, cwd=cwd, stderr=STDOUT, stdout=PIPE, stdin=PIPE)
     try:
         output, _ = process.communicate(input=process_input.encode() if process_input else None, timeout=timeout_secs)
         return ExecutionResult(
-            target=script,
-            args=[],
-            cwd=process_cwd,
+            command=command[::],
+            cwd=cwd,
             input=process_input,
             output=output.decode(),
             exitcode=process.returncode,
@@ -67,9 +108,8 @@ def run_script(
     except TimeoutExpired as timeout:
         output = timeout.stdout or b""
         return ExecutionResult(
-            target=script,
-            args=[],
-            cwd=process_cwd,
+            command=command[::],
+            cwd=cwd,
             input=process_input,
             output=output.decode(),
             exitcode=1,

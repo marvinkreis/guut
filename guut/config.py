@@ -15,6 +15,7 @@ class Config:
     _openai_api_key: str = UNSET
     _openai_organization: str = UNSET
     _quixbugs_path: str = UNSET
+    _python_interpreter: str = UNSET
 
     @property
     def logging_path(self) -> str:
@@ -29,8 +30,20 @@ class Config:
         return self._validate("openai_organization", self._openai_organization)
 
     @property
-    def quixbugs_path(self) -> str:
-        return self._validate("quixbugs_path", self._quixbugs_path)
+    def quixbugs_path(self) -> Path:
+        path_str = self._validate("quixbugs_path", self._quixbugs_path)
+        path = Path(path_str)
+        if not path.exists():
+            raise Exception(f"QuixBugs path does not exist: '{path_str}'.")
+        return path
+
+    @property
+    def python_interpreter(self) -> Path:
+        path_str = self._validate("python_interpreter", self._python_interpreter)
+        path = Path(path_str)
+        if not path.exists():
+            raise Exception(f"Python interpreter path does not exist: '{path_str}'.")
+        return path
 
     def _validate(self, key: str, value: Any) -> Any:
         if value is UNSET:

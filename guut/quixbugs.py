@@ -1,6 +1,7 @@
 import errno
 import itertools
 import os
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from shutil import copyfile
@@ -9,10 +10,11 @@ from tempfile import TemporaryDirectory
 from typing import Iterable, List, Literal, override
 
 from guut.config import config
-from guut.execution import run_debugger, run_script
+from guut.execution import PythonExecutor
 from guut.parsing import parse_python_test_name
 from guut.problem import ExecutionResult, Problem, ProblemDescription, TestResult, TextFile, ValidationResult
 from guut.prompts import PromptCollection, default_prompts
+from guut.util import ensure_python_coverage_module_is_installed
 
 
 @dataclass
@@ -24,11 +26,15 @@ class QuixbugsProblemDescription(ProblemDescription):
 
 
 class QuixbugsProblem(Problem):
-    def __init__(self, args: str, quixbugs_path: Path | None = None):
+    def __init__(self, args: str, quixbugs_path: Path | None = None, python_interpreter: Path | None = None):
         self.name = args
         if quixbugs_path is None:
             quixbugs_path = Path(config.quixbugs_path)
+        if python_interpreter is None:
+            python_interpreter = Path(config.python_interpreter)
         self.quixbugs_path = quixbugs_path
+        self.executor = PythonExecutor(python_interpreter=python_interpreter)
+        ensure_python_coverage_module_is_installed(python_interpreter=python_interpreter)
 
     @override
     def class_under_test(self) -> TextFile:
@@ -56,87 +62,33 @@ class QuixbugsProblem(Problem):
         return self.compute_mutant_diff(reverse=reverse)
 
     @override
-    def run_code(self, code: str, use_mutant: Literal["no", "yes", "insert"]) -> ExecutionResult:
-        with TemporaryDirectory() as tempdir:
-            temp_path = Path(tempdir)
-
-            # copy program under test
-            put_path = temp_path / self.filename()
-            if use_mutant in ["no", "insert"]:
-                # copy regular program
-                put_path.write_text(self.construct_normalized_code(use_mutant=False))
-            elif use_mutant == "yes":
-                # copy mutant
-                put_path.write_text(self.construct_normalized_code(use_mutant=True))
-
-            # copy dependencies
-            for dep in self.dependencies_paths():
-                copyfile(dep, temp_path / dep.name)
-
-            # create mutant directory if requested
-            if use_mutant == "insert":
-                mutant_path = temp_path / "mutant"
-                mutant_path.mkdir()
-
-                # copy mutant
-                mutant_put_path = mutant_path / self.filename()
-                mutant_put_path.write_text(self.construct_normalized_code(use_mutant=True))
-
-                # copy dependencies
-                for dep in self.dependencies_paths():
-                    copyfile(dep, temp_path / dep.name)
-
-            # write test
-            test_path = temp_path / "test.py"
-            test_path.write_text(code)
-
-            return run_script(test_path, cwd=temp_path)
+    def run_code(
+        self, code: str, use_mutant: Literal["no", "yes", "insert"], collect_coverage: bool
+    ) -> ExecutionResult:
+        with self.prepare_code_dir(code=code, use_mutant=use_mutant) as code_dir:
+            if collect_coverage:
+                return self.executor.run_script_with_coverage(
+                    target=code_dir.test_path,
+                    cut_file=code_dir.cut_path,
+                    include_files=code_dir.relevant_paths,
+                    cwd=code_dir.root_path,
+                )
+            else:
+                return self.executor.run_script(target=code_dir.test_path, cwd=code_dir.root_path)
 
     @override
     def run_debugger(
         self, code: str, debugger_script: str, use_mutant: Literal["no", "yes", "insert"]
     ) -> ExecutionResult:
-        with TemporaryDirectory() as tempdir:
-            temp_path = Path(tempdir)
-
-            # copy program under test
-            put_path = temp_path / self.filename()
-            if use_mutant in ["no", "insert"]:
-                # copy regular program
-                put_path.write_text(self.construct_normalized_code(use_mutant=False))
-            elif use_mutant == "yes":
-                # copy mutant
-                put_path.write_text(self.construct_normalized_code(use_mutant=True))
-
-            # copy dependencies
-            for dep in self.dependencies_paths():
-                copyfile(dep, temp_path / dep.name)
-
-            # create mutant directory if requested
-            if use_mutant == "insert":
-                mutant_path = temp_path / "mutant"
-                mutant_path.mkdir()
-
-                # copy mutant
-                mutant_put_path = mutant_path / self.filename()
-                mutant_put_path.write_text(self.construct_normalized_code(use_mutant=True))
-
-                # copy dependencies
-                for dep in self.dependencies_paths():
-                    copyfile(dep, temp_path / dep.name)
-
-            # write test
-            test_path = temp_path / "test.py"
-            test_path.write_text(code)
-
-            return run_debugger(test_path, debugger_script, cwd=Path(tempdir))
+        with self.prepare_code_dir(code=code, use_mutant=use_mutant) as code_dir:
+            return self.executor.run_debugger(code_dir.test_path, debugger_script, cwd=code_dir.root_path)
 
     @override
-    def run_test(self, code: str) -> TestResult:
+    def run_test(self, code: str, collect_coverage: bool) -> TestResult:
         test_name = parse_python_test_name(code)
         if test_name:
             code = f"{code}\n\n{test_name}()\n"  # add test call
-        return super().run_test(code)
+        return super().run_test(code, collect_coverage=collect_coverage)
 
     @override
     def validate_self(self):
@@ -246,3 +198,57 @@ class QuixbugsProblem(Problem):
             return ValidationResult(True)
         except SyntaxError as e:
             return ValidationResult(False, e.msg)
+
+    @dataclass
+    class CodeDir:
+        root_path: Path
+        cut_path: Path
+        test_path: Path
+        relevant_paths: List[Path]
+
+    @contextmanager
+    def prepare_code_dir(self, code: str, use_mutant: Literal["no", "yes", "insert"]):
+        with TemporaryDirectory() as tempdir:
+            temp_path = Path(tempdir)
+            relevant_paths = []
+
+            # copy program under test
+            put_path = temp_path / self.filename()
+            relevant_paths.append(put_path)
+            if use_mutant in ["no", "insert"]:
+                # copy regular program
+                put_path.write_text(self.construct_normalized_code(use_mutant=False))
+            elif use_mutant == "yes":
+                # copy mutant
+                put_path.write_text(self.construct_normalized_code(use_mutant=True))
+
+            # copy dependencies
+            for dep in self.dependencies_paths():
+                dep_path = temp_path / dep.name
+                relevant_paths.append(dep_path)
+                copyfile(dep, dep_path)
+
+            # create mutant directory if requested
+            if use_mutant == "insert":
+                mutant_path = temp_path / "mutant"
+                mutant_path.mkdir()
+
+                # copy mutant
+                mutant_put_path = mutant_path / self.filename()
+                mutant_put_path.write_text(self.construct_normalized_code(use_mutant=True))
+                relevant_paths.append(mutant_put_path)
+
+                # copy dependencies
+                for dep in self.dependencies_paths():
+                    dep_path = mutant_path / dep.name
+                    relevant_paths.append(dep_path)
+                    copyfile(dep, dep_path)
+
+            # write test
+            test_path = temp_path / "test.py"
+            relevant_paths.append(test_path)
+            test_path.write_text(code)
+
+            yield QuixbugsProblem.CodeDir(
+                root_path=temp_path, cut_path=put_path, test_path=test_path, relevant_paths=relevant_paths
+            )

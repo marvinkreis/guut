@@ -422,7 +422,9 @@ class Loop:
                 Experiment.with_description(experiment, validation_result=validation_result, result=None)
             )
         else:
-            experiment_result = self.problem.run_experiment(experiment.code, experiment.debugger_script)
+            experiment_result = self.problem.run_experiment(
+                experiment.code, experiment.debugger_script, collect_coverage=True
+            )
             new_message = self.prompts.experiment_results_template.render(
                 result=experiment_result, is_observation=(experiment.kind == "observation")
             )
@@ -460,11 +462,12 @@ class Loop:
                 Test.with_description(test, validation_result=validation_result, result=None, kills_mutant=False)
             )
         else:
-            result = self.problem.run_test(test.code)
+            result = self.problem.run_test(test.code, collect_coverage=True)
 
             if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
                 new_message = self.prompts.results_template.render_for_test(test=test.code, result=result)
                 self.add_msg(new_message, State.DONE)
+
                 self.tests.append(
                     Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=True)
                 )
@@ -560,6 +563,7 @@ class Loop:
                 level = len(match.group(1))
             elif match := re.match(EQUIVALENCE_HEADLINE_REGEX, line):
                 kind = "equivalence"
+                level = 1
 
             if kind == "none":
                 section_lines.append(line)
