@@ -2,5 +2,5 @@
   "include": ["guut"],
   "reportMissingImports": true,
   "venvPath": ".",
-  "venv": "venv"
+  "venv": ".venv"
 }

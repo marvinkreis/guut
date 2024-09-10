@@ -1,4 +1,4 @@
-exclude = ["venv"]
+exclude = ["venv", ".venv"]
 
 # Same as Black.
 line-length = 120
