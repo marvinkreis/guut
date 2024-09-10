@@ -2,8 +2,10 @@
 __pycache__
 /stuff
 /venv
+/.venv
 .zed
 .env
 .ruff_cache
 todo.md
 .coverage
+
