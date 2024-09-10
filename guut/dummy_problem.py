@@ -35,14 +35,16 @@ class DummyProblem(Problem):
         return ""
 
     @override
-    def run_code(self, code: str, use_mutant: Literal["no", "yes", "insert"]) -> ExecutionResult:
-        return ExecutionResult(target=Path("."), args=[], cwd=Path("."), input="", output="")
+    def run_code(
+        self, code: str, use_mutant: Literal["no", "yes", "insert"], collect_coverage: bool
+    ) -> ExecutionResult:
+        return ExecutionResult(target=Path("."), command=[], cwd=Path("."), input="", output="")
 
     @override
     def run_debugger(
         self, code: str, debugger_script: str, use_mutant: Literal["no", "yes", "insert"]
     ) -> ExecutionResult:
-        return ExecutionResult(target=Path("."), args=[], cwd=Path("."), input="", output="")
+        return ExecutionResult(target=Path("."), command=[], cwd=Path("."), input="", output="")
 
     @override
     def validate_self(self):

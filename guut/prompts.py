@@ -6,7 +6,7 @@ import jinja2
 
 import guut.formatting as formatting
 from guut.llm import SystemMessage, UserMessage
-from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
+from guut.problem import AltExperimentResult, ExperimentResult, Problem, TestResult, ValidationResult
 
 templates_path = Path(__file__).parent.parent / "templates"
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), trim_blocks=True)
@@ -46,7 +46,7 @@ class ExperimentDoesntCompileTemplate(Template):
 
 
 class ExperimentResultsTemplate(Template):
-    def render(self, result: ExperimentResult, is_observation: bool = False) -> UserMessage:
+    def render(self, result: ExperimentResult | AltExperimentResult, is_observation: bool = False) -> UserMessage:
         return UserMessage(self.template.render(result=result, is_observation=is_observation).strip() + "\n")
 
 

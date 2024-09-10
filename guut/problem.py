@@ -28,6 +28,7 @@ class Coverage:
 class ExecutionResult:
     command: List[str]
     cwd: Path
+    target: Path
     input: str
 
     output: str
@@ -38,6 +39,14 @@ class ExecutionResult:
 
 @dataclass
 class ExperimentResult:
+    test_correct: ExecutionResult
+    test_mutant: ExecutionResult
+    debug_correct: ExecutionResult | None = None
+    debug_mutant: ExecutionResult | None = None
+
+
+@dataclass
+class AltExperimentResult:
     test: ExecutionResult
     debug: ExecutionResult | None = None
 
@@ -93,15 +102,20 @@ class Problem(ABC):
     ) -> ExecutionResult:
         pass
 
-    def run_experiment(self, code: str, debugger_script: str | None, collect_coverage: bool) -> ExperimentResult:
-        if debugger_script:
+    def run_experiment(
+        self, code: str, debugger_script: str | None, collect_coverage: bool, use_alt_experiments: bool = False
+    ) -> ExperimentResult | AltExperimentResult:
+        if not use_alt_experiments:
             return ExperimentResult(
-                test=self.run_code(code, use_mutant="insert", collect_coverage=collect_coverage),
-                debug=self.run_debugger(code, debugger_script, use_mutant="insert"),
+                test_correct=self.run_code(code, use_mutant="no", collect_coverage=collect_coverage),
+                test_mutant=self.run_code(code, use_mutant="yes", collect_coverage=collect_coverage),
+                debug_correct=self.run_debugger(code, debugger_script, use_mutant="no") if debugger_script else None,
+                debug_mutant=self.run_debugger(code, debugger_script, use_mutant="yes") if debugger_script else None,
             )
         else:
-            return ExperimentResult(
+            return AltExperimentResult(
                 test=self.run_code(code, use_mutant="insert", collect_coverage=collect_coverage),
+                debug=self.run_debugger(code, debugger_script, use_mutant="insert") if debugger_script else None,
             )
 
     def run_test(self, code: str, collect_coverage: bool) -> TestResult:

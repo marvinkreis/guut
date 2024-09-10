@@ -11,7 +11,7 @@ from loguru import logger
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
-from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
+from guut.problem import AltExperimentResult, ExperimentResult, Problem, TestResult, ValidationResult
 from guut.prompts import PromptCollection
 
 
@@ -191,11 +191,13 @@ class Test(TestDescription):
 @dataclass
 class Experiment(ExperimentDescription):
     validation_result: ValidationResult
-    result: ExperimentResult | None
+    result: ExperimentResult | AltExperimentResult | None
 
     @staticmethod
     def with_description(
-        description: ExperimentDescription, validation_result: ValidationResult, result: ExperimentResult | None
+        description: ExperimentDescription,
+        validation_result: ValidationResult,
+        result: ExperimentResult | AltExperimentResult | None,
     ) -> "Experiment":
         return Experiment(
             text=description.text,

@@ -12,7 +12,16 @@ from typing import Iterable, List, Literal, override
 from guut.config import config
 from guut.execution import PythonExecutor
 from guut.parsing import parse_python_test_name
-from guut.problem import ExecutionResult, Problem, ProblemDescription, TestResult, TextFile, ValidationResult
+from guut.problem import (
+    AltExperimentResult,
+    ExecutionResult,
+    ExperimentResult,
+    Problem,
+    ProblemDescription,
+    TestResult,
+    TextFile,
+    ValidationResult,
+)
 from guut.prompts import PromptCollection, default_prompts
 from guut.util import ensure_python_coverage_module_is_installed
 
@@ -89,6 +98,20 @@ class QuixbugsProblem(Problem):
         if test_name:
             code = f"{code}\n\n{test_name}()\n"  # add test call
         return super().run_test(code, collect_coverage=collect_coverage)
+
+    @override
+    def run_experiment(
+        self, code: str, debugger_script: str | None, collect_coverage: bool, use_alt_experiments: bool = False
+    ) -> ExperimentResult | AltExperimentResult:
+        test_name = parse_python_test_name(code)
+        if test_name:
+            code = f"{code}\n\n{test_name}()\n"  # add test call
+        return super().run_experiment(
+            code,
+            debugger_script=debugger_script,
+            collect_coverage=collect_coverage,
+            use_alt_experiments=use_alt_experiments,
+        )
 
     @override
     def validate_self(self):

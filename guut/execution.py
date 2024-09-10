@@ -28,7 +28,7 @@ class PythonExecutor:
         # run python with unbuffered output, so it can be reliably captured on timeout
         command = [str(python_interpreter), "-u", str(target)]
 
-        return run(command=command, cwd=cwd or target.parent, timeout_secs=timeout_secs)
+        return run(command=command, cwd=cwd or target.parent, target=target, timeout_secs=timeout_secs)
 
     def run_debugger(
         self,
@@ -45,7 +45,7 @@ class PythonExecutor:
         command = [str(python_interpreter), "-u", inspect.getfile(debugger_wrapper), str(target)]
         stdin = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
 
-        return run(command=command, cwd=cwd or target.parent, stdin=stdin, timeout_secs=timeout_secs)
+        return run(command=command, cwd=cwd or target.parent, target=target, stdin=stdin, timeout_secs=timeout_secs)
 
     def run_script_with_coverage(
         self,
@@ -61,12 +61,12 @@ class PythonExecutor:
 
         # run python with unbuffered output, so it can be reliably captured on timeout
         exec_command = [str(python_interpreter), "-u", "-m", "coverage", "run", "--branch", str(target)]
-        exec_result = run(command=exec_command, cwd=cwd, timeout_secs=timeout_secs)
+        exec_result = run(command=exec_command, cwd=cwd, target=target, timeout_secs=timeout_secs)
 
         report_command = [str(python_interpreter), "-m", "coverage", "json"] + (
             ["--include", ",".join(map(str, include_files))] if include_files else []
         )
-        run(command=report_command, cwd=cwd)
+        run(command=report_command, cwd=cwd, target=target)
 
         coverage_path = cwd / "coverage.json"
         if not coverage_path.is_file():
@@ -87,7 +87,9 @@ class PythonExecutor:
         return exec_result
 
 
-def run(command: List[str], cwd: Path, stdin: str | None = None, timeout_secs: int | None = None) -> ExecutionResult:
+def run(
+    command: List[str], cwd: Path, target: Path, stdin: str | None = None, timeout_secs: int | None = None
+) -> ExecutionResult:
     if stdin:
         if stdin.endswith("\n"):
             process_input = stdin
@@ -101,6 +103,7 @@ def run(command: List[str], cwd: Path, stdin: str | None = None, timeout_secs: i
         output, _ = process.communicate(input=process_input.encode() if process_input else None, timeout=timeout_secs)
         return ExecutionResult(
             command=command[::],
+            target=target,
             cwd=cwd,
             input=process_input,
             output=output.decode(),
@@ -110,6 +113,7 @@ def run(command: List[str], cwd: Path, stdin: str | None = None, timeout_secs: i
         output = timeout.stdout or b""
         return ExecutionResult(
             command=command[::],
+            target=target,
             cwd=cwd,
             input=process_input,
             output=output.decode(),

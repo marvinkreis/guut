@@ -6,12 +6,12 @@ from guut.loop import (
     ExperimentDescription,
     InvalidStateException,
     Loop,
+    LoopSettings,
     Response,
     Result,
     State,
     TestDescription,
 )
-from tests.loop_test import LoopSettings
 
 
 class BaselineSettings(LoopSettings):

@@ -395,8 +395,8 @@ def test__conversation_is_aborted_if_a_test_beyond_the_max_is_submitted():
     problem = DummyProblem()
     problem.run_test = MagicMock(
         return_value=TestResult(
-            correct=ExecutionResult(input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=0),
-            mutant=ExecutionResult(input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=0),
+            correct=ExecutionResult(command=[], input="", cwd=Path("."), output="", target=Path("."), exitcode=0),
+            mutant=ExecutionResult(command=[], input="", cwd=Path("."), output="", target=Path("."), exitcode=0),
         )
     )
 
@@ -464,10 +464,10 @@ def test__test_doesnt_detect_mutant(correct_exit_code, mutant_exit_code):
     problem.run_test = MagicMock(
         return_value=TestResult(
             correct=ExecutionResult(
-                input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=correct_exit_code
+                input="", command=[], cwd=Path("."), output="", target=Path("."), exitcode=correct_exit_code
             ),
             mutant=ExecutionResult(
-                input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=mutant_exit_code
+                input="", command=[], cwd=Path("."), output="", target=Path("."), exitcode=mutant_exit_code
             ),
         )
     )
@@ -491,8 +491,8 @@ def test__response_when_successful_test():
     problem = DummyProblem()
     problem.run_test = MagicMock(
         return_value=TestResult(
-            correct=ExecutionResult(input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=0),
-            mutant=ExecutionResult(input="", args=[], cwd=Path("."), output="", target=Path("."), exitcode=1),
+            correct=ExecutionResult(input="", command=[], cwd=Path("."), output="", target=Path("."), exitcode=0),
+            mutant=ExecutionResult(input="", command=[], cwd=Path("."), output="", target=Path("."), exitcode=1),
         )
     )
 
