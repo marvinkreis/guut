@@ -23,10 +23,10 @@ from guut.llm import (
 
 
 class OpenAIEndpoint(LLMEndpoint):
-    def __init__(self, client: OpenAI, model: str, temperature: int = 1):
+    def __init__(self, client: OpenAI, model: str, temperature: float = 1):
         self.client = client
         self.model = model
-        self.temperature = 1
+        self.temperature = temperature
 
     @override
     def complete(self, conversation: Conversation, stop: List[str] | None = None, **kwargs) -> AssistantMessage:
