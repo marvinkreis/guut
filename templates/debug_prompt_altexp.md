@@ -50,31 +50,40 @@ The function changes the `all` on line 4 to `any`, so I should investigate if th
 
 I will set a breakpoint on line 5 to print `n` and `primes` whenever a prime number is appended. This way, I should see if there is a difference in the prime number detection.
 
+
 ```python
 from sieve import sieve
+from mutant.sieve import sieve as sieve_mutant
 
-def test_sieve():
-    print(f"sieve(5) = {sieve(5)}")
+print(f"Correct output: {sieve(5)}")
+print(f"Mutant output: {sieve_mutant(5)}")
 ```
 
 ```pdb
 b sieve.py:5
 commands
 silent
-print(f"n={n}, primes={primes}")
+print(f"without mutant: n={n}, primes={primes}")
+c
+b mutant/sieve.py:5
+commands
+silent
+print(f"with mutant: n={n}, primes={primes}")
 c
 c
 ```
 
 ### Example Observation Results
 
-#### Output for Correct Code
+This would yield the following output:
 
+Script output:
 ```
-sieve(5)=[2, 3, 5]
+Correct output: [2, 3, 5]
+Mutant output: []
 ```
 
-With debugger:
+Debugger output:
 ```
 > test.py(1)<module>()
 -> from sieve import sieve
@@ -82,34 +91,20 @@ With debugger:
 Breakpoint 1 at sieve.py:5
 (Pdb) commands
 (com) silent
-(com) print(f"n={n}, primes={primes}")
+(com) print(f"without mutant: n={n}, primes={primes}")
 (com) c
-(Pdb) c
-n=2, primes=[]
-n=3, primes=[2]
-n=5, primes=[2, 3]
-sieve(5)=[2, 3, 5]
-The program exited.
-```
-
-#### Output for Mutant
-
-```
-sieve(5)=[]
-```
-
-With debugger:
-```
-> test.py(1)<module>()
--> from sieve import sieve
-(Pdb) b sieve.py:5
-Breakpoint 1 at sieve.py:5
+(Pdb) b mutant/sieve.py:5
+Breakpoint 2 at mutant/sieve.py:5
 (Pdb) commands
 (com) silent
-(com) print(f"n={n}, primes={primes}")
+(com) print(f"with mutant: n={n}, primes={primes}")
 (com) c
 (Pdb) c
-sieve(5)=[]
+without mutant: n=2, primes=[]
+without mutant: n=3, primes=[2]
+without mutant: n=5, primes=[2, 3]
+Correct output: [2, 3, 5]
+Mutant output: []
 The program exited.
 ```
 
@@ -131,11 +126,11 @@ Hypotheses loosely follow this template: I hypothesize that [assumption] holds w
 
 ### Example Hypothesis
 
-The observation step showed that the mutant didn't call the `append` function and therefore returned an empty list. To confirm this I will reuse the same inputs, but also include a verifying expression: `len(output) > 0`. If this evaluates to True for the correct code and False for the mutant, my hypothesis is confirmed and I can write the mutant-killing test.
+The observation step showed that the mutant didn't call the `append` function and therefore returned an empty list. To confirm this I will reuse the same inputs, but also include a verifying expression: `len(output_mutant) == 0 and len(output_correct) > 0`. If this evaluates to True, my hypothesis is confirmed and I can write the mutant-killing test.
 
 ## Experiment
 
-Each experiment will contain python code that imports and calls the code under test. We will then execute that code for you and give you the results.
+Each experiment will contain python code that imports and calls the correct code and the mutant. We will then execute that code for you and give you the results.
 
 - Use the debugger to print out intermediate values. Simply include a pdb script in the experiment.
 - Use assertions to verify your predictions.
@@ -147,77 +142,65 @@ If your experiment code contains syntax errors, please fix the errors and repeat
 
 ```python
 from sieve import sieve
+from mutant.sieve import sieve as sieve_mutant
 
-def test_sieve():
-    output = sieve(5)
-    assert len(output) > 0, "sieve must detect prime numbers"
+output_correct = sieve(5)
+output_mutant = sieve_mutant(5)
+
+print(f"Correct output: {output_correct}")
+print(f"Mutant output: {output_mutant}")
+print(f"Verifying expression: {len(output_mutant) == 0 and len(output_correct) > 0}")
 ```
 
 ```pdb
 b sieve.py:5
 commands
 silent
-print(f"added {n} to primes {primes}")
+print(f"mutant: added {n} to primes {primes}. This should not print!")
+c
+b mutant/sieve.py:5
+commands
+silent
+print(f"with mutant: added {n} to primes {primes}")
 c
 c
 ```
 
-### Example Experiment Results
+### Example Hypothesis Results
 
-#### Output for Correct Code
+This would yield the following output:
 
+Script output:
+```
+Correct output: [2, 3, 5]
+Mutant output: []
+Verifying expression: True
 ```
 
-```
-
-With debugger:
+Debugger output:
 ```
 > test.py(1)<module>()
 -> from sieve import sieve
 (Pdb) b sieve.py:5
 Breakpoint 1 at sieve.py:5
 (Pdb) commands
+(com) print(f"without mutant: added {n} to {primes}")
 (com) silent
-(com) print(f"added {n} to primes {primes}")
+(com) c
+(Pdb) b mutant/sieve.py:5
+Breakpoint 2 at mutant/sieve.py:5
+(Pdb) commands
+(com) silent
+(com) print(f"with mutant: added {n} to {primes}. This should not print!")
 (com) c
 (Pdb) c
-added 2 to primes []
-added 3 to primes [2]
-added 5 to primes [2, 3]
+without mutant: added 2 to primes []
+without mutant: added 3 to primes [2]
+without mutant: added 5 to primes [2, 3]
+Correct output: [2, 3, 5]
+Mutant output: []
+Verifying expression: True
 The program exited.
-```
-
-#### Output for Mutant
-
-```
-Traceback (most recent call last):
-File "test.py", line 7, in <module>
-test_sieve()
-File "test.py", line 5, in test_sieve
-assert len(output) > 0, "sieve must detect prime numbers"
-^^^^^^^^^^^^^^^
-AssertionError: sieve must detect prime numbers
-```
-The test exited with exit code 1.
-
-With debugger:
-```
-> test.py(1)<module>()
--> from sieve import sieve
-(Pdb) b sieve.py:5
-Breakpoint 1 at sieve.py:5
-(Pdb) commands
-(com) silent
-(com) print(f"added {n} to primes {primes}")
-(com) c
-(Pdb) c
-Traceback (most recent call last):
-File "test.py", line 7, in <module>
-test_sieve()
-File "test.py", line 5, in test_sieve
-assert len(output) > 0, "sieve must detect prime numbers"
-^^^^^^^^^^^^^^^
-AssertionError: sieve must detect prime numbers
 ```
 
 ## Conclusion
@@ -232,9 +215,9 @@ We can see that for n=5, the verifying expression evaluated to `True`. Therefore
 
 Keep experimenting until you found inputs for which the mutant produces a different output than the correct implementation (exceptions and infinite loops also count). Once you found those inputs, you can finish debugging and write the mutant-killing test.
 
-To kill the mutant, the test needs tp pass when executed with the correct code, and fail when executed with the mutant.
+The test is different than an experiment. In the test, you don't import the mutant. Instead, you write a test that passes on the correct code and fails when executed against the mutant.
 
-Output the test as single Python function called `test__<name>` with no parameters. Don't use any testing frameworks. Include some relevant info about the mutant.
+Output the test as single Python function called `test__<name>` with no parameters. Don't use any testing frameworks.
 
 ### Example Test
 
@@ -242,29 +225,26 @@ Output the test as single Python function called `test__<name>` with no paramete
 from sieve import sieve
 
 def test__sieve():
-    """Changing 'all' to 'any' in sieve would cause it to always return the empty list."""
     output = sieve(5)
     assert len(output) > 0, "sieve must detect prime numbers"
 ```
 
-### Example Test Results
+#### Example Test Results
 
-#### Output for Correct Code
-
-```
+Test on correct code:
 
 ```
 
-#### Output for Mutant
+```
+
+Test on mutant:
 
 ```
 Traceback (most recent call last):
-File "test.py", line 8, in <module>
-test__sieve()
-File "test.py", line 6, in test__sieve
-assert len(output) > 0, "sieve must detect prime numbers"
+File "test.py", line 6, in <module>
+assert len(output) > 0, "sieve must output prime numbers"
 ^^^^^^^^^^^^^^^
-AssertionError: sieve must detect prime numbers
+AssertionError: sieve must output prime numbers
 ```
 The test exited with exit code 1.
 
@@ -299,21 +279,21 @@ Do NOT use any headlines other then the ones shown below.
     ## Hypothesis
     [hypothesis and prediction]
 
-    ## Experiment
+    ### Experiment
     [your experiment code]
 
     ### Experiment Results
     [we will give you the results]
 
-    ## Conclusion
+    ### Conclusion
     [a short conclusion]
 
     [more hypotheses and experiments until you found function inputs that can detect the mutant]
 
-    ## Test
+    # Test
     [the mutant-killing test]
 
-    ### Test Results
+    ## Test Results
     [we will give you the results]
 
 {% if include_equivalence %}
@@ -334,7 +314,7 @@ Write all code in markdown blocks and specify the language, e.g.:
 
 Be brief in your responses and don't repeat things you have already written. Write brief hypotheses and conclusions makes it easier to refer back to them later.
 
-Make sure that `## Observation` is always followed by `### Observation Results`, `## Experiment` is always followed by `### Experiment Results` and `## Test` is always followed by `## Test Results`. This is important for parsing your reposnses.
+Make sure that `## Observation` is always followed by `### Observation Results`, `### Experiment` is always followed by `### Experiment Results` and `# Test` is always followed by `## Test Results`. This is important for parsing your reposnses.
 
 
 # Python Debugger (pdb)
@@ -372,7 +352,12 @@ We encourage you to use the `commands` command to print out intermediate values.
 b sieve.py:5
 commands
 silent
-print(f"n={n}, primes={primes}")
+print(f"without mutant: n={n}, primes={primes}")
+c
+b mutant/sieve.py:5
+commands
+silent
+print(f"with mutant: n={n}, primes={primes}")
 c
 c
 ```

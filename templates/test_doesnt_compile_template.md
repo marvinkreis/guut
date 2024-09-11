@@ -1,6 +1,6 @@
-## Test Results
+### Test Results
 
-### Compilation Error
+**Compilation Error**
 
 ```
 {{ result.error | limit_text(1500) }}

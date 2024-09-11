@@ -1,21 +1,57 @@
-### {{ is_observation and "Observation" or "Experiment" }} Results
+{% if not altexp %}
+### {{ name }} Results
 
-#### Script output
+#### Output for Correct Code
 
-```
-{{ result.test | format_test_result }}
-```
-{% if result.test.timeout %}
-The experiment was canceled due to a timeout.
+{% if not shortexp or not result.debugger_correct %}
+{% with result=result.test_correct, name=name.lower(), is_debugger=False, show_exit=True %}
+{% include "execution_result_template.md"%}
+{% endwith %}
 {% endif %}
-{% if result.test.exitcode != 0 %}
-The experiment exited with exit code {{ result.test.exitcode }}.
+{% if result.debug_correct %}
+{% if not shortexp %}
+
+Debugger Output:
+
+{% endif %}
+{% with result=result.debug_correct, name=name.lower(), is_debugger=True %}
+{% include "execution_result_template.md"%}
+{% endwith %}
 {% endif %}
 
+#### Output for Mutant
+
+{% if not shortexp or not result.debugger_correct %}
+{% with result=result.test_mutant, name=name.lower(), is_debugger=False %}
+{% include "execution_result_template.md"%}
+{% endwith %}
+{% endif %}
+{% if result.debug_correct %}
+{% if not shortexp %}
+
+Debugger Output:
+
+{% endif %}
+{% with result=result.debug_mutant, name=name.lower(), is_debugger=True %}
+{% include "execution_result_template.md"%}
+{% endwith %}
+{% endif %}
+{% else %}
+### {{ name }} Results
+
+{% if not shortexp or not result.debug %}
+{% with result=result.test, name=name.lower(), is_debugger=False, show_exit=True %}
+{% include "execution_result_template.md"%}
+{% endwith %}
+{% endif %}
 {% if result.debug %}
-#### Debugger output
+{% if not shortexp %}
 
-```
-{{ result.debug | format_debugger_result }}
-```
+Debugger Output:
+
+{% endif %}
+{% with result=result.debug, name=name.lower(), is_debugger=True %}
+{% include "execution_result_template.md"%}
+{% endwith %}
+{% endif %}
 {% endif %}

@@ -1,4 +1,4 @@
-## Warning: Incomplete Response
+**Warning: Incomplete Response**
 
 Your previous response did not contain a valid experiment or test:
 - If you were planning to make an observation, please include the `## Observation` headline and write your code and explanation.

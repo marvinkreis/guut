@@ -125,12 +125,18 @@ def run(
             logger.debug(f"Sending SIGINT to {command}")
             process.send_signal(sig=signal.SIGINT)
         if process.poll() is None:
-            process.wait(2)
+            try:
+                process.wait(2)
+            except TimeoutExpired:
+                pass
         if process.poll() is None:
             logger.debug(f"Terminating {command}")
             process.terminate()
         if process.poll() is None:
-            process.wait(2)
+            try:
+                process.wait(2)
+            except TimeoutExpired:
+                pass
         if process.poll() is None:
             logger.debug(f"Killing {command}")
             process.kill()

@@ -103,9 +103,9 @@ class Problem(ABC):
         pass
 
     def run_experiment(
-        self, code: str, debugger_script: str | None, collect_coverage: bool, use_alt_experiments: bool = False
+        self, code: str, debugger_script: str | None, collect_coverage: bool, altexp: bool = False
     ) -> ExperimentResult | AltExperimentResult:
-        if not use_alt_experiments:
+        if not altexp:
             return ExperimentResult(
                 test_correct=self.run_code(code, use_mutant="no", collect_coverage=collect_coverage),
                 test_mutant=self.run_code(code, use_mutant="yes", collect_coverage=collect_coverage),

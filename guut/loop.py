@@ -211,9 +211,12 @@ class Experiment(ExperimentDescription):
 
 @dataclass
 class LoopSettings:
-    max_retries_for_invalid_test: int = 2
-    max_num_incomplete_responses: int = 2
+    max_num_turns: int = 12
     max_num_experiments: int = 10
+    max_retries_for_invalid_test: int = 5
+    max_num_incomplete_responses: int = 2
+    altexp: bool = False
+    shortexp: bool = False
 
 
 @dataclass
@@ -425,10 +428,13 @@ class Loop:
             )
         else:
             experiment_result = self.problem.run_experiment(
-                experiment.code, experiment.debugger_script, collect_coverage=True
+                experiment.code, experiment.debugger_script, collect_coverage=True, altexp=self.settings.altexp
             )
             new_message = self.prompts.experiment_results_template.render(
-                result=experiment_result, is_observation=(experiment.kind == "observation")
+                result=experiment_result,
+                name=experiment.kind.capitalize(),
+                altexp=isinstance(experiment_result, AltExperimentResult),
+                shortexp=self.settings.shortexp,
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
             experiment = replace(experiment, kind="observation" if experiment.kind == "observation" else "experiment")

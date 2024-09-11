@@ -43,11 +43,15 @@ class ConversationLogger:
 
 
 class MessagePrinter:
-    def __init__(self):
+    def __init__(self, print_raw: bool):
+        self.print_raw = print_raw
         self.seen_messages = []
 
     def print_new_messages(self, conversation: Conversation):
         new_messages = [msg for msg in conversation if msg not in self.seen_messages]
         for msg in new_messages:
-            print(format_message_pretty(msg))
+            if self.print_raw:
+                print(msg.content)
+            else:
+                print(format_message_pretty(msg))
         self.seen_messages += new_messages

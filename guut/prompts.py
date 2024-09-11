@@ -46,8 +46,12 @@ class ExperimentDoesntCompileTemplate(Template):
 
 
 class ExperimentResultsTemplate(Template):
-    def render(self, result: ExperimentResult | AltExperimentResult, is_observation: bool = False) -> UserMessage:
-        return UserMessage(self.template.render(result=result, is_observation=is_observation).strip() + "\n")
+    def render(
+        self, result: ExperimentResult | AltExperimentResult, name: str, altexp: bool, shortexp: bool
+    ) -> UserMessage:
+        return UserMessage(
+            self.template.render(result=result, name=name, altexp=altexp, shortexp=shortexp).strip() + "\n"
+        )
 
 
 class TestPrompt(Template):
@@ -130,3 +134,5 @@ default_prompts = PromptCollection(
     conversation_aborted_template=ConversationAbortedTemplate("conversation_aborted_template.md"),
     incomplete_response_template=IncompleteResponseTemplate("incomplete_response_template.md"),
 )
+
+debug_prompt_altexp = DebugPrompt("debug_prompt_altexp.md")

@@ -9,7 +9,7 @@ The LLM found a test case that detects the mutant.
 {{ test | trim }}
 ```
 
-## Test on correct code
+## Output for Correct Code
 
 ```
 {{ result.correct | format_test_result }}
@@ -21,7 +21,7 @@ The test was canceled due to a timeout.
 The test exited with exitcode {{ result.correct.exitcode }}.
 {% endif %}
 
-## Test on mutant
+## Output for Mutant
 
 ```
 {{ result.mutant | format_test_result }}

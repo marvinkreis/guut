@@ -18,7 +18,7 @@ class BaselineSettings(LoopSettings):
     @override
     def __init__(
         self,
-        max_retries_for_invalid_test: int = 10,
+        max_retries_for_invalid_test: int = 12,
         max_num_incomplete_responses: int = 2,
     ):
         super().__init__(

@@ -1,4 +1,5 @@
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import click
@@ -16,6 +17,7 @@ from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings
 from guut.output import write_result_dir
+from guut.prompts import debug_prompt_altexp
 from guut.quixbugs import QuixbugsProblem
 
 problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
@@ -114,6 +116,9 @@ def show_task(type: str, problem_description: str):
 @click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
+@click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
+@click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
+@click.option("--raw", "-r", is_flag=True, default=False, help="Print messages without wrapping and borders.")
 def run(
     task_type: str,
     task_args: str,
@@ -125,6 +130,9 @@ def run(
     silent: bool = False,
     nologs: bool = False,
     baseline: bool = False,
+    altexp: bool = False,
+    shortexp: bool = False,
+    raw: bool = False,
 ):
     if replay and resume:
         raise Exception("Cannot use --replay and --continue together.")
@@ -168,14 +176,21 @@ def run(
             conversation = Conversation(conversation[:index])
 
     conversation_logger = ConversationLogger() if not nologs else None
-    message_printer = MessagePrinter() if not silent else None
+    message_printer = MessagePrinter(print_raw=raw) if not silent else None
 
     LoopCls = Loop if not baseline else BaselineLoop
     settings = LoopSettings() if not baseline else BaselineSettings()
+    settings = replace(settings, altexp=altexp, shortexp=shortexp)
+
+    # TODO: solve this better
+    prompts = problem_instance.get_default_prompts()
+    if altexp:
+        prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
+
     loop = LoopCls(
         problem=problem_instance,
         endpoint=endpoint,
-        prompts=problem_instance.get_default_prompts(),
+        prompts=prompts,
         printer=message_printer,
         logger=conversation_logger,
         conversation=conversation,

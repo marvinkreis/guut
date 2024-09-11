@@ -35,7 +35,12 @@ class QuixbugsProblemDescription(ProblemDescription):
 
 
 class QuixbugsProblem(Problem):
-    def __init__(self, args: str, quixbugs_path: Path | None = None, python_interpreter: Path | None = None):
+    def __init__(
+        self,
+        args: str,
+        quixbugs_path: Path | None = None,
+        python_interpreter: Path | None = None,
+    ):
         self.name = args
         if quixbugs_path is None:
             quixbugs_path = Path(config.quixbugs_path)
@@ -101,7 +106,11 @@ class QuixbugsProblem(Problem):
 
     @override
     def run_experiment(
-        self, code: str, debugger_script: str | None, collect_coverage: bool, use_alt_experiments: bool = False
+        self,
+        code: str,
+        debugger_script: str | None,
+        collect_coverage: bool,
+        altexp: bool = False,
     ) -> ExperimentResult | AltExperimentResult:
         test_name = parse_python_test_name(code)
         if test_name:
@@ -110,7 +119,7 @@ class QuixbugsProblem(Problem):
             code,
             debugger_script=debugger_script,
             collect_coverage=collect_coverage,
-            use_alt_experiments=use_alt_experiments,
+            altexp=altexp,
         )
 
     @override
@@ -191,6 +200,7 @@ class QuixbugsProblem(Problem):
         return "\n".join(comment_lines).strip()
 
     def construct_normalized_code(self, use_mutant: bool = False) -> str:
+        # return f"{self.extract_code(use_mutant)}"
         return f"{self.extract_comment()}\n\n{self.extract_code(use_mutant)}"
 
     def compute_mutant_diff(self, reverse: bool = False) -> str:
