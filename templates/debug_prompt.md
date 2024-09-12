@@ -3,7 +3,12 @@ We are going to give you a Python program and a mutant diff. We want you to use 
 
 # Scientific Debugging
 
-Scientific debugging is a systematic debugging approach based on the scientific method. The process involves forming hypotheses and testing them to incrementally better your understanding about the code.
+Scientific debugging is a systematic debugging approach based on the scientific method. The process follows a loop of:
+
+- Observation
+- Hypothesis
+- Experiment
+- Conclusion
 
 ## Hypotheses
 
@@ -13,21 +18,30 @@ Each hypothesis should describe an assumption you have about the code. Hypothese
 - Don't repeat hypotheses you have already made.
 - Don't base hypotheses on untested assumptions.
 
-Hypotheses loosely follow this template: I hypothesize that [assumption] holds when [situation]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
+Hypotheses loosely follow this template: I hypothesize that [assumption] holds when [given inputs]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 
 ## Experiments
 
-After writing an hypothesis, you create an experiment to test your hypothesis. You run the code under test and predict the output based on your hypothesis.
+After writing a hypothesis, you create an experiment to test it. Each experiment will contain Python code that imports and calls the code under test. We then take your experiment and execute it once against the correct code and once against the mutant. We will then give you the results for both executions. For example:
 
-Each experiment will contain Python code that imports and calls the code under test. After you have written your experiment, we will execute the code for you  and give you the results. See the example for more details.
+```python
+from sieve import sieve
+print(f"output = {sieve(5)}")
+```
 
-Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. It's good practice to include a "verifying expression" for this purpose. see the example for more details.
+Correct output:
+```
+output = [2, 3, 5]
+```
 
-You can also use the Python debugger (pdb). Please use debugger liberally to print out relevant intermediate values. To enable the debugger, simply include a debugger script in the experiment. See the example for more details.
+Mutant output:
+```
+output = []
+```
 
-Include prints liberally in your experiments, printing output values makes it easier to understand what is going on.
+Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis. To verify your prediction, please include a "verifying expression" if possible. See the example for more details.
 
-If your experiment code contains syntax errors, please fix the errors and repeat the experiment. You don't have to repeat your hypothesis.
+You can also use the Python debugger (pdb). Please use debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment.
 
 ## Conclusions
 
@@ -39,7 +53,7 @@ Next, keep creating hypotheses and experiments until you found inputs for which 
 
 To kill the mutant, you will need to write a test that passes without errors when executed with the correct code, and fails when executed with the mutant.
 
-When you are ready, output the test as single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks. Include some relevant comments about the mutant.
+The test will be executed similarly to an experiment, and you will receive the results. Please output the test as a single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks. Include some relevant comments about the mutant.
 
 {% if include_equivalence %}
 ## Equivalent Mutants
@@ -88,6 +102,10 @@ Do NOT use any headlines other then the ones shown below.
     [a short explanation about why the mutant is equivalent]
 {% endif %}
 
+Make sure that `## Experiment` is always followed by `### Experiment Results` and `## Test` is always followed by `## Test Results`. This is important for parsing your responses.
+
+## Output Format for Code
+
 Write all code in markdown blocks and specify the language, e.g.:
 
     ```python
@@ -98,8 +116,24 @@ Write all code in markdown blocks and specify the language, e.g.:
     // debugger script here
     ```
 
-Make sure that `## Experiment` is always followed by `### Experiment Results` and `## Test` is always followed by `## Test Results`. This is important for parsing your responses.
+Please only import and test one implementation at a time. We, will execute your experiments/tests against both the correct code and the mutant code for you. For example:
 
+    ```python
+    from sieve import sieve
+    print(f"output = {sieve(5)}")
+    ```
+
+    Correct output:
+    ```
+    output = [2, 3, 5]
+    ```
+
+    Mutant output:
+    ```
+    output = []
+    ```
+
+Therefore, please do not import or recreate the mutant. The example debugging session, shows how to write valid experiments and tests.
 
 # Python Debugger (pdb)
 
@@ -145,6 +179,8 @@ In this example, the `c` command terminates the command list and instructs the d
 
 
 # Example Task
+
+Consider the following example program that implements the sieve of Eratosthenes:
 
 ```python sieve.py
 01  """
