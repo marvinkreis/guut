@@ -199,4 +199,4 @@ def run(
 
     result = loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
-    write_result_dir(result, out_dir=outdir or ".")
+    write_result_dir(result, out_dir=outdir or config.output_path)

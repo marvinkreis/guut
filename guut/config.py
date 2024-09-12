@@ -11,6 +11,7 @@ UNSET: Any = object()
 
 @dataclass
 class Config:
+    _output_path: str = UNSET
     _logging_path: str = UNSET
     _openai_api_key: str = UNSET
     _openai_organization: str = UNSET
@@ -18,8 +19,12 @@ class Config:
     _python_interpreter: str = UNSET
 
     @property
-    def logging_path(self) -> str:
-        return self._validate("loggin_path", self._logging_path)
+    def output_path(self) -> Path:
+        return self._validate_path("output_path", self._output_path)
+
+    @property
+    def logging_path(self) -> Path:
+        return self._validate_path("loggin_path", self._logging_path)
 
     @property
     def openai_api_key(self) -> str:
@@ -31,25 +36,24 @@ class Config:
 
     @property
     def quixbugs_path(self) -> Path:
-        path_str = self._validate("quixbugs_path", self._quixbugs_path)
-        path = Path(path_str)
-        if not path.exists():
-            raise Exception(f"QuixBugs path does not exist: '{path_str}'.")
-        return path
+        return self._validate_path("quixbugs_path", self._quixbugs_path)
 
     @property
     def python_interpreter(self) -> Path:
-        path_str = self._validate("python_interpreter", self._python_interpreter)
-        path = Path(path_str)
-        if not path.exists():
-            raise Exception(f"Python interpreter path does not exist: '{path_str}'.")
-        return path
+        return self._validate_path("python_interpreter", self._python_interpreter)
 
     def _validate(self, key: str, value: Any) -> Any:
         if value is UNSET:
             logger.warning(f"Missing config value: {key}")
             raise Exception(f"Missing config value: {key}")
         return value
+
+    def _validate_path(self, key: str, value: str) -> Path:
+        self._validate(key, value)
+        path = Path(value)
+        if not path.exists():
+            raise Exception(f"Path for '{key}' does not exist: '{value}'.")
+        return path
 
     def read_config_file(self, code: str, path: str):
         logger.debug(f'Reading config file: "{path}"')
