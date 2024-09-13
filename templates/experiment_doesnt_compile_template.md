@@ -1,7 +1,7 @@
-### Experiment Results
+### {{ name }} Results
 
 Your experiment did not compile correctly, please fix the errors and try again.
 
 ```
-{{ result.error | limit_text(1500) }}
+{{ result.error | limit_text(2500) }}
 ```

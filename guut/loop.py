@@ -419,9 +419,10 @@ class Loop:
                 State.EXPERIMENT_STATED, f"No experiment present but state is {State.EXPERIMENT_STATED.value}."
             )
 
+        name = "Observation" if experiment.kind == "observation" else "experiment"
         validation_result = self.problem.validate_code(experiment.code)
         if not validation_result.valid:
-            new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
+            new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result, name=name)
             self.add_msg(new_message, State.EXPERIMENT_DOESNT_COMPILE)
             self.experiments.append(
                 Experiment.with_description(experiment, validation_result=validation_result, result=None)
@@ -432,7 +433,7 @@ class Loop:
             )
             new_message = self.prompts.experiment_results_template.render(
                 result=experiment_result,
-                name=experiment.kind.capitalize(),
+                name=name,
                 altexp=isinstance(experiment_result, AltExperimentResult),
                 shortexp=self.settings.shortexp,
             )
