@@ -27,8 +27,11 @@ After writing a hypothesis, you create an experiment to test it. Each experiment
 ```python
 from sieve import sieve
 from mutant.sieve import sieve as mutant_sieve
+
 print(f"correct output = {sieve(5)}")
+print(f"correct verifying expression = {len(sieve(5)) > 0}")
 print(f"mutant output = {mutant_sieve(5)}")
+print(f"mutant verifying expression = {len(mutant_sieve(5)) > 0}")
 ```
 
 ```pdb
@@ -71,9 +74,11 @@ mutant output = []
 The program exited.
 ```
 
-Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis. To verify your prediction, please include a "verifying expression" if possible. See the example for more details.
+Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis.
 
-Important: Please use the Python debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment.
+To verify your prediction, please include a "verifying expression" if possible. A "verifying expression" is a boolean expression that represents your prediction. For example, if you predicted that the mtau code produces a non-empty list and the mutant code produces an empty list, your verifying expression might be "len(output) > 0". If this expression evaluates to True on the correct code and False on the mutant, then you know that your prediction was correct.
+
+Please use the Python debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment. In your first experiment, always include a debugger script that prints interesting intermediate values. This helps you see what is happening inside the code.
 
 Make sure to import all necessary functions in each experiment. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
 
@@ -214,7 +219,7 @@ In this example, the `c` command terminates the command list and instructs the d
 - Keep your experiments/tests short and simple.
 - Use print statements liberally in your experiments/tests.
 - Never recreate the code under test as part of your experiment/test.
-- Include a debugger script in your experiments whenever possible.
+- In your first experiment, always include a debugger script that prints interesting intermediate values. This helps you see what is happening inside the code.
 
 
 # Example Task
@@ -259,11 +264,16 @@ index 1b19c76..dd99146 100644
 
 # Example Debugging
 
+### Example Hypothesis
+
+The mutant changes the if-condition on line 4 from `all` to `any`, which changes the prime number condition. Since the changed prime number condition is less strict, I hypothesize that this will cause the mutant output to include other numbers that are not prime.
+
 ### Example Experiment
 
-The mutant changes the if-condition on line 4 from `all` to `any`, which changes the prime number condition. I predict that this will cause the mutant output to include other numbers that are not prime.
+To test my hypothesis, I will create an experiment that calls `sieve(5)`, then checks the output with the verifying expression `4 not in output` to test my prediction. My hypothesis is only confirmed if the verifying expression evaluates to True on the correct code.
 
-To find out what is really happening, I will first run an observation: I will call the function with a small `max` value and observe if the mutant will print different numbers than the correct code. I will also set a breakpoint on line 16 to print `n` and `primes` whenever a new prime number is appended.
+
+To find out what is really happening, I will first run an experiment: I will call the function with a small `max` value and observe if the mutant will print different numbers than the correct code. I will also set a breakpoint on line 16 to print `n` and `primes` whenever a new prime number is appended.
 
 ```python
 from sieve import sieve
@@ -344,6 +354,8 @@ Before I create the test, I should confirm my findings with an experiment. I hyp
 ### Example Experiment
 
 To test my hypothesis, I will create an experiment that calls `sieve(5)`, then checks the output with the verifying expression `len(output) > 0` to test my prediction. My hypothesis is only confirmed if the verifying expression evaluates to True on the correct code.
+
+There is no need to use the debugger in this experiment, since I'm re-using the same inputs from the last experiment. This means that the output from the breakpoints would stay the same.
 
 ```python
 from sieve import sieve
