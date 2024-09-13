@@ -247,12 +247,14 @@ c
 
 #### Output for Correct Code
 
+{% if not shortexp %}
 ```
 output = [2, 3, 5]
 ```
 
 Debugger Output:
 
+{% endif %}
 ```
 > test.py(1)<module>()
 -> from sieve import sieve
@@ -272,12 +274,14 @@ The program exited.
 
 #### Output for Mutant
 
+{% if not shortexp %}
 ```
 output = []
 ```
 
 Debugger Output:
 
+{% endif %}
 ```
 > test.py(1)<module>()
 -> from sieve import sieve

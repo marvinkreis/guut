@@ -257,6 +257,7 @@ c
 
 ### Example Experiment Results
 
+{% if not shortexp %}
 ```
 correct output = [2, 3, 5]
 mutant output = []
@@ -264,6 +265,7 @@ mutant output = []
 
 Debugger Output:
 
+{% endif %}
 ```
 > test.py(1)<module>()
 -> from sieve import sieve

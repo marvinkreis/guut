@@ -370,7 +370,7 @@ class Loop:
         """it's hard to do sometimes"""
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render(), tag=None)
-        self.add_msg(self.prompts.debug_prompt.render(self.problem), tag=None)
+        self.add_msg(self.prompts.debug_prompt.render(self.problem, shortexp=self.settings.shortexp), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
     def _prompt_for_action(self):

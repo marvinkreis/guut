@@ -29,9 +29,10 @@ class SystemPrompt(Template):
 
 
 class DebugPrompt(Template):
-    def render(self, problem: Problem, include_equivalence: bool = True) -> UserMessage:
+    def render(self, problem: Problem, include_equivalence: bool = True, shortexp: bool = False) -> UserMessage:
         return UserMessage(
-            self.template.render(problem=problem, include_equivalence=include_equivalence).strip() + "\n"
+            self.template.render(problem=problem, include_equivalence=include_equivalence, shortexp=shortexp).strip()
+            + "\n"
         )
 
 
