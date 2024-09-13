@@ -51,7 +51,7 @@ class MessagePrinter:
         new_messages = [msg for msg in conversation if msg not in self.seen_messages]
         for msg in new_messages:
             if self.print_raw:
-                print(msg.content)
+                print(msg.content, flush=True)
             else:
-                print(format_message_pretty(msg))
+                print(format_message_pretty(msg), flush=True)
         self.seen_messages += new_messages
