@@ -87,7 +87,7 @@ Next, keep creating hypotheses and experiments until you found inputs for which 
 
 When you are ready, you will need to write a test that kills the mutant.
 
-The test format will be different than the format for an experiment. While you were able to import the mutant in your experiments, this will not be available for tests. Instead of importing the mutant, write the test so it will pass if the correct code is imported and fail if the mutant is imported instead of the correct code. For example:
+The test format will be different from the format for an experiment. While you were able to import the mutant in your experiments, this will not be available for tests. Instead of importing the mutant, write the test so it will pass if the correct code is imported and fail if the mutant is imported instead of the correct code. For example:
 
 ```python
 from sieve import sieve
@@ -329,7 +329,7 @@ The program exited.
 
 The mutant returned an empty list, while the correct code returned the expected prime numbers. This goes against my earlier prediction, as I predicted that the mutant would output more numbers.
 
-In addition, the debugger output doesn't contain any prints from the mutant ("mutant: n={n}, primes={primes}"), while the correct debugger output contains prints from the breakpoint (e.g. "correct code: n=2, primes=[]"). This confirms that the breakpoint on line 16 works, and shows us that the mutant did not execute line 16.
+In addition, the debugger output doesn't contain any prints from the mutant ("mutant: n={n}, primes={primes}"), while the correct debugger output contains prints from the breakpoint (e.g., "correct code: n=2, primes=[]"). This confirms that the breakpoint on line 16 works, and shows us that the mutant did not execute line 16.
 
 In conclusion, I learned:
   - The mutant returned an empty list `[]` instead of the expected prime numbers `[2, 3, 5]`
