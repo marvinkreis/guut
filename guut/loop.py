@@ -419,7 +419,7 @@ class Loop:
                 State.EXPERIMENT_STATED, f"No experiment present but state is {State.EXPERIMENT_STATED.value}."
             )
 
-        name = "Observation" if experiment.kind == "observation" else "experiment"
+        name = "Observation" if experiment.kind == "observation" else "Experiment"
         validation_result = self.problem.validate_code(experiment.code)
         if not validation_result.valid:
             new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result, name=name)
