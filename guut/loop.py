@@ -132,7 +132,9 @@ class Response:
         )
 
     def guess_action(self) -> ExperimentDescription | TestDescription | EquivalenceClaim | None:
-        if (section := self._guess_section("test")) and section.code_blocks:
+        if section := self._guess_section("equivalence"):
+            return EquivalenceClaim(text=section.text)
+        elif (section := self._guess_section("test")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
                 return TestDescription(text=section.text, code=code)
@@ -154,8 +156,6 @@ class Response:
                     code=code,
                     debugger_script=debugger_script,
                 )
-        elif section := self._guess_section("equivalence"):
-            return EquivalenceClaim(text=section.text)
         elif (section := self._guess_section("none")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
