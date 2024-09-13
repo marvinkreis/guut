@@ -212,7 +212,7 @@ class Experiment(ExperimentDescription):
 @dataclass
 class LoopSettings:
     max_num_experiments: int = 10
-    max_retries_for_invalid_test: int = 5
+    max_retries_for_invalid_test: int = 4
     max_num_incomplete_responses: int = 2
     altexp: bool = False
     shortexp: bool = False
