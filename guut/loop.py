@@ -211,12 +211,12 @@ class Experiment(ExperimentDescription):
 
 @dataclass
 class LoopSettings:
-    max_num_turns: int = 12
     max_num_experiments: int = 10
     max_retries_for_invalid_test: int = 5
     max_num_incomplete_responses: int = 2
     altexp: bool = False
     shortexp: bool = False
+    is_baseline: bool = False
 
 
 @dataclass
@@ -482,7 +482,9 @@ class Loop:
                 )
                 return
             else:
-                new_message = self.prompts.test_doesnt_detect_mutant_template.render(result=result)
+                new_message = self.prompts.test_doesnt_detect_mutant_template.render(
+                    result=result, baseline=self.settings.is_baseline
+                )
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
                 self.tests.append(
                     Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=False)

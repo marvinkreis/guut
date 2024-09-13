@@ -25,6 +25,7 @@ class BaselineSettings(LoopSettings):
             max_retries_for_invalid_test=max_retries_for_invalid_test,
             max_num_incomplete_responses=max_num_incomplete_responses,
             max_num_experiments=0,
+            is_baseline=True,
         )
 
 

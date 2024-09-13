@@ -66,7 +66,7 @@ def test__sieve():
 
 Please output the test as a single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks. Include some relevant comments about the mutant.
 
-We will then execute your test and check the results. Your test kills the mutant, if it passes when executed with the correct code and fails when executed with the mutant instead of the correct code.
+After you have written the test, we will execute it and check the results. Your test kills the mutant if it passes when executed with the correct code and fails when executed with the mutant instead of the correct code.
 
 {% if include_equivalence %}
 ## Equivalent Mutants
@@ -131,9 +131,9 @@ Write all code in markdown blocks and specify the language, e.g.:
 
 Make sure to import all necessary functions. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
 
+
 # Python Debugger (pdb)
 
-- Comments are not allowed in the debugger script.
 - The debugger will always start in a suspended state on the first line of your code.
 - Available debugger commands are:
     - break:
@@ -159,6 +159,7 @@ Make sure to import all necessary functions. You can assume that all python file
     - dir():
         - Syntax: `dir(expression)`
         - Evaluates expression in the current context and prints its value.
+- Comments (`#`) and docstrings (`"""`) are not allowed in the debugger script.
 
 We encourage you to use the `commands` command to print out intermediate values. Use it directly after defining a breakpoint like so:
 
@@ -172,6 +173,13 @@ c
 ```
 
 In this example, the `c` command terminates the command list and instructs the debugger to continue execution after the command list ended. This leaves the debugger in paused state. A second `c` then continues the execution.
+
+
+# Other Remarks
+
+- Keep your experiments/tests short and simple.
+- Use print statements liberally in your experiments/tests.
+- Never recreate the code under test as part of youir experiment/test.
 
 
 # Example Task
@@ -212,6 +220,7 @@ index 1b19c76..dd99146 100644
              primes.append(n)
      return primes
 ```
+
 
 # Example Debugging
 
@@ -285,13 +294,13 @@ The mutant returned an empty list, while the correct code returned the expected 
 
 In addition, the debugger output doesn't contain any prints from the mutant ("mutant: n={n}, primes={primes}"), while the correct debugger output contains prints from the breakpoint (e.g. "correct code: n=2, primes=[]"). This confirms that the breakpoint on line 16 works, and shows us that the mutant did not execute line 16.
 
-In conclusion, we learned:
+In conclusion, I learned:
   - The mutant returned an empty list `[]` instead of the expected prime numbers `[2, 3, 5]`
   - The mutant did not execute line 16.
 
 ### Example Hypothesis
 
-Since `sieve(5)` returned `[]` with the mutant and `[2, 3, 5]` with the correct code, we have already found a difference, that we can exploit for a test case.
+Since `sieve(5)` returned `[]` with the mutant and `[2, 3, 5]` with the correct code, I have already found a difference, that I can exploit for a test case.
 
 Before I create the test, I should confirm my findings with an experiment. I hypothesize that, when calling `sieve(5)`, the mutant will return an empty list `[]`, while the correct code will return a list that is not empty.
 
@@ -323,11 +332,11 @@ mutant verifying expression = False
 
 ### Example Experiment Conclusion
 
-We see that the correct output contains "verifying expression: True", while the mutant output contains "verifying expression: False". This confirms my prediction, and shows that we have found inputs that let us detect the mutant. Therefore, I'm now ready to write the mutant killing test.
+I see that the correct output contains "verifying expression: True", while the mutant output contains "verifying expression: False". This confirms my prediction, and shows that I have found inputs that let me detect the mutant. Therefore, I'm now ready to write the mutant killing test.
 
 ### Example Test
 
-In our last experiment, we confirmed that calling `sieve(5)` lets us detect the mutant. Now we simply create a test using the verifying expression as an assertion.
+In our last experiment, I confirmed that calling `sieve(5)` lets me detect the mutant. Now I simply create a test using the verifying expression as an assertion.
 
 ```python
 from sieve import sieve
