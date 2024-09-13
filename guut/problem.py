@@ -38,7 +38,7 @@ class ExecutionResult:
 
 
 @dataclass
-class ExperimentResult:
+class AltExperimentResult:
     test_correct: ExecutionResult
     test_mutant: ExecutionResult
     debug_correct: ExecutionResult | None = None
@@ -46,7 +46,7 @@ class ExperimentResult:
 
 
 @dataclass
-class AltExperimentResult:
+class ExperimentResult:
     test: ExecutionResult
     debug: ExecutionResult | None = None
 
@@ -107,15 +107,15 @@ class Problem(ABC):
     ) -> ExperimentResult | AltExperimentResult:
         if not altexp:
             return ExperimentResult(
+                test=self.run_code(code, use_mutant="insert", collect_coverage=collect_coverage),
+                debug=self.run_debugger(code, debugger_script, use_mutant="insert") if debugger_script else None,
+            )
+        else:
+            return AltExperimentResult(
                 test_correct=self.run_code(code, use_mutant="no", collect_coverage=collect_coverage),
                 test_mutant=self.run_code(code, use_mutant="yes", collect_coverage=collect_coverage),
                 debug_correct=self.run_debugger(code, debugger_script, use_mutant="no") if debugger_script else None,
                 debug_mutant=self.run_debugger(code, debugger_script, use_mutant="yes") if debugger_script else None,
-            )
-        else:
-            return AltExperimentResult(
-                test=self.run_code(code, use_mutant="insert", collect_coverage=collect_coverage),
-                debug=self.run_debugger(code, debugger_script, use_mutant="insert") if debugger_script else None,
             )
 
     def run_test(self, code: str, collect_coverage: bool) -> TestResult:

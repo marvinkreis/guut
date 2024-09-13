@@ -1,4 +1,4 @@
-{% if not altexp %}
+{% if altexp %}
 ### {{ name }} Results
 
 #### Output for Correct Code

@@ -22,26 +22,26 @@ Hypotheses loosely follow this template: I hypothesize that [assumption] holds w
 
 ## Experiments
 
-After writing a hypothesis, you create an experiment to test it. Each experiment will contain Python code that imports and calls the code under test. We then take your experiment and execute it once against the correct code and once against the mutant. We will then give you the results for both executions. For example:
+After writing a hypothesis, you create an experiment to test it. Each experiment will contain Python code that imports and calls both the correct code and the mutant. We will then give you the outputs. For example:
 
 ```python
 from sieve import sieve
-print(f"output = {sieve(5)}")
+from mutant.sieve import sieve as mutant_sieve
+print(f"correct output = {sieve(5)}")
+print(f"mutant output = {mutant_sieve(5)}")
 ```
 
-Correct output:
+Output:
 ```
-output = [2, 3, 5]
-```
-
-Mutant output:
-```
-output = []
+correct output = [2, 3, 5]
+mutant output = []
 ```
 
 Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis. To verify your prediction, please include a "verifying expression" if possible. See the example for more details.
 
 You can also use the Python debugger (pdb). Please use debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment.
+
+Make sure to import all necessary functions in each experiment. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
 
 ## Conclusions
 
@@ -51,9 +51,22 @@ Next, keep creating hypotheses and experiments until you found inputs for which 
 
 ## Tests
 
-To kill the mutant, you will need to write a test that passes without errors when executed with the correct code, and fails when executed with the mutant.
+When you are ready, you will need to write a test that kills the mutant.
 
-The test will be executed similarly to an experiment, and you will receive the results. Please output the test as a single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks. Include some relevant comments about the mutant.
+The test format will be different than the format for an experiment. While you were able to import the mutant in your experiments, this will not be available for tests. Instead of importing the mutant, write the test so it will pass if the correct code is imported and fail if the mutant is imported instead of the correct code. For example:
+
+```python
+from sieve import sieve
+
+def test__sieve():
+    """Changing 'all' to 'any' in sieve would cause it to always return the empty list."""
+    output = sieve(5)
+    assert len(output) > 0, "sieve must detect prime numbers"
+```
+
+Please output the test as a single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks. Include some relevant comments about the mutant.
+
+We will then execute your test and check the results. Your test kills the mutant, if it passes when executed with the correct code and fails when executed with the mutant instead of the correct code.
 
 {% if include_equivalence %}
 ## Equivalent Mutants
@@ -116,24 +129,7 @@ Write all code in markdown blocks and specify the language, e.g.:
     // debugger script here
     ```
 
-Please only import and test one implementation at a time. We, will execute your experiments/tests against both the correct code and the mutant code for you. For example:
-
-    ```python
-    from sieve import sieve
-    print(f"output = {sieve(5)}")
-    ```
-
-    Correct output:
-    ```
-    output = [2, 3, 5]
-    ```
-
-    Mutant output:
-    ```
-    output = []
-    ```
-
-Therefore, please do not import or recreate the mutant. The example debugging session, shows how to write valid experiments and tests.
+Make sure to import all necessary functions. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
 
 # Python Debugger (pdb)
 
@@ -219,61 +215,42 @@ index 1b19c76..dd99146 100644
 
 # Example Debugging
 
-## Example Hypothesis
+### Example Experiment
 
 The mutant changes the if-condition on line 4 from `all` to `any`, which changes the prime number condition. I predict that this will cause the mutant output to include other numbers that are not prime.
-
-## Example Experiment
 
 To find out what is really happening, I will first run an observation: I will call the function with a small `max` value and observe if the mutant will print different numbers than the correct code. I will also set a breakpoint on line 16 to print `n` and `primes` whenever a new prime number is appended.
 
 ```python
 from sieve import sieve
+from mutant.sieve import sieve as mutant_sieve
 
-output = sieve(5)
-print(f"output = {output}")
+correct_output = sieve(5)
+print(f"correct output = {correct_output}")
+
+mutant_output = mutant_sieve(5)
+print(f"mutant output = {mutant_output}")
 ```
 
 ```pdb
 b sieve.py:16
 commands
 silent
-print(f"n={n}, primes={primes}")
+print(f"correct code: n={n}, primes={primes}")
+c
+b mutant/sieve.py:16
+commands
+silent
+print(f"mutant: n={n}, primes={primes}")
 c
 c
 ```
 
 ### Example Experiment Results
 
-#### Output for Correct Code
-
 ```
-output = [2, 3, 5]
-```
-
-Debugger Output:
-
-```
-> test.py(1)<module>()
--> from sieve import sieve
-(Pdb) b sieve.py:16
-Breakpoint 1 at sieve.py:16
-(Pdb) commands
-(com) silent
-(com) print(f"n={n}, primes={primes}")
-(com) c
-(Pdb) c
-n=2, primes=[]
-n=3, primes=[2]
-n=5, primes=[2, 3]
-output = [2, 3, 5]
-The program exited.
-```
-
-#### Output for Mutant
-
-```
-output = []
+correct output = [2, 3, 5]
+mutant output = []
 ```
 
 Debugger Output:
@@ -285,10 +262,20 @@ Debugger Output:
 Breakpoint 1 at sieve.py:16
 (Pdb) commands
 (com) silent
-(com) print(f"n={n}, primes={primes}")
+(com) print(f"correct code: n={n}, primes={primes}")
+(com) c
+(Pdb) b mutant/sieve.py:16
+Breakpoint 2 at mutant/sieve.py:16
+(Pdb) commands
+(com) silent
+(com) print(f"mutant: n={n}, primes={primes}")
 (com) c
 (Pdb) c
-output = []
+correct code: n=2, primes=[]
+correct code: n=3, primes=[2]
+correct code: n=5, primes=[2, 3]
+correct output = [2, 3, 5]
+mutant output = []
 The program exited.
 ```
 
@@ -296,7 +283,7 @@ The program exited.
 
 The mutant returned an empty list, while the correct code returned the expected prime numbers. This goes against my earlier prediction, as I predicted that the mutant would output more numbers.
 
-In addition, the mutant debugger output doesn't contain any prints from the breakpoint on line 16, while the correct debugger output contains prints from the breakpoint (e.g. "n=2, primes=[]"). This confirms that the breakpoint works, and shows us that the mutant did not execute line 16.
+In addition, the debugger output doesn't contain any prints from the mutant ("mutant: n={n}, primes={primes}"), while the correct debugger output contains prints from the breakpoint (e.g. "correct code: n=2, primes=[]"). This confirms that the breakpoint on line 16 works, and shows us that the mutant did not execute line 16.
 
 In conclusion, we learned:
   - The mutant returned an empty list `[]` instead of the expected prime numbers `[2, 3, 5]`
@@ -314,30 +301,27 @@ To test my hypothesis, I will create an experiment that calls `sieve(5)`, then c
 
 ```python
 from sieve import sieve
+from mutant.sieve import sieve as mutant_sieve
 
-def test_sieve():
-  output = sieve(5)
-  print(f"output = {sieve(5)}")
-  print(f"verifying expression: {len(output) > 0}")
+correct_output = sieve(5)
+print(f"correct output = {correct_output}")
+print(f"correct verifying expression = {len(correct_output) > 0}")
+
+mutant_output = mutant_sieve(5)
+print(f"mutant output = {mutant_output}")
+print(f"mutant verifying expression = {len(mutant_output) > 0}")
 ```
 
 ### Example Experiment Results
 
-#### Output for Correct Code
-
 ```
-output = [2, 3, 5]
-verifying expression: True
-```
-
-#### Output for Mutant
-
-```
-output = []
-verifying expression: False
+correct output = [2, 3, 5]
+correct verifying expression = True
+mutant output = []
+mutant verifying expression = False
 ```
 
-### Example Conclusion
+### Example Experiment Conclusion
 
 We see that the correct output contains "verifying expression: True", while the mutant output contains "verifying expression: False". This confirms my prediction, and shows that we have found inputs that let us detect the mutant. Therefore, I'm now ready to write the mutant killing test.
 
