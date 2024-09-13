@@ -31,15 +31,49 @@ print(f"correct output = {sieve(5)}")
 print(f"mutant output = {mutant_sieve(5)}")
 ```
 
+```pdb
+b mutant/sieve.py:16
+commands
+silent
+print(f"mutant: n={n}, primes={primes}")
+c
+c
+```
+
 Output:
 ```
 correct output = [2, 3, 5]
 mutant output = []
 ```
 
+Debugger output:
+```
+> test.py(1)<module>()
+-> from sieve import sieve
+(Pdb) b sieve.py:16
+Breakpoint 1 at sieve.py:16
+(Pdb) commands
+(com) silent
+(com) print(f"correct code: n={n}, primes={primes}")
+(com) c
+(Pdb) b mutant/sieve.py:16
+Breakpoint 2 at mutant/sieve.py:16
+(Pdb) commands
+(com) silent
+(com) print(f"mutant: n={n}, primes={primes}")
+(com) c
+(Pdb) c
+correct code: n=2, primes=[]
+correct code: n=3, primes=[2]
+correct code: n=5, primes=[2, 3]
+correct output = [2, 3, 5]
+mutant output = []
+The program exited.
+```
+
 Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis. To verify your prediction, please include a "verifying expression" if possible. See the example for more details.
 
-You can also use the Python debugger (pdb). Please use debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment.
+Important: Please use the Python debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment.
 
 Make sure to import all necessary functions in each experiment. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
 
@@ -164,7 +198,7 @@ Make sure to import all necessary functions. You can assume that all python file
 We encourage you to use the `commands` command to print out intermediate values. Use it directly after defining a breakpoint like so:
 
 ```pdb
-b sieve.py:5
+b sieve.py:16
 commands
 silent
 print(f"n={n}, primes={primes}")
@@ -175,11 +209,12 @@ c
 In this example, the `c` command terminates the command list and instructs the debugger to continue execution after the command list ended. This leaves the debugger in paused state. A second `c` then continues the execution.
 
 
-# Other Remarks
+# Important Remarks
 
 - Keep your experiments/tests short and simple.
 - Use print statements liberally in your experiments/tests.
-- Never recreate the code under test as part of youir experiment/test.
+- Never recreate the code under test as part of your experiment/test.
+- Include a debugger script in your experiments whenever possible.
 
 
 # Example Task
