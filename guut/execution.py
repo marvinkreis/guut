@@ -78,7 +78,7 @@ class PythonExecutor:
 
         cut_coverage = coverage_json["files"].get(str(cut_file.relative_to(cwd)))
         if not cut_coverage:
-            logger.error(f"Could't find CUT coverage in coverage file: '{coverage_path}'")
+            logger.error(f"Couldn't find CUT coverage in coverage file: '{coverage_path}'")
             return exec_result
 
         covered_lines = cut_coverage["executed_lines"]
