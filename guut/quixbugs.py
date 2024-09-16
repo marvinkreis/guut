@@ -207,9 +207,12 @@ class QuixbugsProblem(Problem):
         buggy_code = self.construct_normalized_code(use_mutant=True)
 
         with TemporaryDirectory() as tempdir:
-            correct_file = Path(tempdir) / f"{self.name}.py"
+            temp_path = Path(tempdir)
+
+            correct_file = temp_path / f"{self.name}.py"
             correct_file.write_text(correct_code.strip() + "\n")
-            buggy_file = Path(tempdir) / f"{self.name}_mutant.py"
+            buggy_file = temp_path / "mutant" / f"{self.name}_mutant.py"
+            buggy_file.parent.mkdir()
             buggy_file.write_text(buggy_code.strip() + "\n")
 
             left_file = buggy_file if reverse else correct_file
@@ -217,12 +220,19 @@ class QuixbugsProblem(Problem):
 
             # Can't use check=True here, because --no-index implies --exit-code, which exits with 1 if the files differ
             result = run(
-                ["git", "diff", "--no-index", "--", left_file.name, right_file.name],
+                [
+                    "git",
+                    "diff",
+                    "--no-index",
+                    "--",
+                    str(left_file.relative_to(temp_path)),
+                    str(right_file.relative_to(temp_path)),
+                ],
                 cwd=tempdir,
                 capture_output=True,
                 timeout=2,
             )
-            return result.stdout.decode().replace(f"{self.name}_mutant.py", f"{self.name}.py")
+            return result.stdout.decode()
 
     def validate_code(self, code: str) -> ValidationResult:
         try:
