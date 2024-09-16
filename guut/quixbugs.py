@@ -37,11 +37,11 @@ class QuixbugsProblemDescription(ProblemDescription):
 class QuixbugsProblem(Problem):
     def __init__(
         self,
-        args: str,
+        name: str,
         quixbugs_path: Path | None = None,
         python_interpreter: Path | None = None,
     ):
-        self.name = args
+        self.name = name
         if quixbugs_path is None:
             quixbugs_path = Path(config.quixbugs_path)
         if python_interpreter is None:
@@ -126,7 +126,6 @@ class QuixbugsProblem(Problem):
     def validate_self(self):
         for path in [self.correct_file(), self.buggy_file(), *self.dependencies_paths()]:
             if not path.is_file():
-                path.read_text()
                 raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(path))
 
     @staticmethod

@@ -21,7 +21,7 @@ class ValidationResult:
 class Coverage:
     covered_lines: List[int]
     missing_lines: List[int]
-    raw: Any
+    raw: Any | None = None
 
 
 @dataclass
@@ -67,15 +67,13 @@ class ProblemDescription:
 
 class Problem(ABC):
     @abstractmethod
-    def __init__(self, args: str):
-        pass
-
-    @abstractmethod
     def class_under_test(self) -> TextFile:
+        """Returns the class under test for the prompt."""
         pass
 
     @abstractmethod
     def dependencies(self) -> Iterable[TextFile]:
+        """Returns any dependencies that should be included in the prompt."""
         pass
 
     @abstractmethod
