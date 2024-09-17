@@ -478,33 +478,43 @@ dependencies = [
     { name = "click" },
     { name = "cosmic-ray" },
     { name = "coverage" },
-    { name = "ipykernel" },
     { name = "jinja2" },
     { name = "llama-cpp-python" },
     { name = "loguru" },
+    { name = "openai" },
+    { name = "pyyaml" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "ipdb" },
+    { name = "ipykernel" },
     { name = "matplotlib" },
     { name = "numpy" },
-    { name = "openai" },
     { name = "pandas" },
     { name = "pytest" },
-    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "click", specifier = ">=8.1.7" },
-    { name = "cosmic-ray" },
+    { name = "cosmic-ray", specifier = ">=8.3.15" },
     { name = "coverage", specifier = ">=7.6.1" },
-    { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "jinja2", specifier = ">=3.1.4" },
     { name = "llama-cpp-python", specifier = ">=0.2.90" },
     { name = "loguru", specifier = ">=0.7.2" },
+    { name = "openai", specifier = ">=1.45.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "ipdb" },
+    { name = "ipykernel", specifier = ">=6.29.5" },
     { name = "matplotlib", specifier = ">=3.9.2" },
     { name = "numpy", specifier = ">=2.1.1" },
-    { name = "openai", specifier = ">=1.45.0" },
     { name = "pandas", specifier = ">=2.2.2" },
     { name = "pytest", specifier = ">=8.3.3" },
-    { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
 [[package]]
@@ -561,6 +571,19 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/d7/4b/cbd8e699e64a6f16ca3a8220661b5f83792b3017d0f79807cb8708d33913/iniconfig-2.0.0.tar.gz", hash = "sha256:2d91e135bf72d31a410b17c16da610a82cb55f6b0477d1a902134b24a455b8b3", size = 4646 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/ef/a6/62565a6e1cf69e10f5727360368e451d4b7f58beeac6173dc9db836a5b46/iniconfig-2.0.0-py3-none-any.whl", hash = "sha256:b6a85871a79d2e3b22d2d1b94ac2824226a63c6b741c88f7ae975f18b6778374", size = 5892 },
+]
+
+[[package]]
+name = "ipdb"
+version = "0.13.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "decorator" },
+    { name = "ipython" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3d/1b/7e07e7b752017f7693a0f4d41c13e5ca29ce8cbcfdcc1fd6c4ad8c0a27a0/ipdb-0.13.13.tar.gz", hash = "sha256:e3ac6018ef05126d442af680aad863006ec19d02290561ac88b8b1c0b0cfc726", size = 17042 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0c/4c/b075da0092003d9a55cf2ecc1cae9384a1ca4f650d51b00fc59875fe76f6/ipdb-0.13.13-py3-none-any.whl", hash = "sha256:45529994741c4ab6d2388bfa5d7b725c2cf7fe9deffabdb8a6113aa5ed449ed4", size = 12130 },
 ]
 
 [[package]]
