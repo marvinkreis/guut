@@ -133,23 +133,6 @@ class QuixbugsProblem(Problem):
     def get_type() -> str:
         return "quixbugs"
 
-    @staticmethod
-    @override
-    def list_problems(quixbugs_path: Path | None = None) -> List[str]:
-        if quixbugs_path is None:
-            quixbugs_path = Path(config.quixbugs_path)
-
-        # List all buggy programs
-        programs = [f for f in (quixbugs_path / "python_programs").iterdir() if f.is_file()]
-
-        # Exclude tests
-        programs = [f for f in programs if "test" not in f.stem]
-
-        # Exclude dependencies
-        programs = [f for f in programs if "node.py" not in f.name]
-
-        return [program.stem for program in programs]
-
     @override
     def get_default_prompts(self) -> PromptCollection:
         return default_prompts
@@ -294,3 +277,19 @@ class QuixbugsProblem(Problem):
             yield QuixbugsProblem.CodeDir(
                 root_path=temp_path, cut_path=put_path, test_path=test_path, relevant_paths=relevant_paths
             )
+
+
+def list_problems(quixbugs_path: Path | None = None) -> List[str]:
+    if quixbugs_path is None:
+        quixbugs_path = Path(config.quixbugs_path)
+
+    # List all buggy programs
+    programs = [f for f in (quixbugs_path / "python_programs").iterdir() if f.is_file()]
+
+    # Exclude tests
+    programs = [f for f in programs if "test" not in f.stem]
+
+    # Exclude dependencies
+    programs = [f for f in programs if "node.py" not in f.name]
+
+    return [program.stem for program in programs]

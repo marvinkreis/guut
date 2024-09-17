@@ -56,11 +56,6 @@ class DummyProblem(Problem):
 
     @override
     @staticmethod
-    def list_problems() -> Iterable[str]:
-        return ["dummy_problem"]
-
-    @override
-    @staticmethod
     def get_type() -> str:
         return "dummy_problem"
 

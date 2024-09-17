@@ -1,6 +1,6 @@
 import sys
 
-from guut.main import main
+from guut.cli import cli
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(cli())

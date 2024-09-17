@@ -139,10 +139,6 @@ class Problem(ABC):
         pass
 
     @staticmethod
-    def list_problems() -> Iterable[str]:
-        return []
-
-    @staticmethod
     @abstractmethod
     def get_type() -> str:
         pass

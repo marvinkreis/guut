@@ -9,6 +9,7 @@ from openai import OpenAI
 
 from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
+from guut.cosmic_ray import CosmicRayProblem, list_mutants
 from guut.formatting import format_problem
 from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
@@ -17,64 +18,30 @@ from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings
 from guut.output import write_result_dir
+from guut.problem import Problem
 from guut.prompts import debug_prompt_altexp
 from guut.quixbugs import QuixbugsProblem
+from guut.quixbugs import list_problems as list_quixbugs_problems
 
 problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
 
 
 @click.group()
-def main():
+def cli():
     pass
 
 
-@main.command(
-    "list",
-    short_help="Lists task types. Lists tasks. Shows tasks.",
-    help="Use 'list' to list task types. Use 'list <type>' to list tasks of that type. Use 'list <type> <args>' to show a task.",
-)
-@click.argument("task_type", nargs=1, type=str, required=False)
-@click.argument("task_args", nargs=1, type=str, required=False)
-def _list(task_type: str | None, task_args: str | None):
-    if not task_type:
-        for type in problem_types.keys():
-            print(type)
-        return
-
-    if not task_args:
-        list_tasks(task_type)
-        return
-
-    show_task(task_type, task_args)
+@cli.group()
+def list():
+    pass
 
 
-def list_tasks(type: str):
-    ProblemType = problem_types.get(type)
-    if not ProblemType:
-        raise Exception(f'Unknown task type: "{type}".')
-
-    problems = ProblemType.list_problems()
-    for args in problems:
-        if " " in args:
-            print(f'"{args}"')
-        else:
-            print(args)
+@cli.group()
+def show():
+    pass
 
 
-def show_task(type: str, problem_description: str):
-    ProblemType = problem_types.get(type)
-    if not ProblemType:
-        raise Exception(f'Unknown task type: "{type}".')
-    if not problem_description:
-        raise Exception()
-
-    problem = ProblemType(problem_description)
-    print(format_problem(problem))
-
-
-@main.command()
-@click.argument("task_type", nargs=1, type=str, required=True)
-@click.argument("task_args", nargs=1, type=str, required=True)
+@cli.group()
 @click.option(
     "--outdir",
     nargs=1,
@@ -118,10 +85,9 @@ def show_task(type: str, problem_description: str):
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
 @click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
-@click.option("--raw", "-r", is_flag=True, default=False, help="Print messages without wrapping and borders.")
+@click.pass_context
 def run(
-    task_type: str,
-    task_args: str,
+    ctx,
     outdir: str | None,
     replay: str | None,
     resume: str | None,
@@ -139,12 +105,147 @@ def run(
     if index and not resume:
         raise Exception("Cannot use --index without --continue.")
 
-    ProblemType = problem_types.get(task_type)
-    if not ProblemType:
-        raise Exception(f'Unknown task type: "{task_type}".')
+    ctx.ensure_object(dict)
+    ctx.obj["outdir"] = outdir
+    ctx.obj["replay"] = replay
+    ctx.obj["resume"] = resume
+    ctx.obj["index"] = index
+    ctx.obj["unsafe"] = unsafe
+    ctx.obj["silent"] = silent
+    ctx.obj["nologs"] = nologs
+    ctx.obj["baseline"] = baseline
+    ctx.obj["altexp"] = altexp
+    ctx.obj["shortexp"] = shortexp
+    ctx.obj["raw"] = raw
 
-    problem_instance = ProblemType(task_args)
-    problem_instance.validate_self()
+
+@list.command("quixbugs")
+def list_quixbugs():
+    for name in list_quixbugs_problems():
+        print(name)
+
+
+@show.command("quixbugs")
+@click.argument("name", nargs=1, type=str, required=True)
+def show_quixbugs(name: str):
+    problem = QuixbugsProblem(name)
+    problem.validate_self()
+    print(format_problem(problem))
+
+
+@run.command("quixbugs")
+@click.argument("name", nargs=1, type=str, required=True)
+@click.pass_context
+def run_quixbugs(ctx, name: str):
+    problem = QuixbugsProblem(name)
+    problem.validate_self()
+    run_problem(problem, ctx)
+
+
+@list.command("cosmic_ray")
+@click.argument("session_file", nargs=1, type=click.Path(dir_okay=False), required=True)
+def list_cosmic_ray(session_file: Path):
+    mutants = list_mutants(session_file)
+    module_path_len = max(6, max(len(m.module_path) for m in mutants))
+    mutant_op_len = max(9, max(len(m.mutant_op) for m in mutants))
+    occurrence_len = max(1, max(len(str(m.occurrence)) for m in mutants))
+    line_len = max(4, max(len(str(m.line_start)) for m in mutants))
+
+    print(
+        f"{"target":<{module_path_len}}  {"mutant_op":<{mutant_op_len}}  {"#":<{occurrence_len}}  {"line":<{line_len}}"
+    )
+    print("-" * (module_path_len + mutant_op_len + occurrence_len + line_len + 6))
+    for m in mutants:
+        print(
+            f"{m.module_path:<{module_path_len}}  {m.mutant_op:<{mutant_op_len}}  {m.occurrence:<{occurrence_len}}  {m.line_start:<{line_len}}"
+        )
+
+
+@show.command("cosmic_ray")
+@click.argument(
+    "module_path",
+    nargs=1,
+    type=click.Path(exists=True),
+    required=True,
+)
+@click.argument(
+    "target_path",
+    nargs=1,
+    type=str,
+    required=True,
+)
+@click.argument(
+    "mutant_op",
+    nargs=1,
+    type=str,
+    required=True,
+)
+@click.argument(
+    "occurrence",
+    nargs=1,
+    type=int,
+    required=True,
+)
+def show_cosmic_ray(module_path: str, target_path: str, mutant_op: str, occurrence: int):
+    problem = CosmicRayProblem(
+        module_path=Path(module_path), target_path=target_path, mutant_op_name=mutant_op, occurrence=occurrence
+    )
+    problem.validate_self()
+    print(format_problem(problem))
+
+
+@run.command("cosmic_ray")
+@click.argument(
+    "module_path",
+    nargs=1,
+    type=click.Path(exists=True),
+    required=True,
+)
+@click.argument(
+    "target_path",
+    nargs=1,
+    type=str,
+    required=True,
+)
+@click.argument(
+    "mutant_op",
+    nargs=1,
+    type=str,
+    required=True,
+)
+@click.argument(
+    "occurrence",
+    nargs=1,
+    type=int,
+    required=True,
+)
+@click.pass_context
+def run_cosmic_ray(
+    ctx,
+    module_path: Path,
+    target_path: str,
+    mutant_op: str,
+    occurrence: int,
+):
+    problem = CosmicRayProblem(
+        module_path=module_path, target_path=target_path, mutant_op_name=mutant_op, occurrence=occurrence
+    )
+    problem.validate_self()
+    run_problem(problem, ctx)
+
+
+def run_problem(problem: Problem, ctx):
+    outdir = ctx.obj["outdir"]
+    replay = ctx.obj["replay"]
+    resume = ctx.obj["resume"]
+    index = ctx.obj["index"]
+    unsafe = ctx.obj["unsafe"]
+    silent = ctx.obj["silent"]
+    nologs = ctx.obj["nologs"]
+    baseline = ctx.obj["baseline"]
+    altexp = ctx.obj["altexp"]
+    shortexp = ctx.obj["shortexp"]
+    raw = ctx.obj["raw"]
 
     endpoint = None
     if replay:
@@ -183,12 +284,12 @@ def run(
     settings = replace(settings, altexp=altexp, shortexp=shortexp)
 
     # TODO: solve this better
-    prompts = problem_instance.get_default_prompts()
+    prompts = problem.get_default_prompts()
     if altexp:
         prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
 
     loop = LoopCls(
-        problem=problem_instance,
+        problem=problem,
         endpoint=endpoint,
         prompts=prompts,
         printer=message_printer,

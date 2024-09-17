@@ -1,6 +1,7 @@
 import errno
 import os
 import shutil
+import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -32,8 +33,8 @@ MutantOp = Any
 
 @dataclass
 class CosmicRayProblemDescription(ProblemDescription):
-    project_path: Path
     module_path: Path
+    target_path: str
     mutant_op: str
     occurrence: int
 
@@ -42,7 +43,7 @@ class CosmicRayProblem(Problem):
     def __init__(
         self,
         module_path: Path,
-        target_path: Path,
+        target_path: str,
         mutant_op_name: str,
         occurrence: int,
         python_interpreter: Path | None = None,
@@ -137,11 +138,6 @@ class CosmicRayProblem(Problem):
     def get_type() -> str:
         return "cosmic-ray"
 
-    @staticmethod
-    @override
-    def list_problems(quixbugs_path: Path | None = None) -> List[str]:
-        return []
-
     @override
     def get_default_prompts(self) -> PromptCollection:
         return default_prompts
@@ -152,8 +148,8 @@ class CosmicRayProblem(Problem):
     def get_description(self) -> CosmicRayProblemDescription:
         return CosmicRayProblemDescription(
             type=self.get_type(),
-            project_path=self.module_path,
-            module_path=self.target_path,
+            module_path=self.module_path,
+            target_path=self.target_path,
             mutant_op=self.mutant_op_name,
             occurrence=self.occurrence,
         )
@@ -240,3 +236,19 @@ class CosmicRayProblem(Problem):
 
             cut_path = correct_module_path / self.target_path
             yield CosmicRayProblem.CodeDir(root_path=temp_path, cut_path=cut_path, test_path=test_path)
+
+
+@dataclass
+class MutantSpec:
+    module_path: str
+    mutant_op: str
+    occurrence: int
+    line_start: int
+    line_end: int
+
+
+def list_mutants(session_file: Path) -> List[MutantSpec]:
+    conn = sqlite3.connect(session_file)
+    cursor = conn.cursor()
+    cursor.execute("select module_path, operator_name, occurrence, start_pos_row, end_pos_row from mutation_specs;")
+    return [MutantSpec(*args) for args in cursor.fetchall()]
