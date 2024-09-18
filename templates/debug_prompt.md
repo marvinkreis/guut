@@ -76,7 +76,7 @@ The program exited.
 
 Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis.
 
-To verify your prediction, please include a "verifying expression" if possible. A "verifying expression" is a boolean expression that represents your prediction. For example, if you predicted that the mtau code produces a non-empty list and the mutant code produces an empty list, your verifying expression might be "len(output) > 0". If this expression evaluates to True on the correct code and False on the mutant, then you know that your prediction was correct.
+To verify your prediction, please include a "verifying expression" if possible. A "verifying expression" is a boolean expression that represents your prediction. For example, if you predicted that the mutant code produces a non-empty list and the mutant code produces an empty list, your verifying expression might be "len(output) > 0". If this expression evaluates to True on the correct code and False on the mutant, then you know that your prediction was correct.
 
 Please use the Python debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment. In your first experiment, always include a debugger script that prints interesting intermediate values. This helps you see what is happening inside the code.
 
