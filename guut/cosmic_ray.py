@@ -160,7 +160,6 @@ class CosmicRayProblem(Problem):
         buggy_code = mutate_code(code=correct_code.encode(), operator=self.mutant_op, occurrence=self.occurrence)
         if buggy_code is None:
             raise Exception("Couldn't mutate code.")
-        print(buggy_code)
 
         with TemporaryDirectory() as tempdir:
             temp_path = Path(tempdir)
