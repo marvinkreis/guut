@@ -28,13 +28,21 @@ After writing a hypothesis, you create an experiment to test it. Each experiment
 from sieve import sieve
 from mutant.sieve import sieve as mutant_sieve
 
-print(f"correct output = {sieve(5)}")
-print(f"correct verifying expression = {len(sieve(5)) > 0}")
-print(f"mutant output = {mutant_sieve(5)}")
-print(f"mutant verifying expression = {len(mutant_sieve(5)) > 0}")
+correct_output = sieve(5)
+print(f"correct output = {correct_output}")
+print(f"correct verifying expression = {len(correct_output) > 0}")
+
+mutant_output = mutant_sieve(5)
+print(f"mutant output = {mutant_output}")
+print(f"mutant verifying expression = {len(mutant_output) > 0}")
 ```
 
 ```pdb
+b sieve.py:16
+commands
+silent
+print(f"correct code: n={n}, primes={primes}")
+c
 b mutant/sieve.py:16
 commands
 silent
@@ -44,12 +52,16 @@ c
 ```
 
 Output:
+{% if not shortexp %}
 ```
 correct output = [2, 3, 5]
+correct verifying expression = True
 mutant output = []
+mutant verifying expression = False
 ```
 
-Debugger output:
+Debugger Output:
+{% endif %}
 ```
 > test.py(1)<module>()
 -> from sieve import sieve
@@ -70,7 +82,9 @@ correct code: n=2, primes=[]
 correct code: n=3, primes=[2]
 correct code: n=5, primes=[2, 3]
 correct output = [2, 3, 5]
+correct verifying expression = True
 mutant output = []
+mutant verifying expression = False
 The program exited.
 ```
 
