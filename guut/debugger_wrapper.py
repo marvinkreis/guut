@@ -5,15 +5,14 @@ Wraps pdb and echos the entered debugger commands.
 This makes them show up in the output when input is from a pipe.
 """
 
+import os
+import pdb
 import sys
 from pathlib import Path
+from traceback import print_exception
 
 
 def wrapped_debugger(script: Path) -> None:
-    import sys
-    from pdb import Pdb, Restart, _ScriptTarget  # pyright: ignore (private memeber)
-    from traceback import print_exception
-
     class Intercept:
         def __init__(self):
             self.real_stdin = sys.stdin
@@ -25,16 +24,22 @@ def wrapped_debugger(script: Path) -> None:
             return line
 
     sys.stdin = Intercept()
-
-    target = _ScriptTarget(str(script))
-    target.check()
-
-    pdb = Pdb()
+    debugger = pdb.Pdb()
 
     try:
-        pdb._run(target)  # pyright: ignore (private member)
+        if hasattr(pdb, "_ScriptTarget"):  # for python 3.11
+            target = pdb._ScriptTarget(str(script))  # pyright: ignore (private member)
+            target.check()
+            debugger._run(target)  # pyright: ignore (private member)
+        elif hasattr(debugger, "_runscript"):  # for python 3.8
+            mainpyfile = os.path.realpath(script)
+            sys.path[0] = os.path.dirname(mainpyfile)
+            debugger._runscript(mainpyfile)  # pyright: ignore (private member)
+        else:
+            print("Failed to run debugger.")
+            return
         print("The program exited.")
-    except Restart:
+    except pdb.Restart:
         # Don't restart the debugger.
         pass
     except SystemExit as e:
