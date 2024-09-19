@@ -220,6 +220,7 @@ In this example, the `c` command terminates the command list and instructs the d
 - Use print statements liberally in your experiments/tests.
 - Never recreate the code under test as part of your experiment/test.
 - In your first experiment, always include a debugger script that prints interesting intermediate values. This helps you see what is happening inside the code.
+- Some mutants can result in ininite loops or other timeouts. Therefore, please always print the results from the correct code before calling the mutant.
 
 
 # Example Task
