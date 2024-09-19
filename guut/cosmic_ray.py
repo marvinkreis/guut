@@ -26,17 +26,20 @@ from guut.problem import (
     ValidationResult,
 )
 from guut.prompts import PromptCollection, default_prompts
-from guut.util import ensure_python_coverage_module_is_installed
 
 MutantOp = Any
 
 
+# TODO: add python interpreter?
 @dataclass
 class CosmicRayProblemDescription(ProblemDescription):
     module_path: Path
     target_path: str
     mutant_op: str
     occurrence: int
+
+    def format(self):
+        return f"{self.module_path.name}_{self.target_path}_{self.mutant_op}_{self.occurrence}"
 
 
 class CosmicRayProblem(Problem):
@@ -55,7 +58,6 @@ class CosmicRayProblem(Problem):
         self.occurrence = occurrence
         self.python_interpreter = python_interpreter or config.python_interpreter
         self.executor = PythonExecutor(python_interpreter=self.python_interpreter)
-        ensure_python_coverage_module_is_installed(python_interpreter=self.python_interpreter)
         self.mutant_op = get_operator(mutant_op_name)()
 
     @override
@@ -239,7 +241,7 @@ class CosmicRayProblem(Problem):
 
 @dataclass
 class MutantSpec:
-    module_path: str
+    target_path: str
     mutant_op: str
     occurrence: int
     line_start: int

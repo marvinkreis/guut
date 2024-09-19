@@ -23,7 +23,6 @@ from guut.problem import (
     ValidationResult,
 )
 from guut.prompts import PromptCollection, default_prompts
-from guut.util import ensure_python_coverage_module_is_installed
 
 
 @dataclass
@@ -48,7 +47,6 @@ class QuixbugsProblem(Problem):
             python_interpreter = Path(config.python_interpreter)
         self.quixbugs_path = quixbugs_path
         self.executor = PythonExecutor(python_interpreter=python_interpreter)
-        ensure_python_coverage_module_is_installed(python_interpreter=python_interpreter)
 
     @override
     def class_under_test(self) -> TextFile:

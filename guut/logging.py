@@ -28,6 +28,7 @@ class ConversationLogger:
             path.unlink()
         self.old_logs = []
 
+        name = clean_filename(name)
         timestamp = datetime.now()
         json_path = self.construct_file_name(name, "json", timestamp)
         text_path = self.construct_file_name(name, "txt", timestamp)

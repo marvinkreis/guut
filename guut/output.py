@@ -6,6 +6,8 @@ from datetime import datetime
 from json import JSONEncoder
 from pathlib import Path
 
+from cosmic_ray_runner import CosmicRayRunnerResult
+
 from guut.formatting import format_conversation_pretty
 from guut.llm import Conversation, LLMEndpoint, Message
 from guut.loop import Result
@@ -29,6 +31,21 @@ def write_result_dir(result: Result, out_dir: Path | str | None = None):
     write_conversation(result.conversation, out_dir=result_dir)
 
 
+def write_cosmic_ray_runner_result_dir(result: CosmicRayRunnerResult, out_dir: Path):
+    if not out_dir:
+        out_dir = os.getcwd()
+
+    result_path = Path(out_dir) / "result.json"
+    with result_path.open("w") as file:
+        json.dump(result, file, cls=CustomJSONEncoder)
+
+    tests_path = Path(out_dir) / "tests"
+    tests_path.mkdir()
+    for loop_result in result.loops:
+        if test := loop_result.get_killing_test():
+            write_test(test.code, out_dir=tests_path, test_name=f"{clean_filename(loop_result.id)}.py")
+
+
 def write_result(result: Result, out_dir: Path | str | None = None):
     if not out_dir:
         out_dir = os.getcwd()
@@ -38,11 +55,11 @@ def write_result(result: Result, out_dir: Path | str | None = None):
         json.dump(result, file, cls=CustomJSONEncoder)
 
 
-def write_test(test_code: str, out_dir: Path | str | None = None):
+def write_test(test_code: str, out_dir: Path | str | None = None, test_name: str = "test.py"):
     if not out_dir:
         out_dir = os.getcwd()
 
-    result_path = Path(out_dir) / "test.py"
+    result_path = Path(out_dir) / test_name
     result_path.write_text(test_code)
 
 

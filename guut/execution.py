@@ -19,7 +19,7 @@ class PythonExecutor:
         self,
         target: Path,
         cwd: Path | None = None,
-        timeout_secs: int = 2,
+        timeout_secs: int = 5,
         python_interpreter: Path | None = None,
     ) -> ExecutionResult:
         if not python_interpreter:
@@ -35,7 +35,7 @@ class PythonExecutor:
         target: Path,
         debugger_script: str,
         cwd: Path | None = None,
-        timeout_secs: int = 2,
+        timeout_secs: int = 5,
         python_interpreter: Path | None = None,
     ) -> ExecutionResult:
         if not python_interpreter:
@@ -53,7 +53,7 @@ class PythonExecutor:
         cut_file: Path,
         include_files: List[Path] | None = None,
         cwd: Path | None = None,
-        timeout_secs: int = 2,
+        timeout_secs: int = 5,
         python_interpreter: Path | None = None,
     ) -> ExecutionResult:
         python_interpreter = python_interpreter or self.python_interpreter

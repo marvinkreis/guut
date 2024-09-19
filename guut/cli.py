@@ -1,15 +1,18 @@
 import json
 from dataclasses import replace
 from pathlib import Path
+from random import randbytes
 
 import click
 import yaml
 from loguru import logger
 from openai import OpenAI
+from util import ensure_python_coverage_module_is_installed
 
 from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
 from guut.cosmic_ray import CosmicRayProblem, list_mutants
+from guut.cosmic_ray_runner import CosmicRayRunner
 from guut.formatting import format_problem
 from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
@@ -85,6 +88,15 @@ def show():
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
 @click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
+@click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
+@click.option(
+    "--python-interpreter",
+    "--py",
+    nargs=1,
+    type=click.Path(exists=True, dir_okay=False),
+    required=False,
+    help="The python interpreter to use for testing.",
+)
 @click.pass_context
 def run(
     ctx,
@@ -92,6 +104,7 @@ def run(
     replay: str | None,
     resume: str | None,
     index: int | None,
+    python_interpreter: str | None,
     unsafe: bool = False,
     silent: bool = False,
     nologs: bool = False,
@@ -117,6 +130,9 @@ def run(
     ctx.obj["altexp"] = altexp
     ctx.obj["shortexp"] = shortexp
     ctx.obj["raw"] = raw
+    py = Path(python_interpreter) if python_interpreter else config.python_interpreter
+    ensure_python_coverage_module_is_installed(py)
+    ctx.obj["python_interpreter"] = py
 
 
 @list.command("quixbugs")
@@ -136,7 +152,7 @@ def show_quixbugs(name: str):
 @run.command("quixbugs")
 @click.argument("name", nargs=1, type=str, required=True)
 @click.pass_context
-def run_quixbugs(ctx, name: str):
+def run_quixbugs(ctx: click.Context, name: str):
     problem = QuixbugsProblem(name)
     problem.validate_self()
     run_problem(problem, ctx)
@@ -144,20 +160,20 @@ def run_quixbugs(ctx, name: str):
 
 @list.command("cosmic_ray")
 @click.argument("session_file", nargs=1, type=click.Path(dir_okay=False), required=True)
-def list_cosmic_ray(session_file: Path):
-    mutants = list_mutants(session_file)
-    module_path_len = max(6, max(len(m.module_path) for m in mutants))
+def list_cosmic_ray(session_file: str):
+    mutants = list_mutants(Path(session_file))
+    target_path_len = max(6, max(len(m.target_path) for m in mutants))
     mutant_op_len = max(9, max(len(m.mutant_op) for m in mutants))
     occurrence_len = max(1, max(len(str(m.occurrence)) for m in mutants))
     line_len = max(4, max(len(str(m.line_start)) for m in mutants))
 
     print(
-        f"{"target":<{module_path_len}}  {"mutant_op":<{mutant_op_len}}  {"#":<{occurrence_len}}  {"line":<{line_len}}"
+        f"{"target":<{target_path_len}}  {"mutant_op":<{mutant_op_len}}  {"#":<{occurrence_len}}  {"line":<{line_len}}"
     )
-    print("-" * (module_path_len + mutant_op_len + occurrence_len + line_len + 6))
+    print("-" * (target_path_len + mutant_op_len + occurrence_len + line_len + 6))
     for m in mutants:
         print(
-            f"{m.module_path:<{module_path_len}}  {m.mutant_op:<{mutant_op_len}}  {m.occurrence:<{occurrence_len}}  {m.line_start:<{line_len}}"
+            f"{m.target_path:<{target_path_len}}  {m.mutant_op:<{mutant_op_len}}  {m.occurrence:<{occurrence_len}}  {m.line_start:<{line_len}}"
         )
 
 
@@ -221,20 +237,24 @@ def show_cosmic_ray(module_path: str, target_path: str, mutant_op: str, occurren
 )
 @click.pass_context
 def run_cosmic_ray(
-    ctx,
-    module_path: Path,
+    ctx: click.Context,
+    module_path: str,
     target_path: str,
     mutant_op: str,
     occurrence: int,
 ):
     problem = CosmicRayProblem(
-        module_path=module_path, target_path=target_path, mutant_op_name=mutant_op, occurrence=occurrence
+        module_path=Path(module_path),
+        target_path=target_path,
+        mutant_op_name=mutant_op,
+        occurrence=occurrence,
+        python_interpreter=ctx.obj["python_interpreter"],
     )
     problem.validate_self()
     run_problem(problem, ctx)
 
 
-def run_problem(problem: Problem, ctx):
+def run_problem(problem: Problem, ctx: click.Context):
     outdir = ctx.obj["outdir"]
     replay = ctx.obj["replay"]
     resume = ctx.obj["resume"]
@@ -301,3 +321,104 @@ def run_problem(problem: Problem, ctx):
     result = loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
     write_result_dir(result, out_dir=outdir or config.output_path)
+
+
+# TODO: add python interpreter
+@cli.command()
+@click.argument(
+    "session_file",
+    nargs=1,
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+)
+@click.argument(
+    "module_path",
+    nargs=1,
+    type=click.Path(exists=True, file_okay=False),
+    required=True,
+)
+@click.option(
+    "--outdir",
+    nargs=1,
+    type=click.Path(exists=True, file_okay=False),
+    required=False,
+    help="Write results to the given directory. Otherwise the working directory is used.",
+)
+@click.option(
+    "-y",
+    "--yes",
+    "unsafe",
+    is_flag=True,
+    default=False,
+    help="Request completions without confirmation. Implies no -s.",
+)
+@click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
+@click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
+@click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
+@click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
+@click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
+@click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
+@click.option(
+    "--python-interpreter",
+    "--py",
+    nargs=1,
+    type=click.Path(exists=True, dir_okay=False),
+    required=False,
+    help="The python interpreter to use for testing.",
+)
+def cosmic_ray_runner(
+    session_file: str,
+    module_path: str,
+    outdir: str | None,
+    python_interpreter: str | None,
+    unsafe: bool = False,
+    silent: bool = False,
+    nologs: bool = False,
+    baseline: bool = False,
+    altexp: bool = False,
+    shortexp: bool = False,
+    raw: bool = False,
+):
+    endpoint = None
+    endpoint = OpenAIEndpoint(
+        OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), "gpt-4o-mini"
+    )
+    if not unsafe:
+        silent = False
+        endpoint = SafeguardLLMEndpoint(endpoint)
+
+    conversation_logger = ConversationLogger() if not nologs else None
+    message_printer = MessagePrinter(print_raw=raw) if not silent else None
+
+    LoopCls = Loop if not baseline else BaselineLoop
+    settings = LoopSettings() if not baseline else BaselineSettings()
+    settings = replace(settings, altexp=altexp, shortexp=shortexp)
+
+    mutant_specs = list_mutants(Path(session_file))
+    py = Path(python_interpreter) if python_interpreter else config.python_interpreter
+
+    out_path = Path(outdir) if outdir else config.output_path
+
+    randchars = "".join(f"{b:x}" for b in randbytes(4))
+    id = "{}_{}".format(Path(module_path).stem, randchars)
+
+    out_path = out_path / id
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    loops_dir = out_path / "loops"
+    loops_dir.mkdir(exist_ok=True)
+
+    runner = CosmicRayRunner(
+        mutant_specs=mutant_specs,
+        module_path=Path(module_path),
+        python_interpreter=Path(py),
+        endpoint=endpoint,
+        loop_cls=LoopCls,
+        altexp=altexp,
+        shortexp=shortexp,
+        conversation_logger=conversation_logger,
+        message_printer=message_printer,
+        loop_settings=settings,
+    )
+    for result in runner.generate_tests():
+        write_result_dir(result, out_dir=loops_dir)
