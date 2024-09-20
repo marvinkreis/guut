@@ -8,7 +8,7 @@
 {% if result.timeout %}
 The {{ name }} was canceled due to a timeout{% if result.exitcode != 0 %} and exited with exit code {{ result.exitcode }}{% endif %}.
 {% if not result.output.strip() %}
-Your empty output suggests that no print statement was executed. Try printing any correct results before calling the mutant.
+Empty experiment output means that no print statement was executed. To fix this, print any results from the correct code before calling the mutant.
 {% endif %}
 
 {% elif result.exitcode != 0 %}
