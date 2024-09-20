@@ -6,13 +6,14 @@ This makes them show up in the output when input is from a pipe.
 """
 
 import os
-import pdb
 import sys
 from pathlib import Path
-from traceback import print_exception
 
 
 def wrapped_debugger(script: Path) -> None:
+    import pdb
+    import sys
+
     class Intercept:
         def __init__(self):
             self.real_stdin = sys.stdin
@@ -46,7 +47,7 @@ def wrapped_debugger(script: Path) -> None:
         # Stop on SystemExit.
         print(f"The program exited via sys.exit(). Exit status: {e.code}")
     except BaseException as e:
-        print_exception(e)
+        print(f"{type(e).__name__}: {e}")
         sys.exit(1)
 
 
