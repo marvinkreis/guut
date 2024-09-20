@@ -9,16 +9,22 @@ from loop import Loop, LoopSettings, Result, Test
 
 from guut.cosmic_ray import CosmicRayProblem, MutantSpec
 from guut.logging import ConversationLogger, MessagePrinter
-from guut.problem import Coverage
+from guut.problem import Coverage, TestResult
 from guut.prompts import debug_prompt_altexp
 
 
 @dataclass
+class KilledMutant:
+    spec: MutantSpec
+    test_result: TestResult | None
+
+
+@dataclass
 class ResultWithKilledMutants(Result):
-    killed_mutants: List[MutantSpec]
+    killed_mutants: List[KilledMutant]
 
     @staticmethod
-    def create(result: Result, killed_mutants: List[MutantSpec]):
+    def create(result: Result, killed_mutants: List[KilledMutant]):
         return ResultWithKilledMutants(
             tests=result.tests,
             experiments=result.experiments,
@@ -41,7 +47,7 @@ class CosmicRayRunnerResult:
     loops: List[ResultWithKilledMutants]
     mutants: List[MutantSpec]
     alive_mutants: List[MutantSpec]
-    killed_mutants: List[MutantSpec]
+    killed_mutants: List[KilledMutant]
 
 
 class CosmicRayRunner:
@@ -61,6 +67,7 @@ class CosmicRayRunner:
         self.mutants = mutant_specs[::]
         self.alive_mutants = mutant_specs[::]
         self.mutant_queue = mutant_specs[::]
+        self.killed_mutants: List[KilledMutant] = []
         self.module_path = module_path
         self.python_interpreter = python_interpreter
         self.endpoint = endpoint
@@ -77,7 +84,7 @@ class CosmicRayRunner:
         self.mutant_queue.remove(mutant)
         return mutant
 
-    def run_against_alive_mutants(self, test: Test) -> List[MutantSpec]:
+    def run_against_alive_mutants(self, test: Test) -> List[KilledMutant]:
         assert test.result is not None and test.result.correct is not None
 
         coverage = test.result.correct.coverage
@@ -105,7 +112,9 @@ class CosmicRayRunner:
                         self.alive_mutants.remove(mutant)
                     if mutant in self.mutant_queue:
                         self.mutant_queue.remove(mutant)
-                    killed_mutants.append(mutant)
+                    m = KilledMutant(mutant, test_result=exec_result)
+                    killed_mutants.append(m)
+                    self.killed_mutants.append(m)
 
         return killed_mutants
 
@@ -151,7 +160,9 @@ class CosmicRayRunner:
                 logger.info(f"Loop killed the assigned mutant {mutant}")
                 if mutant in self.alive_mutants:
                     self.alive_mutants.remove(mutant)
-                killed_mutants.append(mutant)
+                m = KilledMutant(mutant, test.result)
+                killed_mutants.append(m)
+                self.killed_mutants.append(m)
                 killed_mutants += self.run_against_alive_mutants(test)
                 logger.info(f"Test killed {len(killed_mutants) - 1} additional mutants.")
                 logger.info(f"Remaining mutants: {len(self.alive_mutants)}")
@@ -164,8 +175,5 @@ class CosmicRayRunner:
 
     def get_result(self):
         return CosmicRayRunnerResult(
-            loops=self.loops,
-            mutants=self.mutants,
-            alive_mutants=self.alive_mutants,
-            killed_mutants=[m for m in self.mutants if m not in self.alive_mutants],
+            loops=self.loops, mutants=self.mutants, alive_mutants=self.alive_mutants, killed_mutants=self.killed_mutants
         )
