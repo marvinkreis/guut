@@ -1,25 +1,22 @@
 from typing import override
 
+from guut.baseline_loop import BaselineLoop, BaselineReponse
 from guut.llm import AssistantMessage
 from guut.loop import (
-    EquivalenceClaim,
-    ExperimentDescription,
     InvalidStateException,
-    Loop,
     LoopSettings,
     Response,
     Result,
     State,
-    TestDescription,
 )
 
 
-class BaselineSettings(LoopSettings):
+class BaselineSettings2(LoopSettings):
     @override
     def __init__(
         self,
         max_num_experiments: int = 0,
-        max_retries_for_invalid_test: int = 14,
+        max_retries_for_invalid_test: int = 0,
         max_num_incomplete_responses: int = 2,
         altexp: bool = False,
         shortexp: bool = False,
@@ -35,21 +32,7 @@ class BaselineSettings(LoopSettings):
         )
 
 
-class BaselineReponse(Response):
-    def __init__(self, response: Response):
-        self.text = response.text
-        self.sections = response.sections
-
-    @override
-    def guess_action(self) -> ExperimentDescription | TestDescription | EquivalenceClaim | None:
-        for section in reversed(self.sections):
-            if section.kind == "equivalence":
-                return EquivalenceClaim(text=section.text)
-            elif section.code_blocks:
-                return TestDescription(text=section.text, code=section.code_blocks[-1])
-
-
-class BaselineLoop(Loop):
+class BaselineLoop2(BaselineLoop):
     @override
     def _perform_next_step(self, state: State):
         if state == State.EMPTY:
@@ -96,7 +79,7 @@ class BaselineLoop(Loop):
 
     @override
     def _generate_id(self) -> str:
-        return f"baseline_{super()._generate_id()}"
+        return f"baseline2_{super()._generate_id()}"
 
     @override
     def _complete(self) -> AssistantMessage:
@@ -105,5 +88,5 @@ class BaselineLoop(Loop):
     @override
     def get_result(self) -> Result:
         result = super().get_result()
-        result.implementation = "baseline"
+        result.implementation = "baseline2"
         return result

@@ -603,3 +603,64 @@ bla bla bla
 
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_STATED
+
+
+def test__bug_1():
+    msg = """
+To create a test that effectively distinguishes between the correct implementation and the mutant, we will take advantage of the modified `forward_exceed` condition in the mutant code. This change may allow an invalid configuration to circumvent normal validation checks.
+
+Given the prior insights, we can focus on the case where `step` is zero, which should typically raise a `ValueError` in the original code but may produce a different behavior in the mutant.
+
+### Mutant-Killing Test Code
+We will target a scenario involving `roman_range` with specific inputs likely to expose the mutant's behavior while continuing to ensure that both implementations maintain expected functionality.
+
+```python
+from string_utils.generation import roman_range
+
+def test_roman_range_mutant_kill():
+\"\"\"Test to kill the mutant by exploiting the changed logic.\"\"\"
+
+# Test for a zero step, which should raise a ValueError in the correct implementation
+try:
+result = list(roman_range(10, 1, 0))  # This should raise ValueError for both
+assert False, "Expected ValueError for zero step was not raised."
+except ValueError as e:
+assert str(e) == '"step" must be an integer in the range 1-3999', "Unexpected error message."
+
+# Test with backward generation where normally it should cause OverflowError
+try:
+result = list(roman_range(10, 1, -1))  # This is expected to raise an OverflowError
+assert False, "Expected OverflowError for backward generation was not raised."
+except OverflowError:
+pass  # This is expected in the original code
+
+# Valid forward case
+result = list(roman_range(5, 1, 1))  # Should yield I, II, III, IV, V
+assert result == ['I', 'II', 'III', 'IV', 'V'], "Forward range case failed."
+
+test_roman_range_mutant_kill()
+```
+
+### Objective of the Test
+1. **Zero Step Validation**: Ensure that the mutant cannot handle zero steps correctly and raises a `ValueError` with the appropriate message. This test should fail if the mutant's logic unwittingly allows this situation to pass.
+2. **Overflow Handling**: Confirm that the correct implementation raises an `OverflowError` for appropriately invalid configurations while asserting mid-experiment that the mutant cannot maintain this check.
+3. **Standard Functionality**: Finally, ensure standard sorted functionality across valid cases remains aligned with expected outputs, assuring no changes in desired outcomes under the stipulated scenarios of correctness.
+
+This structured approach should effectively kill the mutant by leveraging previously established observations regarding the impact of adjustments made to the function's logic in handling these various edge cases.
+        """
+
+    conversation = Conversation(
+        [UserMessage("", tag=State.INITIAL), UserMessage("", tag=State.TEST_INSTRUCTIONS_GIVEN)]
+    )
+    endpoint = ReplayLLMEndpoint.from_raw_messages([msg])
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == State.TEST_STATED
+    loop.perform_next_step()  # This used to cause an exception, because the was parsed as an experiment.

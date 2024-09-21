@@ -10,6 +10,7 @@ from openai import OpenAI
 from util import ensure_python_coverage_module_is_installed
 
 from guut.baseline_loop import BaselineLoop, BaselineSettings
+from guut.baseline_loop_2 import BaselineLoop2, BaselineSettings2
 from guut.config import config
 from guut.cosmic_ray import CosmicRayProblem, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
@@ -20,7 +21,7 @@ from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings
-from guut.output import write_result_dir
+from guut.output import CustomJSONEncoder, write_cosmic_ray_runner_result_dir, write_result_dir
 from guut.problem import Problem
 from guut.prompts import debug_prompt_altexp
 from guut.quixbugs import QuixbugsProblem
@@ -86,6 +87,7 @@ def show():
 @click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
+@click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
 @click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
@@ -109,6 +111,7 @@ def run(
     silent: bool = False,
     nologs: bool = False,
     baseline: bool = False,
+    baseline2: bool = False,
     altexp: bool = False,
     shortexp: bool = False,
     raw: bool = False,
@@ -117,6 +120,8 @@ def run(
         raise Exception("Cannot use --replay and --continue together.")
     if index and not resume:
         raise Exception("Cannot use --index without --continue.")
+    if baseline and baseline2:
+        raise Exception("Cannot use --baseline and --baseline2 together.")
 
     ctx.ensure_object(dict)
     ctx.obj["outdir"] = outdir
@@ -127,6 +132,7 @@ def run(
     ctx.obj["silent"] = silent
     ctx.obj["nologs"] = nologs
     ctx.obj["baseline"] = baseline
+    ctx.obj["baseline2"] = baseline2
     ctx.obj["altexp"] = altexp
     ctx.obj["shortexp"] = shortexp
     ctx.obj["raw"] = raw
@@ -263,6 +269,7 @@ def run_problem(problem: Problem, ctx: click.Context):
     silent = ctx.obj["silent"]
     nologs = ctx.obj["nologs"]
     baseline = ctx.obj["baseline"]
+    baseline2 = ctx.obj["baseline2"]
     altexp = ctx.obj["altexp"]
     shortexp = ctx.obj["shortexp"]
     raw = ctx.obj["raw"]
@@ -299,8 +306,14 @@ def run_problem(problem: Problem, ctx: click.Context):
     conversation_logger = ConversationLogger() if not nologs else None
     message_printer = MessagePrinter(print_raw=raw) if not silent else None
 
-    LoopCls = Loop if not baseline else BaselineLoop
-    settings = LoopSettings() if not baseline else BaselineSettings()
+    LoopCls = Loop
+    settings = LoopSettings()
+    if baseline:
+        LoopCls = BaselineLoop
+        settings = BaselineSettings()
+    elif baseline2:
+        LoopCls = BaselineLoop2
+        settings = BaselineSettings2()
     settings = replace(settings, altexp=altexp, shortexp=shortexp)
 
     # TODO: solve this better
@@ -355,6 +368,7 @@ def run_problem(problem: Problem, ctx: click.Context):
 @click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
+@click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
 @click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
@@ -375,6 +389,7 @@ def cosmic_ray_runner(
     silent: bool = False,
     nologs: bool = False,
     baseline: bool = False,
+    baseline2: bool = False,
     altexp: bool = False,
     shortexp: bool = False,
     raw: bool = False,
@@ -390,9 +405,14 @@ def cosmic_ray_runner(
     conversation_logger = ConversationLogger() if not nologs else None
     message_printer = MessagePrinter(print_raw=raw) if not silent else None
 
-    LoopCls = Loop if not baseline else BaselineLoop
-    settings = LoopSettings() if not baseline else BaselineSettings()
-    settings = replace(settings, altexp=altexp, shortexp=shortexp)
+    LoopCls = Loop
+    settings = LoopSettings()
+    if baseline:
+        LoopCls = BaselineLoop
+        settings = BaselineSettings()
+    elif baseline2:
+        LoopCls = BaselineLoop2
+        settings = BaselineSettings2()
 
     mutant_specs = list_mutants(Path(session_file))
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
@@ -420,5 +440,17 @@ def cosmic_ray_runner(
         message_printer=message_printer,
         loop_settings=settings,
     )
+
+    import json
+
+    Path("/tmp/guut").mkdir(exist_ok=True)
+
     for result in runner.generate_tests():
+        Path("/tmp/guut/status.txt").write_text(
+            f"total: {len(runner.mutants)}\nqueued: {len(runner.mutant_queue)}\nalive: {len(runner.alive_mutants)}\nkilled: {len(runner.killed_mutants)}"
+        )
+        with Path("/tmp/guut/queue.json").open("w") as f:
+            json.dump(runner.mutant_queue, f, cls=CustomJSONEncoder)
         write_result_dir(result, out_dir=loops_dir)
+
+    write_cosmic_ray_runner_result_dir(runner.get_result(), out_path)

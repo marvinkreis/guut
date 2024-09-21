@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List
 
 from guut.llm import AssistantMessage, Conversation, Message
-from guut.problem import ExecutionResult, Problem
+from guut.problem import ExecutionResult, Problem, TextFile
 
 
 def format_problem(problem: Problem) -> str:
@@ -171,3 +171,13 @@ def format_execution_result(test_result: ExecutionResult, char_limit: int = 2500
 
 def format_timestamp(timestamp: datetime) -> str:
     return timestamp.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_import_path(cut: TextFile) -> str:
+    path = Path(cut.name)
+    return str(path.parent / path.stem).replace(os.sep, ".")
+
+
+def get_module_name(cut: TextFile) -> str:
+    path = Path(cut.name)
+    return path.stem

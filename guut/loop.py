@@ -168,6 +168,22 @@ class Response:
         else:
             return None
 
+    def guess_experiment(self) -> ExperimentDescription | None:
+        action = self.guess_action()
+        if isinstance(action, TestDescription):
+            return ExperimentDescription(text=action.text, code=action.code, debugger_script=None, kind="experiment")
+        if isinstance(action, EquivalenceClaim):
+            return None
+        return action
+
+    def guess_test(self) -> TestDescription | None:
+        action = self.guess_action()
+        if isinstance(action, ExperimentDescription):
+            return TestDescription(text=action.text, code=action.code)
+        if isinstance(action, EquivalenceClaim):
+            return None
+        return action
+
 
 @dataclass
 class Test(TestDescription):
@@ -412,7 +428,7 @@ class Loop:
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses()
         raw_experiment = self._parse_response(relevant_text)
-        experiment = raw_experiment.guess_action()
+        experiment = raw_experiment.guess_experiment()
 
         if not isinstance(experiment, ExperimentDescription):
             raise InvalidStateException(
@@ -456,7 +472,7 @@ class Loop:
     def _run_test(self):
         relevant_text = self._concat_incomplete_responses()
         raw_experiment = self._parse_response(relevant_text)
-        test = raw_experiment.guess_action()
+        test = raw_experiment.guess_test()
 
         if not isinstance(test, TestDescription):
             raise InvalidStateException(State.TEST_STATED, f"No test present but state is {State.TEST_STATED.value}.")
@@ -490,8 +506,8 @@ class Loop:
                     Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
-        num_retries = len([msg for msg in self.conversation if msg.tag == State.TEST_STATED])
-        if num_retries > (self.settings.max_retries_for_invalid_test + 1):
+        num_tries = len([msg for msg in self.conversation if msg.tag == State.TEST_STATED])
+        if num_tries > self.settings.max_retries_for_invalid_test:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
             )
@@ -610,7 +626,7 @@ class Loop:
             return None
 
     def _generate_id(self) -> str:
-        randchars = "".join(f"{b:x}" for b in randbytes(4))
+        randchars = "".join(f"{b:02x}" for b in randbytes(4))
         id = "{}_{}".format(self.problem.get_description().format(), randchars)
         return id
 

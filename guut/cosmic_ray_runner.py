@@ -138,6 +138,8 @@ class CosmicRayRunner:
                 occurrence=mutant.occurrence,
                 python_interpreter=self.python_interpreter,
             )
+            Path("/tmp/guut/current_cut.py").write_text(problem.class_under_test().content)
+            Path("/tmp/guut/current_diff.diff").write_text(problem.mutant_diff())
 
             # TODO: solve this better
             prompts = problem.get_default_prompts()

@@ -15,6 +15,8 @@ jinja_env.filters["format_debugger_result"] = formatting.format_execution_result
 jinja_env.filters["add_line_numbers"] = formatting.add_line_numbers
 jinja_env.filters["rtrim"] = lambda s: s.rstrip()
 jinja_env.filters["limit_text"] = formatting.limit_text
+jinja_env.filters["get_import_path"] = formatting.get_import_path
+jinja_env.filters["get_module_name"] = formatting.get_module_name
 
 
 class Template:
@@ -89,8 +91,10 @@ class IncompleteResponseTemplate(Template):
 
 
 class BaselinePrompt(Template):
-    def render(self, problem: Problem) -> UserMessage:
-        return UserMessage(self.template.render().strip() + "\n")
+    def render(self, problem: Problem, include_equivalence: bool = True) -> UserMessage:
+        return UserMessage(
+            self.template.render(problem=problem, include_equivalence=include_equivalence).strip() + "\n"
+        )
 
 
 @dataclass
