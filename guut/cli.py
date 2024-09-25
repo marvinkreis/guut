@@ -7,7 +7,6 @@ import click
 import yaml
 from loguru import logger
 from openai import OpenAI
-from util import ensure_python_coverage_module_is_installed
 
 from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.baseline_loop_2 import BaselineLoop2, BaselineSettings2
@@ -137,7 +136,6 @@ def run(
     ctx.obj["shortexp"] = shortexp
     ctx.obj["raw"] = raw
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
-    ensure_python_coverage_module_is_installed(py)
     ctx.obj["python_interpreter"] = py
 
 
