@@ -67,19 +67,19 @@ def shorten_stack_trace(stack_trace: str, path_to_include: str | Path) -> str:
     drop_frame = False  # whether the current frame should be dropped
 
     for line in stack_trace.splitlines():
-        line = line.strip()
+        sline = line.strip()
 
         # Start line
-        if line.startswith("Traceback") or line.startswith("(Pdb) Traceback"):
+        if sline.startswith("Traceback") or sline.startswith("(Pdb) Traceback"):
             in_trace = True
             drop_frame = False
 
         # Start of frame
-        if in_trace and (matches := re.findall(r'File "([^"]*)"', line)):
+        if in_trace and (matches := re.findall(r'File "([^"]*)"', sline)):
             drop_frame = path_to_include not in realpath(matches[0])
 
         # End line
-        if in_trace and re.findall(r"(Exception|Error)", line):
+        if in_trace and re.findall(r"(Exception|Error)", sline):
             in_trace = False
             drop_frame = False
 
