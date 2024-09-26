@@ -166,6 +166,8 @@ def format_execution_result(result: ExecutionResult, char_limit: int = 2500):
     text = shorten_stack_trace(text, result.cwd)
     text = shorten_paths(text, result.cwd)
     text = limit_text(text, char_limit)
+    if result.timeout:
+        text = f"{text}\n<timeout>" if text else "<timeout>"
     return text
 
 
