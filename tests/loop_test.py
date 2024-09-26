@@ -410,10 +410,6 @@ def test__conversation_is_aborted_if_a_test_beyond_the_max_is_submitted():
     loop.perform_next_step()
     assert loop.get_state() == State.TEST_STATED
     loop.perform_next_step()
-    assert loop.get_state() == State.TEST_DOESNT_DETECT_MUTANT
-    loop.perform_next_step()
-    assert loop.get_state() == State.TEST_STATED
-    loop.perform_next_step()
     assert loop.get_state() == State.ABORTED
 
 
