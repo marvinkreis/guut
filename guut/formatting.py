@@ -185,9 +185,13 @@ def format_timestamp(timestamp: datetime) -> str:
 
 def get_import_path(cut: TextFile) -> str:
     path = Path(cut.name)
+    if path.name in ["__init__.py", "__main__.py"] and path.parent.name:
+        return str(path.parent).replace(os.sep, ".")
     return str(path.parent / path.stem).replace(os.sep, ".")
 
 
 def get_module_name(cut: TextFile) -> str:
     path = Path(cut.name)
+    if path.name in ["__init__.py", "__main__.py"] and path.parent.name:
+        return path.parent.name
     return path.stem

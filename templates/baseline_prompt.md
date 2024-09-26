@@ -9,7 +9,7 @@ We are going to give you a Python program and a mutant diff. We want you to writ
 Example:
 
 ```python
-from {{ problem.class_under_test() | get_import_path }} import {{ problem.class_under_test() | get_module_name }}
+from {{ problem.class_under_test() | get_import_path }} import ...
 
 def test_{{ problem.class_under_test() | get_module_name }}()
     # test code here
