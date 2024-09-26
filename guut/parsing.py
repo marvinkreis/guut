@@ -4,18 +4,25 @@ from dataclasses import dataclass
 from typing import List, Tuple
 
 
-def parse_python_test_name(code: str) -> str | None:
+def parse_uncalled_python_tests(code: str) -> List[str]:
     module = ast.parse(code, "test.py", "exec")
 
-    funs = [node for node in module.body if isinstance(node, ast.FunctionDef)]
-    tests = [fun for fun in funs if fun.name.startswith("test")]
+    top_level_func_defs = [node.name for node in module.body if isinstance(node, ast.FunctionDef)]
 
-    if tests:
-        return tests[0].name
-    elif funs:
-        return funs[0].name
-    else:
-        return None
+    top_level_func_calls = []
+    for node in module.body:
+        if isinstance(node, ast.Expr) and isinstance(node.value, ast.Call) and isinstance(node.value.func, ast.Name):
+            top_level_func_calls.append(node.value.func.id)
+        elif isinstance(node, ast.Try):
+            for nested_node in node.body:
+                if (
+                    isinstance(nested_node, ast.Expr)
+                    and isinstance(nested_node.value, ast.Call)
+                    and isinstance(nested_node.value.func, ast.Name)
+                ):
+                    top_level_func_calls.append(nested_node.value.func.id)
+
+    return [func for func in top_level_func_defs if func not in top_level_func_calls and func.startswith("test")]
 
 
 @dataclass

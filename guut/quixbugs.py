@@ -11,7 +11,7 @@ from typing import Iterable, List, Literal, override
 
 from guut.config import config
 from guut.execution import PythonExecutor
-from guut.parsing import parse_python_test_name
+from guut.parsing import parse_uncalled_python_tests
 from guut.problem import (
     AltExperimentResult,
     ExecutionResult,
@@ -97,9 +97,8 @@ class QuixbugsProblem(Problem):
 
     @override
     def run_test(self, code: str, collect_coverage: bool) -> TestResult:
-        test_name = parse_python_test_name(code)
-        if test_name:
-            code = f"{code}\n\n{test_name}()\n"  # add test call
+        for test_name in parse_uncalled_python_tests(code):
+            code += f"\n{test_name}()"  # add test call
         return super().run_test(code, collect_coverage=collect_coverage)
 
     @override
@@ -110,9 +109,8 @@ class QuixbugsProblem(Problem):
         collect_coverage: bool,
         altexp: bool = False,
     ) -> ExperimentResult | AltExperimentResult:
-        test_name = parse_python_test_name(code)
-        if test_name:
-            code = f"{code}\n\n{test_name}()\n"  # add test call
+        for test_name in parse_uncalled_python_tests(code):
+            code += f"\n{test_name}()"  # add test call
         return super().run_experiment(
             code,
             debugger_script=debugger_script,
@@ -204,6 +202,7 @@ class QuixbugsProblem(Problem):
                 [
                     "git",
                     "diff",
+                    "-U5",
                     "--no-index",
                     "--",
                     str(left_file.relative_to(temp_path)),
