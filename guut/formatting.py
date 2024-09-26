@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List
 
 from guut.llm import AssistantMessage, Conversation, Message
-from guut.problem import ExecutionResult, Problem, TextFile
+from guut.problem import ExecutionResult, Problem, TextFile, ValidationResult
 
 
 def format_problem(problem: Problem) -> str:
@@ -161,10 +161,18 @@ def format_message_pretty(message: Message) -> str:
     return wrap_text_in_box(message.content, title=", ".join(title))
 
 
-def format_execution_result(test_result: ExecutionResult, char_limit: int = 2500):
-    text = test_result.output.rstrip()
-    text = shorten_stack_trace(text, test_result.cwd)
-    text = shorten_paths(text, test_result.cwd)
+def format_execution_result(result: ExecutionResult, char_limit: int = 2500):
+    text = result.output.rstrip()
+    text = shorten_stack_trace(text, result.cwd)
+    text = shorten_paths(text, result.cwd)
+    text = limit_text(text, char_limit)
+    return text
+
+
+def format_validation_result(result: ValidationResult, char_limit: int = 2500):
+    text = (result.error or "").rstrip()
+    if result.cwd is not None:
+        text = shorten_paths(text, result.cwd)
     text = limit_text(text, char_limit)
     return text
 

@@ -14,6 +14,7 @@ class TextFile:
 @dataclass
 class ValidationResult:
     valid: bool
+    cwd: Path | None = None
     error: str | None = None
 
 

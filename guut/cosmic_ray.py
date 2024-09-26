@@ -196,8 +196,11 @@ class CosmicRayProblem(Problem):
         try:
             compile(code, "test.py", "exec")
             return ValidationResult(True)
-        except SyntaxError as e:
-            return ValidationResult(False, e.msg)
+        except SyntaxError:
+            pass
+
+        result = self.run_code(code, use_mutant="no", collect_coverage=False)
+        return ValidationResult(False, cwd=result.cwd, error=result.output)
 
     @dataclass
     class CodeDir:
