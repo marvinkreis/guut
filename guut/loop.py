@@ -490,7 +490,9 @@ class Loop:
             result = self.problem.run_test(test.code, collect_coverage=True)
 
             if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
-                new_message = self.prompts.results_template.render_for_test(test=test.code, result=result)
+                new_message = self.prompts.results_template.render_for_test(
+                    test=test.code, result=result, problem=self.problem
+                )
                 self.add_msg(new_message, State.DONE)
 
                 self.tests.append(

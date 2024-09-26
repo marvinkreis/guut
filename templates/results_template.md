@@ -3,6 +3,12 @@
 {% if not claimed_equivalent %}
 The LLM found a test case that detects the mutant.
 
+## Mutant
+
+```diff mutant.diff
+{{ problem.mutant_diff() | rtrim }}
+```
+
 ## Test Case
 
 ```python
@@ -34,4 +40,10 @@ The test exited with exit code {{ result.mutant.exitcode }}.
 {% endif %}
 {% else %}
 The LLM claimed the mutant to be equivalent.
+
+## Mutant
+
+```diff mutant.diff
+{{ problem.mutant_diff() | rtrim }}
+```
 {% endif %}
