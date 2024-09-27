@@ -1,11 +1,70 @@
-We are going to give you a Python program and a mutant diff. We want you to use scientific debugging to understand the mutant diff, and then write a test case that detects the mutant.
+We are going to give you a Python program and a mutant diff. We want you to use scientific debugging to gain an understanding of the mutant, and then write a test case that kills the mutant.
 
+This is an automated process, consisting of a loop of "hypothesis", "experiment" and "conclusion" until you are ready to write a "test" or to declare the mutant "equivalent". During this loop, you will submit "experiment" code and "test" code, which our system is going to parse and then execute for you. Since your messages will be automatically parsed, pay close attention to the format we expect of your messages. This includes the markdown headlines (e.g., "# Experiment"). Do not write any markdown headlines other than the ones described below.
+
+
+# Output Format
+
+The process will use the following format:
+
+    # Task
+    (we will provide the code under test and the mutant)
+
+    # Debugging
+
+    ## Hypothesis
+    (your hypothesis)
+
+    ## Experiment
+    (your experiment code and prediction)
+
+    ### Experiment Results
+    #### Running Experiment on Baseline
+    (we will write the results)
+    #### Running Experiment on Mutant
+    (we will write the results)
+
+    ## Conclusion
+    (your conclusion)
+
+    [repeat ("Hypothesis", "Experiment", "Experiment Results", "Conclusion") until you found inputs that can detect the mutant]
+
+    ## Test
+    (your mutant-killing test)
+
+    ### Test Results
+    #### Running Test on Baseline
+    (we will give the results)
+    #### Running Test on Mutant
+    (we will give the results)
+
+    [repeat ("Test") or ("Hypothesis", "Experiment", "Experiment Results", "Conclusion") until a test successfully killed the mutant]
+
+    [at any point, if you believe the mutant to be equivalent to the original code]
+    ## Equivalent Mutant
+    (a short explanation about why the mutant is equivalent)
+
+## Notes
+
+Make sure that `## Experiment` is always followed by `### Experiment Results` and `## Test` is always followed by `## Test Results`. This is important for parsing your responses.
+
+
+# Output Format for Code
+
+Write all code in markdown code blocks and specify the language, e.g.:
+
+    ```python
+    // python code here
+    ```
+
+Make sure to import all necessary functions in every code snippet. You can assume that all python files we list are in the current directory (`.`).
+
+Output all code in single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks.
 
 # Scientific Debugging
 
 Scientific debugging is a systematic debugging approach based on the scientific method. The process follows a loop of:
 
-- Observation
 - Hypothesis
 - Experiment
 - Conclusion
@@ -20,212 +79,77 @@ Each hypothesis should describe an assumption you have about the code. Hypothese
 
 Hypotheses loosely follow this template: I hypothesize that [assumption] holds when [given inputs]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 
+
 ## Experiments
 
-After writing a hypothesis, you create an experiment to test it. Each experiment will contain Python code that imports and calls both the correct code and the mutant. We will then give you the outputs. For example:
+After stating a hypothesis, you create an experiment to test it. Each experiment will contain a Python test case, that imports and calls the target code. Write the code like a normal unit test, but instead of using assertions, print out the results so you can see if your hypothesis is correct.
 
-```python
-from sieve import sieve
-from mutant.sieve import sieve as mutant_sieve
+Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the target code and predict the output based on your hypothesis.
 
-correct_output = sieve(5)
-print(f"correct output = {correct_output}")
-print(f"correct verifying expression = {len(correct_output) > 0}")
+We will then take your test case, and
+- execute it against the **Baseline**, i.e., the regular program without the mutant
+- execute it against the **Mutant**, i.e., the program with the mutant in place.
 
-mutant_output = mutant_sieve(5)
-print(f"mutant output = {mutant_output}")
-print(f"mutant verifying expression = {len(mutant_output) > 0}")
-```
-
-```pdb
-b sieve.py:16
-commands
-silent
-print(f"correct code: n={n}, primes={primes}")
-c
-b mutant/sieve.py:16
-commands
-silent
-print(f"mutant: n={n}, primes={primes}")
-c
-c
-```
-
-Output:
-{% if not shortexp %}
-```
-correct output = [2, 3, 5]
-correct verifying expression = True
-mutant output = []
-mutant verifying expression = False
-```
-
-Debugger Output:
-{% endif %}
-```
-> test.py(1)<module>()
--> from sieve import sieve
-(Pdb) b sieve.py:16
-Breakpoint 1 at sieve.py:16
-(Pdb) commands
-(com) silent
-(com) print(f"correct code: n={n}, primes={primes}")
-(com) c
-(Pdb) b mutant/sieve.py:16
-Breakpoint 2 at mutant/sieve.py:16
-(Pdb) commands
-(com) silent
-(com) print(f"mutant: n={n}, primes={primes}")
-(com) c
-(Pdb) c
-correct code: n=2, primes=[]
-correct code: n=3, primes=[2]
-correct code: n=5, primes=[2, 3]
-correct output = [2, 3, 5]
-correct verifying expression = True
-mutant output = []
-mutant verifying expression = False
-The program exited.
-```
-
-Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the code under test and predict the output based on your hypothesis.
-
-To verify your prediction, please include a "verifying expression" if possible. A "verifying expression" is a boolean expression that represents your prediction. For example, if you predicted that the mutant code produces a non-empty list and the mutant code produces an empty list, your verifying expression might be "len(output) > 0". If this expression evaluates to True on the correct code and False on the mutant, then you know that your prediction was correct.
-
-Please use the Python debugger liberally to print out relevant values. To enable the debugger, simply include a debugger script in the experiment. In your first experiment, always include a debugger script that prints interesting intermediate values. This helps you see what is happening inside the code.
-
-Make sure to import all necessary functions in each experiment. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
-
-## Conclusions
-
-After every experiment, write a conclusion that summarizes on the results. Examine the experiment results closely so you don't miss anything. Summarize your conclusions in a short list, so you can refer back to them easily.
-
-Next, keep creating hypotheses and experiments until you found inputs for which the mutant produces a different output than the correct implementation (exceptions and infinite loops also count). Once you found those inputs, and confirmed that they work, you can finish debugging and write the mutant-killing test.
-
-## Tests
-
-When you are ready, you will need to write a test that kills the mutant.
-
-The test format will be different from the format for an experiment. While you were able to import the mutant in your experiments, this will not be available for tests. Instead of importing the mutant, write the test so it will pass if the correct code is imported and fail if the mutant is imported instead of the correct code. For example:
+Here is an example experiment:
 
 ```python
 from sieve import sieve
 
 def test__sieve():
-    """Changing 'all' to 'any' in sieve would cause it to always return the empty list."""
     output = sieve(5)
-    assert len(output) > 0, "sieve must detect prime numbers"
+    print(f"output = {correct_output}")
 ```
 
-Please output the test as a single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks. Include some relevant comments about the mutant.
+Running Experiment on Baseline
+```
+output = [2, 3, 5]
+```
 
-After you have written the test, we will execute it and check the results. Your test kills the mutant if it passes when executed with the correct code and fails when executed with the mutant instead of the correct code.
+Running Experiment on Mutant
+```
+mutant output = []
+```
 
-{% if include_equivalence %}
+Pay close attention to the output:
+- Did the baseline have any errors? Does the experiment need to be fixed?
+- Are there any discrepancies between the output of the **Baseline** and the **Mutant**? That means you detected mutant.
+
+## Conclusions
+
+After every experiment, write a conclusion that summarizes on the results. Summarize your conclusion in a short list, so you can refer back to them easily.
+
+Next, keep creating hypotheses and experiments until you found inputs for which the mutant produces a different output than the correct implementation (exceptions and infinite loops also count). Once you found those inputs, and confirmed that they work, you can finish debugging and write the mutant-killing test.
+
+## Tests
+
+When you are ready, you will need to write a test that kills the mutant. Here is an example:
+
+```python
+from rpn_eval import rpn_eval
+
+def test__rpn_eval():
+    """
+    Test whether operator argumenets are interpreted in the correct order. The input represents the calculation (8 / 2), which will lead to different results if the argument order is swapped, since (2 / 8) != (8 / 2).
+    """
+    output = rpn_eval([8.0, 2.0, '/'])
+    assert output == 4.0
+```
+
+The test kills the mutant if, and only if, the test passes when executed with the *baseline* and fails when executed with the *mutant*.
+
+Include a relevant docstring commnent with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
+
 ## Equivalent Mutants
 
-Some mutants may be equivalent. Equivalent mutants don't change the behavior of the code, so they cannot be detected by a test. An example would be changing `x=a+b` to `x=b+a`. If you believe a mutant to be equivalent, please use this as your hypothesis and run an experiment to show it. Then you may claim the mutant as equivalent by writing the `## Equivalent Mutant` headline and giving a short description of why you think the mutant is equivalent. Include some information from your experiments to back up your claims.
+Some mutants may be equivalent. Equivalent mutants don't change the behavior of the code, meaning they cannot be detected by a test. An example would be changing `x=a+b` to `x=b+a`. If you believe a mutant to be equivalent, write the `## Equivalent Mutant` headline and give a short description of why you think the mutant is equivalent. Include some information from your experiments to back up your claims. Afterwards, continue with more experiments to c
+
 
 Example:
 
 I believe the mutant is equivalent. The change [mutant change] doesn't affect the way [some result] is computed. My experiments show that [tried inputs] did not result in any different behavior in the mutant, which suggest [more explanation].
 
-{% endif %}
+######## TODO: continue after equivalence is claimed
 
-# Output Format
-
-Please use the following format for your solution.
-Do NOT use any headlines other then the ones shown below.
-
-    # Task
-    [we provide the code under test and the mutant]
-
-    # Debugging
-
-    ## Hypothesis
-    [your hypothesis]
-
-    ## Experiment
-    [your experiment code and prediction]
-
-    ### Experiment Results
-    [we will write you the results]
-
-    ## Conclusion
-    [a short conclusion]
-
-    [repeat hypotheses and experiments until you found inputs that can detect the mutant]
-
-    ## Test
-    [the mutant-killing test]
-
-    ### Test Results
-    [we will give you the results]
-{% if include_equivalence %}
-
-    [if you believe the mutant to be equivalent]
-    ## Equivalent Mutant
-    [a short explanation about why the mutant is equivalent]
-{% endif %}
-
-Make sure that `## Experiment` is always followed by `### Experiment Results` and `## Test` is always followed by `## Test Results`. This is important for parsing your responses.
-
-## Output Format for Code
-
-Write all code in markdown blocks and specify the language, e.g.:
-
-    ```python
-    // python code here
-    ```
-
-    ```pdb
-    // debugger script here
-    ```
-
-Make sure to import all necessary functions. You can assume that all python files we give you are in the root directory, and the mutant is in the "mutant" directory.
-
-
-# Python Debugger (pdb)
-
-- The debugger will always start in a suspended state on the first line of your code.
-- Available debugger commands are:
-    - break:
-        - Syntax: `b[reak] filename:lineno [, condition]`
-        - Description: Sets a breakpoint at the given position. You can pass an optional condition for when to break.
-        - Example 1: break mutant/sieve.py:5
-        - Example 1: break sieve.py:5, len(primes) != 0
-        - Avoid putting breakpoints on lines with list comprehensions (e.g. `[x for x in y if ...]`), because Python calls the line internally many times.
-      - commands:
-        - Syntax: `commands \n [silent] \n <your commands> \n (end|c[ont])`
-          - `commands` lets you define commands that will be executed every time a breakpoint is hit.
-          - Use `silent` as the first command to suppresses additional output when the breakpoint is hit.
-          - Use `c[ont]` to terminate the command list and instruct the debugger to continue execution after the command list is executed.
-    - next:
-        - Syntax: `n[ext]`
-        - Description: Continues execution until either the next line or the end of the function is reached.
-    - cont:
-        - Syntax: `c[ont]`
-        - Description: Continue execution until the next breakpoint is reached.
-    - print():
-        - Syntax: `print(expression)`
-        - Evaluates expression in the current context and prints its value.
-    - dir():
-        - Syntax: `dir(expression)`
-        - Evaluates expression in the current context and prints its value.
-- Comments (`#`) and docstrings (`"""`) are not allowed in the debugger script.
-
-We encourage you to use the `commands` command to print out intermediate values. Use it directly after defining a breakpoint like so:
-
-```pdb
-b sieve.py:16
-commands
-silent
-print(f"n={n}, primes={primes}")
-c
-c
-```
-
-In this example, the `c` command terminates the command list and instructs the debugger to continue execution after the command list ended. This leaves the debugger in paused state. A second `c` then continues the execution.
 
 
 # Important Remarks

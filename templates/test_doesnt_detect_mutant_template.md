@@ -1,6 +1,6 @@
 ### Test Results
 
-### Output for Correct Code
+### Running Test on Baseline
 
 ```
 {{ result.correct | format_test_result }}
@@ -12,7 +12,7 @@ The test was canceled due to a timeout.
 The test exited with exit code {{ result.correct.exitcode }}.
 {% endif %}
 
-### Output for Mutant
+### Running Test on Mutant
 
 ```
 {{ result.mutant | format_test_result }}

@@ -1,7 +1,7 @@
 {% if altexp %}
 ### {{ name }} Results
 
-#### Output for Correct Code
+### Running {{ name }} on Baseline
 
 {% if not shortexp or not result.debugger_correct %}
 {% with result=result.test_correct, name=name.lower(), is_debugger=False, show_exit=True %}
@@ -19,7 +19,7 @@ Debugger Output:
 {% endwith %}
 {% endif %}
 
-#### Output for Mutant
+### Running {{ name }} on Mutant
 
 {% if not shortexp or not result.debugger_correct %}
 {% with result=result.test_mutant, name=name.lower(), is_debugger=False %}
