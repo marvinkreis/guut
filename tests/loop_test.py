@@ -614,25 +614,23 @@ We will target a scenario involving `roman_range` with specific inputs likely to
 from string_utils.generation import roman_range
 
 def test_roman_range_mutant_kill():
-\"\"\"Test to kill the mutant by exploiting the changed logic.\"\"\"
+    # Test for a zero step, which should raise a ValueError in the correct implementation
+    try:
+        result = list(roman_range(10, 1, 0))  # This should raise ValueError for both
+        assert False, "Expected ValueError for zero step was not raised."
+        except ValueError as e:
+        assert str(e) == '"step" must be an integer in the range 1-3999', "Unexpected error message."
 
-# Test for a zero step, which should raise a ValueError in the correct implementation
-try:
-result = list(roman_range(10, 1, 0))  # This should raise ValueError for both
-assert False, "Expected ValueError for zero step was not raised."
-except ValueError as e:
-assert str(e) == '"step" must be an integer in the range 1-3999', "Unexpected error message."
+    # Test with backward generation where normally it should cause OverflowError
+    try:
+        result = list(roman_range(10, 1, -1))  # This is expected to raise an OverflowError
+        assert False, "Expected OverflowError for backward generation was not raised."
+        except OverflowError:
+        pass  # This is expected in the original code
 
-# Test with backward generation where normally it should cause OverflowError
-try:
-result = list(roman_range(10, 1, -1))  # This is expected to raise an OverflowError
-assert False, "Expected OverflowError for backward generation was not raised."
-except OverflowError:
-pass  # This is expected in the original code
-
-# Valid forward case
-result = list(roman_range(5, 1, 1))  # Should yield I, II, III, IV, V
-assert result == ['I', 'II', 'III', 'IV', 'V'], "Forward range case failed."
+    # Valid forward case
+    result = list(roman_range(5, 1, 1))  # Should yield I, II, III, IV, V
+    assert result == ['I', 'II', 'III', 'IV', 'V'], "Forward range case failed."
 
 test_roman_range_mutant_kill()
 ```
@@ -660,3 +658,86 @@ This structured approach should effectively kill the mutant by leveraging previo
     loop.perform_next_step()
     assert loop.get_state() == State.TEST_STATED
     loop.perform_next_step()  # This used to cause an exception, because the was parsed as an experiment.
+
+
+def test__experiment_after_equivalence():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            f"""
+# Equivalent Mutant
+
+bla bla bla
+
+# Experiment
+
+{code}
+"""
+        ]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == State.EXPERIMENT_STATED
+    result = loop.get_result()
+    assert result.equivalence is not None
+
+
+def test__test_after_equivalence():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            f"""
+# Equivalent Mutant
+
+bla bla bla
+
+# Experiment
+
+{code}
+"""
+        ]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == State.EXPERIMENT_STATED
+    result = loop.get_result()
+    assert result.equivalence is not None
+
+
+def test__equivalence_message():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [
+            """
+# Equivalent Mutant
+
+bla bla bla
+"""
+        ]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+    )
+
+    loop.perform_next_step()
+    assert loop.get_state() == State.CLAIMED_EQUIVALENT
+    result = loop.get_result()
+    assert result.equivalence is not None
