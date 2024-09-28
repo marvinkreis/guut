@@ -412,6 +412,7 @@ def cosmic_ray_runner(
     elif baseline2:
         LoopCls = BaselineLoop2
         settings = BaselineSettings2()
+    settings = replace(settings, altexp=altexp, shortexp=shortexp)
 
     mutant_specs = list_mutants(Path(session_file))
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
