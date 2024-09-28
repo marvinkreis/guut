@@ -59,6 +59,10 @@ class State(str, Enum):
     # Applies to: AssistantMsg with equivalence claim
     CLAIMED_EQUIVALENT = "claimed_equivalent"
 
+    # The LLM has claimed the mutant to be equivalent
+    # Applies to: UserMsg with instructions for how to continue after equivalence claim.
+    EQUIVALENCE_MESSAGE_GIVEN = "equivalence_message_given"
+
     # The loop has concluded normally.
     # Applies to: UserMsg with result.
     DONE = "done"
@@ -340,7 +344,10 @@ class Loop:
         elif state == State.DONE:
             raise InvalidStateException(State.DONE)
         elif state == State.CLAIMED_EQUIVALENT:
-            self._write_equivalence_result()
+            self._write_equivalence_message()
+            # self._write_equivalence_result()
+        elif state == State.EQUIVALENCE_MESSAGE_GIVEN:
+            self._prompt_for_action()
         elif state == State.INCOMPLETE_RESPONSE:
             self._handle_incomplete_response()
         elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:
@@ -567,7 +574,10 @@ class Loop:
         self.add_msg(self.prompts.incomplete_response_template.render(), State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN)
 
     def _write_equivalence_result(self):
-        self.add_msg(self.prompts.results_template.render_for_equivalence(), State.DONE)
+        self.add_msg(self.prompts.results_template.render_for_equivalence(self.problem), State.DONE)
+
+    def _write_equivalence_message(self):
+        self.add_msg(self.prompts.equivalence_claim_template.render(), State.EQUIVALENCE_MESSAGE_GIVEN)
 
     def _clean_response(self, msg: AssistantMessage):
         content = self._remove_stop_word_residue(msg.content)

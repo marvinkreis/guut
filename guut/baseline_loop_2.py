@@ -50,7 +50,10 @@ class BaselineLoop2(BaselineLoop):
         elif state == State.DONE:
             raise InvalidStateException(State.DONE)
         elif state == State.CLAIMED_EQUIVALENT:
-            self._write_equivalence_result()
+            self._write_equivalence_message()
+            # self._write_equivalence_result()
+        elif state == State.EQUIVALENCE_MESSAGE_GIVEN:
+            self._prompt_for_action()
         elif state == State.INCOMPLETE_RESPONSE:
             self._handle_incomplete_response()
         elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:

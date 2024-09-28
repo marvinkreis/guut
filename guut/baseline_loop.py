@@ -1,4 +1,4 @@
-from typing import override
+from typing import Tuple, override
 
 from guut.llm import AssistantMessage
 from guut.loop import (
@@ -41,12 +41,17 @@ class BaselineReponse(Response):
         self.sections = response.sections
 
     @override
-    def guess_action(self) -> ExperimentDescription | TestDescription | EquivalenceClaim | None:
+    def guess_action(self) -> Tuple[ExperimentDescription | TestDescription | None, EquivalenceClaim | None]:
+        claim = None
+        equivalence_sections = [section for section in self.sections if section.kind == "equivalence"]
+        if equivalence_sections:
+            claim = EquivalenceClaim(text=equivalence_sections[0].text)
+
         for section in reversed(self.sections):
-            if section.kind == "equivalence":
-                return EquivalenceClaim(text=section.text)
-            elif section.code_blocks:
-                return TestDescription(text=section.text, code=section.code_blocks[-1])
+            if section.code_blocks:
+                return TestDescription(text=section.text, code=section.code_blocks[-1]), claim
+
+        return None, claim
 
 
 class BaselineLoop(Loop):
@@ -67,7 +72,10 @@ class BaselineLoop(Loop):
         elif state == State.DONE:
             raise InvalidStateException(State.DONE)
         elif state == State.CLAIMED_EQUIVALENT:
-            self._write_equivalence_result()
+            self._write_equivalence_message()
+            # self._write_equivalence_result()
+        elif state == State.EQUIVALENCE_MESSAGE_GIVEN:
+            self._prompt_for_action()
         elif state == State.INCOMPLETE_RESPONSE:
             self._handle_incomplete_response()
         elif state == State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN:

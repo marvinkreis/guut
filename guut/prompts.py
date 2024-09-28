@@ -80,8 +80,10 @@ class ResultsTemplate(Template):
     def render_for_test(self, test: str, result: TestResult, problem: Problem) -> UserMessage:
         return UserMessage(self.template.render(test=test, result=result, problem=problem).strip() + "\n")
 
-    def render_for_equivalence(self) -> UserMessage:
-        return UserMessage(self.template.render(test=None, result=None, claimed_equivalent=True).strip() + "\n")
+    def render_for_equivalence(self, problem: Problem) -> UserMessage:
+        return UserMessage(
+            self.template.render(test=None, result=None, claimed_equivalent=True, problem=problem).strip() + "\n"
+        )
 
 
 class ConversationAbortedTemplate(Template):
