@@ -12,6 +12,10 @@ The test was canceled due to a timeout.
 The test exited with exit code {{ result.correct.exitcode }}.
 {% endif %}
 
+{% if result.correct.exitcode != 0 %}
+Your test needs to pass when executed with the baseline. Adjust the part of your test that caused this error.
+{% endif %}
+
 ### Running Test on Mutant
 
 ```
@@ -24,10 +28,8 @@ The test was canceled due to a timeout.
 The test exited with exit code {{ result.mutant.exitcode }}.
 {% endif %}
 
-Your test did not correctly identify the mutant. Remember: Your test needs to pass when executed with the baseline, and fail when executed with the mutant. When running the test on the mutant, the test needs to result in
+{% if no_asserts and (result.correct.exitcode == 0) and (result.mutant.exitcode == 0) %}
+Your test contains no assertions! Add assertions to your test, so that the test fails when executed with the mutant.
+{% endif %}
 
-- a failed assertion or
-- an uncaught exception/error or
-- a timeout.
-
-If your test doesn't contain assertions, add assertions. If the mutant raises an exception/error and your test is catching it, remove the try-except block. Adjust your test case{% if not baseline %} or perform more experiments{% endif %}.
+Your test did not correctly identify the mutant. Remember: Your test needs to pass when executed with the baseline, and fail when executed with the mutant. Please adjust your test case{% if not baseline %} or perform more experiments{% endif %}.

@@ -530,8 +530,9 @@ class Loop:
                 )
                 return
             else:
+                no_asserts = "assert" not in test.code
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(
-                    result=result, baseline=self.settings.is_baseline
+                    result=result, baseline=self.settings.is_baseline, no_asserts=no_asserts
                 )
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
                 self.tests.append(

@@ -72,8 +72,8 @@ class TestDoesntCompileTemplate(Template):
 
 
 class TestDoesntDetectMutantTemplate(Template):
-    def render(self, result: TestResult, baseline: bool) -> UserMessage:
-        return UserMessage(self.template.render(result=result, baseline=baseline).strip() + "\n")
+    def render(self, result: TestResult, baseline: bool, no_asserts: bool) -> UserMessage:
+        return UserMessage(self.template.render(result=result, baseline=baseline, no_asserts=no_asserts).strip() + "\n")
 
 
 class ResultsTemplate(Template):
