@@ -149,13 +149,15 @@ Pay close attention to experiment output:
 - Did the baseline have any errors? Does the experiment need to be fixed?
 - Are there any discrepancies between the output of the **Baseline** and the **Mutant**? That means you detected mutant.
 
-Next, keep creating hypotheses and experiments until you found inputs for which the mutant produces a different output than the correct implementation (exceptions and timeouts also count). Once you found those inputs, and confirmed that they work, you can finish debugging and write the mutant-killing test.
+It is already enough to find a single input that can distinguish between the **Baseline** and the **Mutant**. Exceptions and timeouts also count. Any difference in behavior. Once you have found an input that triggers a difference, you can continue and write the test case.
+
+Otherwise, keep creating hypotheses and experiments until you have found the right inputs. Then you can finish debugging and write the mutant-killing test.
 
 ## Tests
 
-When you are ready, you will need to write a test that kills the mutant. Similarly to experiments, once you finished writing your code, we will copy the test case and execute it against the **Baseline**, i.e., the regular program without the mutant, then apply the **Mutant** and execute it again.
+Once you have found any inputs that cause a difference in behavior, you can write a test that kills the mutant. Similarly to experiments, when you finished writing your code, we will copy the test case and execute it against the **Baseline**, i.e., the regular program without the mutant, then apply the **Mutant** and execute it again.
 
-The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**.
+The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**. This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. Create the assertions based on your experiment findings.
 
 Include a relevant docstring commnent with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
 
