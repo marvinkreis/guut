@@ -103,6 +103,8 @@ After stating a hypothesis, you create an experiment to test it. Each experiment
 
 Each experiment should contain a relevant prediction based on your hypothesis and a way to verify that prediction based on the output. Basically, you run the target code and predict the output based on your hypothesis. Therefore, add print statements to print out relevant values, which will help you understand what the code is doing.
 
+Your experiment is agnostic of which version of the code it is hadling (**Baseline** or **Mutant**). Therefore, never use add print statements like `print(f"baseline output: {output}")` or `print(f"mutant output: {output}")`. This will make your experiment results confusing and useless. Instead, use use agnostic statements like `print(f"output: {output}")`.
+
 Some notes:
 - Keep your experiments/tests short and simple.
 - Use print statements liberally in your experiments.
@@ -157,7 +159,7 @@ Otherwise, keep creating hypotheses and experiments until you have found the rig
 
 Once you have found any inputs that cause a difference in behavior, you can write a test that kills the mutant. Similarly to experiments, when you finished writing your code, we will copy the test case and execute it against the **Baseline**, i.e., the regular program without the mutant, then apply the **Mutant** and execute it again.
 
-The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**. This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. Create the assertions based on your experiment findings.
+The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**. Failing is defined as exiting with exitcode 1 here. This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. Create the assertions based on your experiment findings.
 
 Include a relevant docstring commnent with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
 
