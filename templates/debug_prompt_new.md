@@ -57,7 +57,12 @@ Write all code in markdown code blocks and specify the language, e.g.:
     // python code here
     ```
 
-Make sure to import all necessary functions in every code snippet. You can assume that all python files we list are in the current directory (`.`).
+Make sure to import all necessary functions in every code snippet. You can assume that all python files we list are in the current directory (`.`). For example, you can import the following file with `import guut.config as config` or `from guut.config import example`.
+
+```python guut/config.py
+def example():
+    pass
+```
 
 Output all code in single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks.
 

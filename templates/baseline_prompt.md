@@ -1,10 +1,9 @@
 We are going to give you a Python program and a mutant diff. We want you to write a test case that detects the mutant. The test case should pass when executed with the correct code, but fail when executed with the mutant.
 
-- Output the test as single Python function called `test__<name>` with no parameters.
+- Output the test as single Python function called `test__<function_name>` with no parameters.
 - Don't use any testing frameworks.
 - Put your code in a markdown block and specify the language.
-- Import all necessary files in your test code. You can assume that all python files we give you are in the root directory.
-- Use assertions where appropriate.
+-  Make sure to import all necessary functions in every code snippet. You can assume that all python files we list are in the current directory (`.`). For example, you can import the following file with `import guut.config as config` or `from guut.config import example`.
 
 Example:
 
