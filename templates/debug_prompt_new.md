@@ -159,7 +159,11 @@ Otherwise, keep creating hypotheses and experiments until you have found the rig
 
 Once you have found any inputs that cause a difference in behavior, you can write a test that kills the mutant. Similarly to experiments, when you finished writing your code, we will copy the test case and execute it against the **Baseline**, i.e., the regular program without the mutant, then apply the **Mutant** and execute it again.
 
-The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**. Failing is defined as exiting with exitcode 1 here. This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. Create the assertions based on your experiment findings.
+The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**.
+
+Failing is defined as exiting with exitcode 1 here. This means that the test needs to result in either a *a failed assertion*, an *uncaught exception* or a *timeout* when executed on the **Mutant**.
+
+This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. Create relevant assertions based on your experiment findings. This is vital, as your test will be useless otherwise.
 
 Include a relevant docstring commnent with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
 
