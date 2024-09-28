@@ -57,7 +57,7 @@ Write all code in markdown code blocks and specify the language, e.g.:
     // python code here
     ```
 
-Make sure to import all necessary functions in every code snippet. You can assume that all python files we list are in the current directory (`.`). For example, you can import the following file with `import guut.config as config` or `from guut.config import example`.
+Make sure to import all necessary functions in every code snippet. You can assume that all python files we list are in the current directory (`.`). For example, you can import the following file with `import guut.config as config` or `from guut.config import example`:
 
 ```python guut/config.py
 def example():
@@ -65,6 +65,19 @@ def example():
 ```
 
 Output all code in single Python function called `test__<function_name>` with no parameters. Don't use any testing frameworks.
+
+
+# Running code
+
+Whenever you submit a test case (experiment or test), our system will run your code on the **Baseline** (the correct code, without the mutant) and give you the output. When that is finished, it applies the **Mutant** to the code and runs your code again.
+
+This means that your test case can only use one version of the target code (**Baseline** or **Mutant**) at once. You test case simply imports the target code and runs it, without knowing if it imported the **Baseline** or the **Mutant**. Since the system will run your test case once with the **Baseline** and once with the **Mutant**, you will still get the output for both versions.
+
+Again, you cannot import the **Baseline** and the **Mutant** together. Your tests will import the target code, which can be either the **Baseline** or the **Mutant** and your job is to design the test in a way, such that it produces different outputs when we switch out the imported target code from the **Baseline** to the **Muntant**.
+
+Therefore, there is no point in re-implementing the code yourself, since the test should examine the imported code, not a recreation it.
+
+There is also no `mutant` module, so imports like `from mutant.sieve import sieve` will result in `ModuleNotFoundError: No module named 'mutant'`. This makes the test case useless.
 
 # Scientific Debugging
 
@@ -83,7 +96,6 @@ Each hypothesis should describe an assumption you have about the code. Hypothese
 - Don't base hypotheses on untested assumptions.
 
 Hypotheses loosely follow this template: I hypothesize that [assumption] holds when [given inputs]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
-
 
 ## Experiments
 
