@@ -131,13 +131,15 @@ class Response:
             section.debugger_blocks[-1] if section.debugger_blocks else None,
         )
 
-    def guess_action(self) -> ExperimentDescription | TestDescription | EquivalenceClaim | None:
+    def guess_action(self) -> Tuple[ExperimentDescription | TestDescription | None, EquivalenceClaim | None]:
+        claim = None
         if section := self._guess_section("equivalence"):
-            return EquivalenceClaim(text=section.text)
-        elif (section := self._guess_section("test")) and section.code_blocks:
+            claim = EquivalenceClaim(text=section.text)
+
+        if (section := self._guess_section("test")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
-                return TestDescription(text=section.text, code=code)
+                return TestDescription(text=section.text, code=code), claim
         elif (section := self._guess_section("experiment")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
@@ -146,7 +148,7 @@ class Response:
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
-                )
+                ), claim
         elif (section := self._guess_section("observation")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
@@ -155,7 +157,7 @@ class Response:
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
-                )
+                ), claim
         elif (section := self._guess_section("none")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
@@ -164,12 +166,12 @@ class Response:
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
-                )
-        else:
-            return None
+                ), claim
+
+        return None, claim
 
     def guess_experiment(self) -> ExperimentDescription | None:
-        action = self.guess_action()
+        action, claim = self.guess_action()
         if isinstance(action, TestDescription):
             return ExperimentDescription(text=action.text, code=action.code, debugger_script=None, kind="experiment")
         if isinstance(action, EquivalenceClaim):
@@ -177,7 +179,7 @@ class Response:
         return action
 
     def guess_test(self) -> TestDescription | None:
-        action = self.guess_action()
+        action, claim = self.guess_action()
         if isinstance(action, ExperimentDescription):
             return TestDescription(text=action.text, code=action.code)
         if isinstance(action, EquivalenceClaim):
@@ -242,7 +244,7 @@ class Result:
     experiments: List[Experiment]
     conversation: Conversation
     mutant_killed: bool
-    claimed_equivalent: bool
+    equivalence: EquivalenceClaim | None
 
     # extra info
     timestamp: datetime
@@ -296,6 +298,7 @@ class Loop:
 
         self.experiments: List[Experiment] = []
         self.tests: List[Test] = []
+        self.equivalence: EquivalenceClaim | None = None
         self.id = self._generate_id()
 
     def perform_next_step(self):
@@ -361,7 +364,6 @@ class Loop:
 
     def get_result(self) -> Result:
         killing_test_found = any([test.kills_mutant for test in self.tests])
-        claimed_equivalent = any([msg for msg in self.conversation if msg.tag == State.CLAIMED_EQUIVALENT])
         return Result(
             tests=self.tests,
             experiments=self.experiments,
@@ -372,7 +374,7 @@ class Loop:
             prompts=self.prompts,
             settings=self.settings,
             mutant_killed=killing_test_found,
-            claimed_equivalent=claimed_equivalent,
+            equivalence=self.equivalence,
             id=self.id,
             implementation="loop",
         )
@@ -395,11 +397,17 @@ class Loop:
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
         raw_experiment = self._parse_response(relevant_text)
-        action = raw_experiment.guess_action()
+        action, claim = raw_experiment.guess_action()
 
         test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
 
-        if action is None:
+        if claim:
+            self.equivalence = claim
+
+        if action is None and claim is not None:
+            self.add_msg(response, State.CLAIMED_EQUIVALENT)
+            return
+        elif action is None and claim is None:
             self.add_msg(response, State.INCOMPLETE_RESPONSE)
             return
 
@@ -420,10 +428,6 @@ class Loop:
             elif action.kind == "none" and not test_instructions_stated:
                 self.add_msg(response, State.EXPERIMENT_STATED)
                 return
-
-        if isinstance(action, EquivalenceClaim):
-            self.add_msg(response, State.CLAIMED_EQUIVALENT)
-            return
 
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses()
