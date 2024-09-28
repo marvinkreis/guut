@@ -305,7 +305,7 @@ def test__test_instructions_are_given_after_max_experiments_are_reached_and_a_te
         endpoint=endpoint,
         conversation=conversation,
         problem=DummyProblem(),
-        settings=LoopSettings(max_num_experiments=10),
+        settings=LoopSettings(max_num_experiments=10, max_num_turns=99),
     )
 
     loop.perform_next_step()
@@ -741,3 +741,68 @@ bla bla bla
     assert loop.get_state() == State.CLAIMED_EQUIVALENT
     result = loop.get_result()
     assert result.equivalence is not None
+
+
+def test__max_num_turns_after_experiment():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [*([experiment(code)] * 3), *([_test(code)] * 3), *([experiment(code)] * 3), experiment(code)]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(endpoint=endpoint, conversation=conversation, problem=problem, settings=LoopSettings(max_num_turns=10))
+
+    for _ in range(19):
+        loop.perform_next_step()
+    loop.perform_next_step()
+    assert loop.get_state() == State.ABORTED
+
+
+def test__max_num_turns_after_test():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages(
+        [*([experiment(code)] * 3), *([_test(code)] * 3), *([experiment(code)] * 3), _test(code)]
+    )
+
+    problem = DummyProblem()
+    loop = Loop(endpoint=endpoint, conversation=conversation, problem=problem, settings=LoopSettings(max_num_turns=10))
+
+    for _ in range(19):
+        loop.perform_next_step()
+    loop.perform_next_step()
+    assert loop.get_state() == State.ABORTED
+
+
+def test__test_instructions_given_after_turn_reached_with_experiment():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages([*([experiment(code)] * 3)])
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+        settings=LoopSettings(max_num_turns=4, test_inctructions_after_turn=3),
+    )
+
+    for _ in range(6):
+        loop.perform_next_step()
+    assert loop.get_state() == State.TEST_INSTRUCTIONS_GIVEN
+
+
+def test__test_instructions_given_after_turn_reached_with_test():
+    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
+    endpoint = ReplayLLMEndpoint.from_raw_messages([*([_test(code)] * 3)])
+
+    problem = DummyProblem()
+    loop = Loop(
+        endpoint=endpoint,
+        conversation=conversation,
+        problem=problem,
+        settings=LoopSettings(max_num_turns=4, test_inctructions_after_turn=3),
+    )
+
+    for _ in range(6):
+        loop.perform_next_step()
+    print(loop.conversation)
+    assert loop.get_state() == State.TEST_INSTRUCTIONS_GIVEN
