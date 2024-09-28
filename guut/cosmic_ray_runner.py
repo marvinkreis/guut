@@ -10,7 +10,7 @@ from loop import Loop, LoopSettings, Result, Test
 from guut.cosmic_ray import CosmicRayProblem, MutantSpec
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.problem import Coverage, TestResult
-from guut.prompts import debug_prompt_altexp
+from guut.prompts import debug_prompt_new
 
 
 @dataclass
@@ -30,7 +30,7 @@ class ResultWithKilledMutants(Result):
             experiments=result.experiments,
             conversation=result.conversation,
             mutant_killed=result.mutant_killed,
-            claimed_equivalent=result.claimed_equivalent,
+            equivalence=result.equivalence,
             timestamp=result.timestamp,
             endpoint=result.endpoint,
             prompts=result.prompts,
@@ -144,7 +144,8 @@ class CosmicRayRunner:
             # TODO: solve this better
             prompts = problem.get_default_prompts()
             if self.altexp:
-                prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
+                # prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
+                prompts = prompts.replace(debug_prompt=debug_prompt_new)
 
             loop = self.loop_cls(
                 problem=problem,

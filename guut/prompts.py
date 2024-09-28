@@ -59,8 +59,11 @@ class ExperimentResultsTemplate(Template):
 
 
 class TestPrompt(Template):
-    def render(self, max_iterations: bool) -> UserMessage:
-        return UserMessage(self.template.render(max_iterations=max_iterations).strip() + "\n")
+    def render(self, max_experiments_reached: bool, num_turns_left: int) -> UserMessage:
+        return UserMessage(
+            self.template.render(max_experiments_reached=max_experiments_reached, num_turns_left=num_turns_left).strip()
+            + "\n"
+        )
 
 
 class TestDoesntCompileTemplate(Template):
@@ -98,6 +101,11 @@ class BaselinePrompt(Template):
         )
 
 
+class EquivalenceClaimTemplate(Template):
+    def render(self) -> UserMessage:
+        return UserMessage(self.template.render().strip() + "\n")
+
+
 @dataclass
 class PromptCollection:
     system_prompt: SystemPrompt | None
@@ -113,6 +121,7 @@ class PromptCollection:
     experiment_results_template: ExperimentResultsTemplate
     test_doesnt_compile_template: TestDoesntCompileTemplate
     test_doesnt_detect_mutant_template: TestDoesntDetectMutantTemplate
+    equivalence_claim_template: EquivalenceClaimTemplate
 
     results_template: ResultsTemplate
     conversation_aborted_template: ConversationAbortedTemplate
@@ -139,6 +148,8 @@ default_prompts = PromptCollection(
     results_template=ResultsTemplate("results_template.md"),
     conversation_aborted_template=ConversationAbortedTemplate("conversation_aborted_template.md"),
     incomplete_response_template=IncompleteResponseTemplate("incomplete_response_template.md"),
+    equivalence_claim_template=EquivalenceClaimTemplate("equivalence_claim_template.md"),
 )
 
 debug_prompt_altexp = DebugPrompt("debug_prompt_altexp.md")
+debug_prompt_new = DebugPrompt("debug_prompt_new.md")

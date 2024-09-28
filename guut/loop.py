@@ -229,9 +229,11 @@ class Experiment(ExperimentDescription):
 
 @dataclass
 class LoopSettings:
-    max_num_experiments: int = 10
-    max_retries_for_invalid_test: int = 4
+    max_num_experiments: int = 99
+    max_retries_for_invalid_test: int = 99
     max_num_incomplete_responses: int = 2
+    max_num_turns: int = 10
+    test_inctructions_after_turn: int = 8
     altexp: bool = False
     shortexp: bool = False
     is_baseline: bool = False
@@ -404,12 +406,13 @@ class Loop:
         if claim:
             self.equivalence = claim
 
-        if action is None and claim is not None:
-            self.add_msg(response, State.CLAIMED_EQUIVALENT)
-            return
-        elif action is None and claim is None:
-            self.add_msg(response, State.INCOMPLETE_RESPONSE)
-            return
+        if action is None:
+            if claim is not None:
+                self.add_msg(response, State.CLAIMED_EQUIVALENT)
+                return
+            else:
+                self.add_msg(response, State.INCOMPLETE_RESPONSE)
+                return
 
         if isinstance(action, TestDescription):
             self.add_msg(response, State.TEST_STATED)
@@ -464,12 +467,28 @@ class Loop:
             )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
-        if num_experiments == self.settings.max_num_experiments:
-            new_message = self.prompts.test_prompt.render(max_iterations=True)
+        num_tests = len([msg for msg in self.conversation if msg.tag == State.TEST_STATED])
+        num_turns = num_experiments + num_tests
+
+        if num_turns >= self.settings.max_num_turns:
+            new_message = self.prompts.conversation_aborted_template.render(
+                reason="too_many_turns", extra_reason="The LLM exceeded the allowed number of turns."
+            )
+            self.add_msg(new_message, State.ABORTED)
+
+        elif (
+            num_experiments == self.settings.max_num_experiments
+            or num_turns == self.settings.test_inctructions_after_turn
+        ):
+            new_message = self.prompts.test_prompt.render(
+                max_experiments_reached=(num_experiments == self.settings.max_num_experiments),
+                num_turns_left=(self.settings.max_num_turns - num_turns),
+            )
             self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
+
         elif num_experiments > self.settings.max_num_experiments:
             new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_experiments", extra_reason="The LLM exceeded the allowed number of tests."
+                reason="too_many_experiments", extra_reason="The LLM exceeded the allowed number of experiments."
             )
             self.add_msg(new_message, State.ABORTED)
 
@@ -512,8 +531,25 @@ class Loop:
                     Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
-        num_tries = len([msg for msg in self.conversation if msg.tag == State.TEST_STATED])
-        if num_tries > self.settings.max_retries_for_invalid_test:
+        num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
+        num_tests = len([msg for msg in self.conversation if msg.tag == State.TEST_STATED])
+        num_turns = num_experiments + num_tests
+
+        if num_turns >= self.settings.max_num_turns:
+            new_message = self.prompts.conversation_aborted_template.render(
+                reason="too_many_turns", extra_reason="The LLM exceeded the allowed number of turns."
+            )
+            self.add_msg(new_message, State.ABORTED)
+            return
+
+        elif num_turns == self.settings.test_inctructions_after_turn:
+            new_message = self.prompts.test_prompt.render(
+                max_experiments_reached=False,
+                num_turns_left=(self.settings.max_num_turns - num_turns),
+            )
+            self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
+
+        if num_tests > self.settings.max_retries_for_invalid_test:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
             )

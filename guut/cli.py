@@ -22,7 +22,7 @@ from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings
 from guut.output import CustomJSONEncoder, write_cosmic_ray_runner_result_dir, write_result_dir
 from guut.problem import Problem
-from guut.prompts import debug_prompt_altexp
+from guut.prompts import debug_prompt_new
 from guut.quixbugs import QuixbugsProblem
 from guut.quixbugs import list_problems as list_quixbugs_problems
 
@@ -317,7 +317,8 @@ def run_problem(problem: Problem, ctx: click.Context):
     # TODO: solve this better
     prompts = problem.get_default_prompts()
     if altexp:
-        prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
+        # prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
+        prompts = prompts.replace(debug_prompt=debug_prompt_new)
 
     loop = LoopCls(
         problem=problem,
