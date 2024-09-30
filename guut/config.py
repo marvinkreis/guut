@@ -32,7 +32,7 @@ class Config:
 
     @property
     def openai_organization(self) -> str:
-        return self._validate("openai_organization", self._openai_organization)
+        return self._optional(self._openai_organization)
 
     @property
     def quixbugs_path(self) -> Path:
@@ -41,6 +41,11 @@ class Config:
     @property
     def python_interpreter(self) -> Path:
         return self._validate_path("python_interpreter", self._python_interpreter)
+
+    def _optional(self, value: Any) -> Any:
+        if value is UNSET:
+            return None
+        return value
 
     def _validate(self, key: str, value: Any) -> Any:
         if value is UNSET:
