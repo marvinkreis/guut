@@ -1,12 +1,13 @@
 import os
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
 from loguru import logger
 
 DEFAULT_CONFIG_FILE_LOCATION = Path.home() / ".config" / "guut" / "config.py"
 UNSET: Any = object()
+T = TypeVar("T")
 
 
 @dataclass
@@ -31,7 +32,7 @@ class Config:
         return self._validate("openai_api_key", self._openai_api_key)
 
     @property
-    def openai_organization(self) -> str:
+    def openai_organization(self) -> str | None:
         return self._optional(self._openai_organization)
 
     @property
@@ -42,12 +43,12 @@ class Config:
     def python_interpreter(self) -> Path:
         return self._validate_path("python_interpreter", self._python_interpreter)
 
-    def _optional(self, value: Any) -> Any:
+    def _optional(self, value: T) -> T | None:
         if value is UNSET:
             return None
         return value
 
-    def _validate(self, key: str, value: Any) -> Any:
+    def _validate(self, key: str, value: T) -> T:
         if value is UNSET:
             logger.warning(f"Missing config value: {key}")
             raise Exception(f"Missing config value: {key}")
