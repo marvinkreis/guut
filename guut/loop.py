@@ -479,7 +479,7 @@ class Loop:
 
         if num_turns >= self.settings.max_num_turns:
             new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_turns", extra_reason="The LLM exceeded the allowed number of turns."
+                reason="too_many_turns", extra_reason="The LLM reached the allowed number of turns."
             )
             self.add_msg(new_message, State.ABORTED)
 
@@ -495,7 +495,7 @@ class Loop:
 
         elif num_experiments > self.settings.max_num_experiments:
             new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_experiments", extra_reason="The LLM exceeded the allowed number of experiments."
+                reason="too_many_experiments", extra_reason="The LLM reached the allowed number of experiments."
             )
             self.add_msg(new_message, State.ABORTED)
 
@@ -545,7 +545,7 @@ class Loop:
 
         if num_turns >= self.settings.max_num_turns:
             new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_turns", extra_reason="The LLM exceeded the allowed number of turns."
+                reason="too_many_turns", extra_reason="The LLM reached the allowed number of turns."
             )
             self.add_msg(new_message, State.ABORTED)
             return

@@ -176,7 +176,8 @@ from rpn_eval import rpn_eval
 
 def test__rpn_eval():
     """
-    Test whether operator argumenets are interpreted in the correct order. The input represents the calculation (8 / 2), which will lead to different results if the argument order is swapped, since (2 / 8) != (8 / 2).
+    Test whether operator argumenets are interpreted in the correct order. The input represents the calculation (8 / 2),
+    which will lead to different results if the argument order is swapped, since (2 / 8) != (8 / 2).
     """
     output = rpn_eval([8.0, 2.0, '/'])
     assert output == 4.0
@@ -205,4 +206,4 @@ Some mutants may be equivalent. Equivalent mutants don't change the behavior of 
 
 Example:
 
-I believe the mutant is equivalent. The change [mutant change] doesn't affect the way [some result] is computed. My experiments show that [tried inputs] did not result in any different behavior in the mutant, which suggest [more explanation]. Since my past tries have failed to make the mutant behave differently, I will now try [new approach].
+I believe the mutant is equivalent. The change [mutant change] doesn't affect the way [some result] is computed. My previous tests show that [tried inputs] did not result in any different behavior in the mutant, which suggest [more explanation]. I will now try to detect the mutant anyways. Since my past tries have failed to detect the mutant, I will now try [new approach].

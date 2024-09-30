@@ -162,7 +162,7 @@ def run_quixbugs(ctx: click.Context, name: str):
     run_problem(problem, ctx)
 
 
-@list.command("cosmic_ray")
+@list.command("cosmic-ray")
 @click.argument("session_file", nargs=1, type=click.Path(dir_okay=False), required=True)
 def list_cosmic_ray(session_file: str):
     mutants = list_mutants(Path(session_file))
@@ -181,7 +181,7 @@ def list_cosmic_ray(session_file: str):
         )
 
 
-@show.command("cosmic_ray")
+@show.command("cosmic-ray")
 @click.argument(
     "module_path",
     nargs=1,
@@ -214,7 +214,7 @@ def show_cosmic_ray(module_path: str, target_path: str, mutant_op: str, occurren
     print(format_problem(problem))
 
 
-@run.command("cosmic_ray")
+@run.command("cosmic-ray")
 @click.argument(
     "module_path",
     nargs=1,

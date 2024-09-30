@@ -36,7 +36,7 @@ Debugger Output:
 {% endif %}
 {% if (result.test_correct.exitcode == 0) and (result.test_mutant.exitcode == 1) %}
 
-Your experiment resulted in exitcode 0 for the baseline and exitcode 1 for the the mutant. This means that your experiment can successfully kill the mutant. Next, you should create a test from your experiment
+Your experiment resulted in exitcode 0 for the **Baseline** and exitcode 1 for the the **Mutant**. This means that your experiment can successfully kill the mutant. Next, you should create a test from your experiment.
 {% endif %}
 {% else %}
 ### {{ name }} Results

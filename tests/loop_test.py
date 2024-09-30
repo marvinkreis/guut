@@ -4,6 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from guut.baseline_loop import BaselineLoop
+from guut.baseline_loop_2 import BaselineLoop2
 from guut.dummy_problem import DummyProblem
 from guut.llm import AssistantMessage, Conversation, UserMessage
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
@@ -38,6 +40,8 @@ def _test(*text):
 
 
 Loop = partial(Loop, printer=None, logger=None)
+Baseline = partial(BaselineLoop, printer=None, logger=None)
+Baseline2 = partial(BaselineLoop2, printer=None, logger=None)
 
 
 def test__observation_with_code_and_debugger_script_gets_detected():
@@ -689,7 +693,8 @@ bla bla bla
     assert result.equivalence is not None
 
 
-def test__test_after_equivalence():
+@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,), (Baseline2,)])
+def test__test_after_equivalence(LoopCls):
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages(
         [
@@ -698,7 +703,7 @@ def test__test_after_equivalence():
 
 bla bla bla
 
-# Experiment
+# Test
 
 {code}
 """
@@ -706,19 +711,20 @@ bla bla bla
     )
 
     problem = DummyProblem()
-    loop = Loop(
+    loop = LoopCls(
         endpoint=endpoint,
         conversation=conversation,
         problem=problem,
     )
 
     loop.perform_next_step()
-    assert loop.get_state() == State.EXPERIMENT_STATED
+    assert loop.get_state() == State.TEST_STATED
     result = loop.get_result()
     assert result.equivalence is not None
 
 
-def test__equivalence_message():
+@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,), (Baseline2,)])
+def test__equivalence_message(LoopCls):
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages(
         [
@@ -731,7 +737,7 @@ bla bla bla
     )
 
     problem = DummyProblem()
-    loop = Loop(
+    loop = LoopCls(
         endpoint=endpoint,
         conversation=conversation,
         problem=problem,
@@ -790,12 +796,13 @@ def test__test_instructions_given_after_turn_reached_with_experiment():
     assert loop.get_state() == State.TEST_INSTRUCTIONS_GIVEN
 
 
-def test__test_instructions_given_after_turn_reached_with_test():
+@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,), (Baseline2,)])
+def test__test_instructions_given_after_turn_reached_with_test(LoopCls):
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages([*([_test(code)] * 3)])
 
     problem = DummyProblem()
-    loop = Loop(
+    loop = LoopCls(
         endpoint=endpoint,
         conversation=conversation,
         problem=problem,
