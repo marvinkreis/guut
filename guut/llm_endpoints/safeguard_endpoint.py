@@ -1,6 +1,5 @@
-from typing import override
+from typing import List, override
 
-from llama_cpp.llama_cache import List
 from loguru import logger
 
 from guut.llm import AssistantMessage, Conversation, EndpointDescription, LLMEndpoint
