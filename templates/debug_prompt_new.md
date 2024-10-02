@@ -167,7 +167,7 @@ Once you have found any inputs that cause a difference in behavior, you can writ
 
 The test kills the mutant if, and only if, the test passes when executed with the **Baseline** and fails when executed with the **Mutant**. Here, failing is defined as exiting with exit code 1. This means that the test needs to result in either a *failed assertion*, an *uncaught exception* or a *timeout* when executed on the **Mutant**.
 
-This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. Create relevant assertions based on your experiment findings. This is vital, as your test will be useless otherwise.
+This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. If the mutant raises an exception or error, do not use a `try-except` block to catch it. Adding a `try-except` block that handles the exception means that the exception will not make the test case fail.
 
 Include a relevant docstring comment with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
 
