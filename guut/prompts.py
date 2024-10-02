@@ -39,6 +39,11 @@ class DebugPrompt(Template):
         )
 
 
+class Example(Template):
+    def render(self) -> UserMessage:
+        return UserMessage(self.template.render().strip() + "\n")
+
+
 class ProblemTemplate(Template):
     def render(self, problem: Problem, is_baseline: bool = False) -> UserMessage:
         return UserMessage(self.template.render(problem=problem, is_baseline=is_baseline).strip() + "\n")
@@ -114,6 +119,7 @@ class PromptCollection:
     debug_prompt: DebugPrompt
     test_prompt: TestPrompt
     baseline_prompt: BaselinePrompt
+    example: Example | None
 
     stop_words: List[str]
     baseline_stop_words: List[str]
@@ -138,6 +144,7 @@ default_prompts = PromptCollection(
     debug_prompt=DebugPrompt("debug_prompt.md"),
     test_prompt=TestPrompt("test_prompt.md"),
     baseline_prompt=BaselinePrompt("baseline_prompt.md"),
+    example=None,
     #
     stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
     baseline_stop_words=["# Test Result"],
@@ -153,5 +160,5 @@ default_prompts = PromptCollection(
     equivalence_claim_template=EquivalenceClaimTemplate("equivalence_claim_template.md"),
 )
 
-debug_prompt_altexp = DebugPrompt("debug_prompt_altexp.md")
 debug_prompt_new = DebugPrompt("debug_prompt_new.md")
+example = Example("debug_prompt_example.md")

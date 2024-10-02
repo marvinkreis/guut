@@ -370,6 +370,7 @@ def run_problem(problem: Problem, ctx: click.Context):
 @click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
 @click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
+@click.option("--include-example", "include_example", is_flag=True, default=False, help="Include the few-shot example.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
 @click.option(
     "--python-interpreter",
@@ -391,6 +392,7 @@ def cosmic_ray_runner(
     baseline2: bool = False,
     altexp: bool = False,
     shortexp: bool = False,
+    include_example: bool = False,
     raw: bool = False,
 ):
     endpoint = None
@@ -436,6 +438,7 @@ def cosmic_ray_runner(
         loop_cls=LoopCls,
         altexp=altexp,
         shortexp=shortexp,
+        include_example=include_example,
         conversation_logger=conversation_logger,
         message_printer=message_printer,
         loop_settings=settings,

@@ -10,7 +10,7 @@ from loop import Loop, LoopSettings, Result, Test
 from guut.cosmic_ray import CosmicRayProblem, MutantSpec
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.problem import Coverage, TestResult
-from guut.prompts import debug_prompt_new
+from guut.prompts import debug_prompt_new, example
 
 
 @dataclass
@@ -60,6 +60,7 @@ class CosmicRayRunner:
         loop_cls: Type[Loop],
         altexp: bool,
         shortexp: bool,
+        include_example: bool,
         conversation_logger: ConversationLogger | None,
         message_printer: MessagePrinter | None,
         loop_settings: LoopSettings,
@@ -74,6 +75,7 @@ class CosmicRayRunner:
         self.loop_cls = loop_cls
         self.altexp = altexp
         self.shortexp = shortexp
+        self.include_example = include_example
         self.conversation_logger = conversation_logger
         self.message_printer = message_printer
         self.loop_settings = loop_settings
@@ -144,8 +146,9 @@ class CosmicRayRunner:
             # TODO: solve this better
             prompts = problem.get_default_prompts()
             if self.altexp:
-                # prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
                 prompts = prompts.replace(debug_prompt=debug_prompt_new)
+            if self.include_example:
+                prompts = prompts.replace(example=example)
 
             loop = self.loop_cls(
                 problem=problem,

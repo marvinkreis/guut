@@ -398,6 +398,8 @@ class Loop:
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render(), tag=None)
         self.add_msg(self.prompts.debug_prompt.render(self.problem, shortexp=self.settings.shortexp), tag=None)
+        if self.prompts.example:
+            self.add_msg(self.prompts.example.render(), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
     def _prompt_for_action(self):
