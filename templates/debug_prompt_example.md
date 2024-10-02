@@ -33,9 +33,9 @@
 
 ## Hypothesis (Example)
 - The mutant changes a recursive call of the `binsearch` function from `binsearch(mid + 1, end)` to `binsearch(mid, end)`.
-- The mutant is located inside an if-condition that checks whether the search value is greater than the middle element.
+- The mutant is guarded by an if-condition that checks whether the search value is greater than `mid`.
 
-I hypothesize that the mutant alters how the search space is reduced, making the function fail to find values that are present in the array. Specifically, I predict that the mutant will fail to find the target value if it is the highest value in the list. This is because the search value needs to be greater than `mid` in order to cover the mutant.
+I hypothesize that the mutant alters how the search space is reduced, making the function fail to find values that are present in the array. Specifically, I predict that the mutant will fail to find the search value if it is the highest value in the list, as the search value needs to be greater than `mid` in order to cover the mutant.
 
 ## Experiment (Example)
 I will call `find_in_sorted` with `[1, 2, 3, 4]` as the list and `4` as the search value. I predict that the baseline will find the searched value in the list, while the mutant will fail to find the element and return `-1`.
@@ -47,7 +47,7 @@ def test_find_in_sorted():
     # Try finding the highest number at the end of the list.
     output = find_in_sorted([1, 2, 3, 4], 4)
     print(f"Output: {output}")
-    assert output != -1, f"Expected a value other than -1, got {output}"
+    assert output != -1
 ```
 
 ### Experiment Results (Example)
@@ -63,13 +63,13 @@ Output: 3
 ```
 
 ## Conclusion (Example)
-The experiment shows that both the baseline and the mutant correctly find the `4` at the end of the list. This contradicts my prediction.
+The experiment shows that both the baseline and the mutant correctly find the `4` at the end of the list, returning the correct index `3`. This contradicts my prediction.
 
 Key conclusions:
 - Both baseline and mutant are able to find `4` in `[1, 2, 3, 4]`.
 
 ## Hypothesis (Example)
-In the previous experiment, I tested whether an existing element can be found in the list. Now, I will check if searching an element that is not contained in the input list will result in a difference. I hypothesize that the mutant will give an incorrect output when a value greater than the highest value in the list is searched. (The value should be greater, so that the if-condition around the mutant is always satisfied).
+In the previous experiment, I tested whether an existing element can be found in the list. Now, I will check if searching an element that is not contained in the input list will result in a difference. I hypothesize that the mutant will give an incorrect output when a value greater than the highest value in the list is searched.
 
 ## Experiment (Example)
 I will call `find_in_sorted` with `[1, 2, 3, 4]` as the list and `5` as the search value. I predict that the baseline will return `-1` as the value is not part of the list, while the mutant will return a different output.
@@ -105,13 +105,7 @@ Traceback (most recent call last):
   File "find_in_sorted.py", line 24, in binsearch
     return binsearch(mid, end)
            ^^^^^^^^^^^^^^^^^^^
-  File "find_in_sorted.py", line 24, in binsearch
-    return binsearch(mid, end)
-           ^^^^^^^^^^^^^^^^^^^
-  File "find_in_sorted.py", line 24, in binsearch
-    return binsearch(mid, end)
-           ^^^^^^^^^^^^^^^^^^^
-  [Previous line repeated 986 more times]
+  [Previous line repeated 988 more times]
   File "find_in_sorted.py", line 17, in binsearch
     def binsearch(start, end):
 
@@ -124,13 +118,13 @@ The baseline returned `-1` as predicted, while the mutant results in a `Recursio
 
 Key conclusions:
 - The mutant raises an error when searching for `5` in `[1, 2, 3, 4]`.
-- The baseline returns the correct output, `-1`, when searching for `5` in `[1, 2, 3, 4]`.
+- The baseline returns `-1` (the correct output) when searching for `5` in `[1, 2, 3, 4]`.
 
-Since I have identified consistent behavior in the mutant that can be exploited, I am now ready to formulate a test that will specifically kill the mutant.
+Since I have identified consistent behavior in the mutant that can be exploited, I am now ready to create a test that will kill the mutant.
 
 ## Test (Example)
 
-The test will call `find_in_sorted` with `[1, 2, 3, 4]` as the list and `5` as the searched value. As previously demonstrated, this should lead to a `RecursionError` for the mutant, while the baseline returns `-1`.
+The test will call `find_in_sorted` with `[1, 2, 3, 4]` as the list and `5` as the searched value. As demonstrated before, this should lead to a `RecursionError` for the mutant, while the baseline returns `-1`.
 
 ```python
 from find_in_sorted import find_in_sorted
@@ -146,44 +140,6 @@ def test_find_in_sorted_mutant_killing():
 ```
 
 # Test Results (Example)
-
-The LLM found a test case that detects the mutant.
-
-## Mutant
-
-```diff mutant.diff
-diff --git a/find_in_sorted.py b/mutant/find_in_sorted_mutant.py
-index 3af7b1d..55d1bf9 100644
---- a/find_in_sorted.py
-+++ b/mutant/find_in_sorted_mutant.py
-@@ -19,10 +19,10 @@ def find_in_sorted(arr, x):
-             return -1
-         mid = start + (end - start) // 2
-         if x < arr[mid]:
-             return binsearch(start, mid)
-         elif x > arr[mid]:
--            return binsearch(mid + 1, end)
-+            return binsearch(mid, end)
-         else:
-             return mid
-
-     return binsearch(0, len(arr))
-```
-
-## Test Case
-
-```python
-from find_in_sorted import find_in_sorted
-
-def test_find_in_sorted_mutant_killing():
-    """
-    Test the find_in_sorted function using a value greater than
-    the highest in the array. The mutant will enter an infinite
-    recursion, while the baseline will return -1.
-    """
-    output = find_in_sorted([1, 2, 3, 4], 5)
-    assert output == -1, f"Expected -1, got {output}"
-```
 
 ## Running Test on Baseline
 

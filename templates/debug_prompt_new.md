@@ -115,42 +115,37 @@ Some notes:
 - Never recreate the mutant as part of your experiment/test.
 - Check one input at a time.
 
-Here is an example experiment, checking an implementation of the greatest common divisor. It prints the output and checks if the output matches the prediction.
+Here is an example experiment for a `is_valid_parenthesization` function. See how it prints the output, then checks if the output matches the prediction.
 
 ### Example Experiment
 
 ```python
-from gcd import gcd
+from is_valid_parenthesization import is_valid_parenthesization
 
-def test__gcd():
-    output = gcd(2, 1)
-    print(f"output = {output}")
-    assert output == 1
-````
-
-#### Example Experiment Results
-
-##### Running Experiment on Baseline
-```
-output = 1
+def test__is_valid_parenthesization():
+    """
+    Check if the target function correctly handles missing closing parentheses.
+    """
+    output = is_valid_parenthesization('(()')
+    assert output == False
 ```
 
-##### Running Experiment on Mutant
+## Running Experiment on Baseline
+
+```
+
+```
+
+## Running Experiment on Mutant
+
 ```
 Traceback (most recent call last):
-  File "test.py", line 7, in <module>
-    test__gcd()
-  File "test.py", line 4, in test__gcd
-    output = gcd(2, 1)
-             ^^^^^^^^^
-  File "gcd.py", line 25, in gcd
-    return gcd(a % b, b)
-           ^^^^^^^^^^^^^
-  [Previous line repeated 989 more times]
-  File "gcd.py", line 21, in gcd
-    def gcd(a, b):
-
-RecursionError: maximum recursion depth exceeded
+  File "test.py", line 9, in <module>
+    test__is_valid_parenthesization()
+  File "test.py", line 8, in test__is_valid_parenthesization
+    assert output == False
+           ^^^^^^^^^^^^^^^
+AssertionError
 ```
 The experiment exited with exit code 1.
 
@@ -176,7 +171,7 @@ This means that you have to include relevant assertions in your test, unless the
 
 Include a relevant docstring comment with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
 
-Here is an example test:
+Here is an example test for a `rpn_eval` function that evaluates expressions in Reverse Polish notation:
 
 ### Example Test
 
