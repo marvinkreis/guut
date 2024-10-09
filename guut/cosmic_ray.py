@@ -16,7 +16,6 @@ from guut.config import config
 from guut.execution import PythonExecutor
 from guut.parsing import parse_uncalled_python_tests
 from guut.problem import (
-    AltExperimentResult,
     ExecutionResult,
     ExperimentResult,
     Problem,
@@ -115,15 +114,13 @@ class CosmicRayProblem(Problem):
         code: str,
         debugger_script: str | None,
         collect_coverage: bool,
-        altexp: bool = False,
-    ) -> ExperimentResult | AltExperimentResult:
+    ) -> ExperimentResult:
         for test_name in parse_uncalled_python_tests(code):
             code += f"\n{test_name}()"  # add test call
         return super().run_experiment(
             code,
             debugger_script=debugger_script,
             collect_coverage=collect_coverage,
-            altexp=altexp,
         )
 
     @override

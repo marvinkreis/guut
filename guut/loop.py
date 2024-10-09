@@ -11,7 +11,7 @@ from loguru import logger
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
-from guut.problem import AltExperimentResult, ExperimentResult, Problem, TestResult, ValidationResult
+from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 from guut.prompts import PromptCollection
 
 
@@ -213,13 +213,13 @@ class Test(TestDescription):
 @dataclass
 class Experiment(ExperimentDescription):
     validation_result: ValidationResult
-    result: ExperimentResult | AltExperimentResult | None
+    result: ExperimentResult | None
 
     @staticmethod
     def with_description(
         description: ExperimentDescription,
         validation_result: ValidationResult,
-        result: ExperimentResult | AltExperimentResult | None,
+        result: ExperimentResult | None,
     ) -> "Experiment":
         return Experiment(
             text=description.text,
@@ -238,8 +238,6 @@ class LoopSettings:
     max_num_incomplete_responses: int = 2
     max_num_turns: int = 10
     test_inctructions_after_turn: int = 8
-    altexp: bool = False
-    shortexp: bool = False
     is_baseline: bool = False
 
 
@@ -397,7 +395,7 @@ class Loop:
         """it's hard to do sometimes"""
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render(), tag=None)
-        self.add_msg(self.prompts.debug_prompt.render(self.problem, shortexp=self.settings.shortexp), tag=None)
+        self.add_msg(self.prompts.debug_prompt.render(self.problem), tag=None)
         if self.prompts.example:
             self.add_msg(self.prompts.example.render(), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
@@ -461,13 +459,11 @@ class Loop:
             )
         else:
             experiment_result = self.problem.run_experiment(
-                experiment.code, experiment.debugger_script, collect_coverage=True, altexp=self.settings.altexp
+                experiment.code, experiment.debugger_script, collect_coverage=True
             )
             new_message = self.prompts.experiment_results_template.render(
                 result=experiment_result,
                 name=name,
-                altexp=isinstance(experiment_result, AltExperimentResult),
-                shortexp=self.settings.shortexp,
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
             experiment = replace(experiment, kind="observation" if experiment.kind == "observation" else "experiment")

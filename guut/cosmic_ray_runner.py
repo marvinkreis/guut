@@ -10,7 +10,6 @@ from loop import Loop, LoopSettings, Result, Test
 from guut.cosmic_ray import CosmicRayProblem, MutantSpec
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.problem import Coverage, TestResult
-from guut.prompts import debug_prompt_new, example
 
 
 @dataclass
@@ -58,8 +57,6 @@ class CosmicRayRunner:
         python_interpreter: Path,
         endpoint: LLMEndpoint,
         loop_cls: Type[Loop],
-        altexp: bool,
-        shortexp: bool,
         include_example: bool,
         conversation_logger: ConversationLogger | None,
         message_printer: MessagePrinter | None,
@@ -73,8 +70,6 @@ class CosmicRayRunner:
         self.python_interpreter = python_interpreter
         self.endpoint = endpoint
         self.loop_cls = loop_cls
-        self.altexp = altexp
-        self.shortexp = shortexp
         self.include_example = include_example
         self.conversation_logger = conversation_logger
         self.message_printer = message_printer
@@ -145,10 +140,8 @@ class CosmicRayRunner:
 
             # TODO: solve this better
             prompts = problem.get_default_prompts()
-            if self.altexp:
-                prompts = prompts.replace(debug_prompt=debug_prompt_new)
-            if self.include_example:
-                prompts = prompts.replace(example=example)
+            if not self.include_example:
+                prompts = prompts.replace(example=None)
 
             loop = self.loop_cls(
                 problem=problem,

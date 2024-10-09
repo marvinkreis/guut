@@ -6,7 +6,7 @@ import jinja2
 
 import guut.formatting as formatting
 from guut.llm import SystemMessage, UserMessage
-from guut.problem import AltExperimentResult, ExperimentResult, Problem, TestResult, ValidationResult
+from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 
 templates_path = Path(__file__).parent.parent / "templates"
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), trim_blocks=True)
@@ -32,10 +32,9 @@ class SystemPrompt(Template):
 
 
 class DebugPrompt(Template):
-    def render(self, problem: Problem, include_equivalence: bool = True, shortexp: bool = False) -> UserMessage:
+    def render(self, problem: Problem, include_equivalence: bool = True) -> UserMessage:
         return UserMessage(
-            self.template.render(problem=problem, include_equivalence=include_equivalence, shortexp=shortexp).strip()
-            + "\n"
+            self.template.render(problem=problem, include_equivalence=include_equivalence).strip() + "\n"
         )
 
 
@@ -55,12 +54,8 @@ class ExperimentDoesntCompileTemplate(Template):
 
 
 class ExperimentResultsTemplate(Template):
-    def render(
-        self, result: ExperimentResult | AltExperimentResult, name: str, altexp: bool, shortexp: bool
-    ) -> UserMessage:
-        return UserMessage(
-            self.template.render(result=result, name=name, altexp=altexp, shortexp=shortexp).strip() + "\n"
-        )
+    def render(self, result: ExperimentResult, name: str) -> UserMessage:
+        return UserMessage(self.template.render(result=result, name=name).strip() + "\n")
 
 
 class TestPrompt(Template):
@@ -141,10 +136,10 @@ class PromptCollection:
 
 default_prompts = PromptCollection(
     system_prompt=SystemPrompt("system_prompt.md"),
-    debug_prompt=DebugPrompt("debug_prompt.md"),
+    debug_prompt=DebugPrompt("debug_prompt_new.md"),
     test_prompt=TestPrompt("test_prompt.md"),
     baseline_prompt=BaselinePrompt("baseline_prompt.md"),
-    example=None,
+    example=Example("debug_prompt_example.md"),
     #
     stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],
     baseline_stop_words=["# Test Result"],
@@ -159,6 +154,3 @@ default_prompts = PromptCollection(
     incomplete_response_template=IncompleteResponseTemplate("incomplete_response_template.md"),
     equivalence_claim_template=EquivalenceClaimTemplate("equivalence_claim_template.md"),
 )
-
-debug_prompt_new = DebugPrompt("debug_prompt_new.md")
-example = Example("debug_prompt_example.md")

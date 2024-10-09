@@ -1,5 +1,4 @@
 import json
-from dataclasses import replace
 from pathlib import Path
 from random import randbytes
 
@@ -22,7 +21,6 @@ from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings
 from guut.output import CustomJSONEncoder, write_cosmic_ray_runner_result_dir, write_result_dir
 from guut.problem import Problem
-from guut.prompts import debug_prompt_new
 from guut.quixbugs import QuixbugsProblem
 from guut.quixbugs import list_problems as list_quixbugs_problems
 
@@ -87,8 +85,6 @@ def show():
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
-@click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
-@click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
 @click.option(
     "--python-interpreter",
@@ -111,8 +107,6 @@ def run(
     nologs: bool = False,
     baseline: bool = False,
     baseline2: bool = False,
-    altexp: bool = False,
-    shortexp: bool = False,
     raw: bool = False,
 ):
     if replay and resume:
@@ -132,8 +126,6 @@ def run(
     ctx.obj["nologs"] = nologs
     ctx.obj["baseline"] = baseline
     ctx.obj["baseline2"] = baseline2
-    ctx.obj["altexp"] = altexp
-    ctx.obj["shortexp"] = shortexp
     ctx.obj["raw"] = raw
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
     ctx.obj["python_interpreter"] = py
@@ -268,8 +260,6 @@ def run_problem(problem: Problem, ctx: click.Context):
     nologs = ctx.obj["nologs"]
     baseline = ctx.obj["baseline"]
     baseline2 = ctx.obj["baseline2"]
-    altexp = ctx.obj["altexp"]
-    shortexp = ctx.obj["shortexp"]
     raw = ctx.obj["raw"]
 
     endpoint = None
@@ -312,13 +302,9 @@ def run_problem(problem: Problem, ctx: click.Context):
     elif baseline2:
         LoopCls = BaselineLoop2
         settings = BaselineSettings2()
-    settings = replace(settings, altexp=altexp, shortexp=shortexp)
 
     # TODO: solve this better
     prompts = problem.get_default_prompts()
-    if altexp:
-        # prompts = prompts.replace(debug_prompt=debug_prompt_altexp)
-        prompts = prompts.replace(debug_prompt=debug_prompt_new)
 
     loop = LoopCls(
         problem=problem,
@@ -368,8 +354,6 @@ def run_problem(problem: Problem, ctx: click.Context):
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
 @click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
-@click.option("--altexp", "-a", is_flag=True, default=False, help="Use the alterenative experiment format.")
-@click.option("--shortexp", is_flag=True, default=False, help="Include only debugger output if debugger is used.")
 @click.option("--include-example", "include_example", is_flag=True, default=False, help="Include the few-shot example.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
 @click.option(
@@ -390,8 +374,6 @@ def cosmic_ray_runner(
     nologs: bool = False,
     baseline: bool = False,
     baseline2: bool = False,
-    altexp: bool = False,
-    shortexp: bool = False,
     include_example: bool = False,
     raw: bool = False,
 ):
@@ -414,7 +396,6 @@ def cosmic_ray_runner(
     elif baseline2:
         LoopCls = BaselineLoop2
         settings = BaselineSettings2()
-    settings = replace(settings, altexp=altexp, shortexp=shortexp)
 
     mutant_specs = list_mutants(Path(session_file))
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
@@ -436,8 +417,6 @@ def cosmic_ray_runner(
         python_interpreter=Path(py),
         endpoint=endpoint,
         loop_cls=LoopCls,
-        altexp=altexp,
-        shortexp=shortexp,
         include_example=include_example,
         conversation_logger=conversation_logger,
         message_printer=message_printer,

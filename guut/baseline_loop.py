@@ -23,8 +23,6 @@ class BaselineSettings(LoopSettings):
         max_num_incomplete_responses: int = 2,
         max_num_turns: int = 10,
         test_inctructions_after_turn: int = 99,
-        altexp: bool = False,
-        shortexp: bool = False,
         is_baseline=True,
     ):
         super().__init__(
@@ -33,8 +31,6 @@ class BaselineSettings(LoopSettings):
             max_num_incomplete_responses=max_num_incomplete_responses,
             max_num_turns=max_num_turns,
             test_inctructions_after_turn=test_inctructions_after_turn,
-            altexp=altexp,
-            shortexp=shortexp,
             is_baseline=True,
         )
 
