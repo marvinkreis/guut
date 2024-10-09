@@ -1,14 +1,15 @@
 import json
+from collections import namedtuple
 from pathlib import Path
 from random import randbytes
+from typing import Dict
 
 import click
 import yaml
+from baseline_loop import BaselineLoop
 from loguru import logger
 from openai import OpenAI
 
-from guut.baseline_loop import BaselineLoop, BaselineSettings
-from guut.baseline_loop_2 import BaselineLoop2, BaselineSettings2
 from guut.config import config
 from guut.cosmic_ray import CosmicRayProblem, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
@@ -25,6 +26,16 @@ from guut.quixbugs import QuixbugsProblem
 from guut.quixbugs import list_problems as list_quixbugs_problems
 
 problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
+
+
+Preset = namedtuple("Preset", ["loop_cls", "loop_settings"])
+SETTINGS_PRESETS: Dict[str, Preset] = {
+    "debugging_one_shot": Preset(Loop, LoopSettings(include_example=True)),
+    "debugging_zero_shot": Preset(Loop, LoopSettings(include_example=False)),
+    "baseline_with_iterations": Preset(BaselineLoop, LoopSettings(max_retries_for_invalid_test=9)),
+    "baseline_without_iterations": Preset(BaselineLoop, LoopSettings(max_retries_for_invalid_test=0)),
+}
+SETTINGS_PRESETS_KEYS = list(SETTINGS_PRESETS.keys())
 
 
 @click.group()
@@ -83,8 +94,6 @@ def show():
 )
 @click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
-@click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
-@click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
 @click.option(
     "--python-interpreter",
@@ -94,9 +103,17 @@ def show():
     required=False,
     help="The python interpreter to use for testing.",
 )
+@click.option(
+    "--preset",
+    nargs=1,
+    type=click.Choice(SETTINGS_PRESETS_KEYS),
+    required=True,
+    help="The preset to use.",
+)
 @click.pass_context
 def run(
     ctx,
+    preset: str,
     outdir: str | None,
     replay: str | None,
     resume: str | None,
@@ -105,18 +122,15 @@ def run(
     unsafe: bool = False,
     silent: bool = False,
     nologs: bool = False,
-    baseline: bool = False,
-    baseline2: bool = False,
     raw: bool = False,
 ):
     if replay and resume:
         raise Exception("Cannot use --replay and --continue together.")
     if index and not resume:
         raise Exception("Cannot use --index without --continue.")
-    if baseline and baseline2:
-        raise Exception("Cannot use --baseline and --baseline2 together.")
 
     ctx.ensure_object(dict)
+    ctx.obj["preset"] = preset
     ctx.obj["outdir"] = outdir
     ctx.obj["replay"] = replay
     ctx.obj["resume"] = resume
@@ -124,8 +138,6 @@ def run(
     ctx.obj["unsafe"] = unsafe
     ctx.obj["silent"] = silent
     ctx.obj["nologs"] = nologs
-    ctx.obj["baseline"] = baseline
-    ctx.obj["baseline2"] = baseline2
     ctx.obj["raw"] = raw
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
     ctx.obj["python_interpreter"] = py
@@ -258,8 +270,6 @@ def run_problem(problem: Problem, ctx: click.Context):
     unsafe = ctx.obj["unsafe"]
     silent = ctx.obj["silent"]
     nologs = ctx.obj["nologs"]
-    baseline = ctx.obj["baseline"]
-    baseline2 = ctx.obj["baseline2"]
     raw = ctx.obj["raw"]
 
     endpoint = None
@@ -294,14 +304,9 @@ def run_problem(problem: Problem, ctx: click.Context):
     conversation_logger = ConversationLogger() if not nologs else None
     message_printer = MessagePrinter(print_raw=raw) if not silent else None
 
-    LoopCls = Loop
-    settings = LoopSettings()
-    if baseline:
-        LoopCls = BaselineLoop
-        settings = BaselineSettings()
-    elif baseline2:
-        LoopCls = BaselineLoop2
-        settings = BaselineSettings2()
+    preset = SETTINGS_PRESETS[ctx.obj["preset"]]
+    LoopCls = preset.loop_cls
+    settings = preset.loop_settings
 
     # TODO: solve this better
     prompts = problem.get_default_prompts()
@@ -352,9 +357,6 @@ def run_problem(problem: Problem, ctx: click.Context):
 )
 @click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
 @click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
-@click.option("--baseline", "-b", is_flag=True, default=False, help="Use baseline instead of regular loop.")
-@click.option("--baseline2", is_flag=True, default=False, help="Use baseline instead of regular loop.")
-@click.option("--include-example", "include_example", is_flag=True, default=False, help="Include the few-shot example.")
 @click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
 @click.option(
     "--python-interpreter",
@@ -364,17 +366,22 @@ def run_problem(problem: Problem, ctx: click.Context):
     required=False,
     help="The python interpreter to use for testing.",
 )
+@click.option(
+    "--preset",
+    nargs=1,
+    type=click.Choice(SETTINGS_PRESETS_KEYS),
+    required=True,
+    help="The preset to use.",
+)
 def cosmic_ray_runner(
     session_file: str,
     module_path: str,
+    preset: str,
     outdir: str | None,
     python_interpreter: str | None,
     unsafe: bool = False,
     silent: bool = False,
     nologs: bool = False,
-    baseline: bool = False,
-    baseline2: bool = False,
-    include_example: bool = False,
     raw: bool = False,
 ):
     endpoint = None
@@ -388,14 +395,9 @@ def cosmic_ray_runner(
     conversation_logger = ConversationLogger() if not nologs else None
     message_printer = MessagePrinter(print_raw=raw) if not silent else None
 
-    LoopCls = Loop
-    settings = LoopSettings()
-    if baseline:
-        LoopCls = BaselineLoop
-        settings = BaselineSettings()
-    elif baseline2:
-        LoopCls = BaselineLoop2
-        settings = BaselineSettings2()
+    preset_ = SETTINGS_PRESETS[preset]
+    LoopCls = preset_.loop_cls
+    settings = preset_.loop_settings
 
     mutant_specs = list_mutants(Path(session_file))
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
@@ -417,7 +419,6 @@ def cosmic_ray_runner(
         python_interpreter=Path(py),
         endpoint=endpoint,
         loop_cls=LoopCls,
-        include_example=include_example,
         conversation_logger=conversation_logger,
         message_printer=message_printer,
         loop_settings=settings,

@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import List, Literal, Tuple
+from typing import List, Literal, LiteralString, Tuple
 
 from loguru import logger
 
@@ -235,6 +235,7 @@ class LoopSettings:
     max_num_incomplete_responses: int = 2
     max_num_turns: int = 10
     test_inctructions_after_turn: int = 8
+    include_example: bool = False
     is_baseline: bool = False
 
 
@@ -393,7 +394,7 @@ class Loop:
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render(), tag=None)
         self.add_msg(self.prompts.debug_prompt.render(self.problem), tag=None)
-        if self.prompts.example:
+        if self.settings.include_example:
             self.add_msg(self.prompts.example.render(), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem), State.INITIAL)
 
@@ -683,7 +684,7 @@ class Loop:
 
 
 class InvalidStateException(Exception):
-    def __init__(self, state: State | None, message: str | None = None):
+    def __init__(self, state: State | None, message: LiteralString | str | None = None):
         self.state = state
         if message:
             super().__init__(message)

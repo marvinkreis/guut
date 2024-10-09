@@ -57,7 +57,6 @@ class CosmicRayRunner:
         python_interpreter: Path,
         endpoint: LLMEndpoint,
         loop_cls: Type[Loop],
-        include_example: bool,
         conversation_logger: ConversationLogger | None,
         message_printer: MessagePrinter | None,
         loop_settings: LoopSettings,
@@ -70,7 +69,6 @@ class CosmicRayRunner:
         self.python_interpreter = python_interpreter
         self.endpoint = endpoint
         self.loop_cls = loop_cls
-        self.include_example = include_example
         self.conversation_logger = conversation_logger
         self.message_printer = message_printer
         self.loop_settings = loop_settings
@@ -140,8 +138,6 @@ class CosmicRayRunner:
 
             # TODO: solve this better
             prompts = problem.get_default_prompts()
-            if not self.include_example:
-                prompts = prompts.replace(example=None)
 
             loop = self.loop_cls(
                 problem=problem,

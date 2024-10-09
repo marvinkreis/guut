@@ -5,7 +5,6 @@ from unittest.mock import MagicMock
 import pytest
 
 from guut.baseline_loop import BaselineLoop
-from guut.baseline_loop_2 import BaselineLoop2
 from guut.dummy_problem import DummyProblem
 from guut.llm import AssistantMessage, Conversation, UserMessage
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
@@ -41,7 +40,6 @@ def _test(*text):
 
 Loop = partial(Loop, printer=None, logger=None)
 Baseline = partial(BaselineLoop, printer=None, logger=None)
-Baseline2 = partial(BaselineLoop2, printer=None, logger=None)
 
 
 def test__observation_with_code_and_debugger_script_gets_detected():
@@ -693,7 +691,7 @@ bla bla bla
     assert result.equivalence is not None
 
 
-@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,), (Baseline2,)])
+@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,)])
 def test__test_after_equivalence(LoopCls):
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages(
@@ -723,7 +721,7 @@ bla bla bla
     assert result.equivalence is not None
 
 
-@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,), (Baseline2,)])
+@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,)])
 def test__equivalence_message(LoopCls):
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages(
@@ -796,7 +794,7 @@ def test__test_instructions_given_after_turn_reached_with_experiment():
     assert loop.get_state() == State.TEST_INSTRUCTIONS_GIVEN
 
 
-@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,), (Baseline2,)])
+@pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,)])
 def test__test_instructions_given_after_turn_reached_with_test(LoopCls):
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages([*([_test(code)] * 3)])

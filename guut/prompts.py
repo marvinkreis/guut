@@ -114,7 +114,7 @@ class PromptCollection:
     debug_prompt: DebugPrompt
     test_prompt: TestPrompt
     baseline_prompt: BaselinePrompt
-    example: Example | None
+    example: Example
 
     stop_words: List[str]
     baseline_stop_words: List[str]

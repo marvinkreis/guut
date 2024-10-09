@@ -31,6 +31,7 @@ class BaselineSettings(LoopSettings):
             max_num_incomplete_responses=max_num_incomplete_responses,
             max_num_turns=max_num_turns,
             test_inctructions_after_turn=test_inctructions_after_turn,
+            include_example=False,
             is_baseline=True,
         )
 
