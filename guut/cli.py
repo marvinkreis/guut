@@ -30,10 +30,14 @@ problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
 
 Preset = namedtuple("Preset", ["loop_cls", "loop_settings"])
 SETTINGS_PRESETS: Dict[str, Preset] = {
-    "debugging_one_shot": Preset(Loop, LoopSettings(include_example=True)),
-    "debugging_zero_shot": Preset(Loop, LoopSettings(include_example=False)),
-    "baseline_with_iterations": Preset(BaselineLoop, LoopSettings(max_retries_for_invalid_test=9)),
-    "baseline_without_iterations": Preset(BaselineLoop, LoopSettings(max_retries_for_invalid_test=0)),
+    "debugging_one_shot": Preset(Loop, LoopSettings(name="debugging_one_shot", include_example=True)),
+    "debugging_zero_shot": Preset(Loop, LoopSettings(name="debugging_zero_shot", include_example=False)),
+    "baseline_with_iterations": Preset(
+        BaselineLoop, LoopSettings(name="baseline_with_iterations", max_retries_for_invalid_test=9)
+    ),
+    "baseline_without_iterations": Preset(
+        BaselineLoop, LoopSettings("baseline_without_iterations", max_retries_for_invalid_test=0)
+    ),
 }
 SETTINGS_PRESETS_KEYS = list(SETTINGS_PRESETS.keys())
 
@@ -404,7 +408,7 @@ def cosmic_ray_runner(
 
     out_path = Path(outdir) if outdir else config.output_path
 
-    randchars = "".join(f"{b:x}" for b in randbytes(4))
+    randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}".format(Path(module_path).stem, randchars)
 
     out_path = out_path / id

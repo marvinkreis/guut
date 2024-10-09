@@ -230,6 +230,7 @@ class Experiment(ExperimentDescription):
 
 @dataclass
 class LoopSettings:
+    name: str
     max_num_experiments: int = 99
     max_retries_for_invalid_test: int = 99
     max_num_incomplete_responses: int = 2
@@ -272,8 +273,8 @@ class Loop:
         self,
         problem: Problem,
         endpoint: LLMEndpoint,
+        settings: LoopSettings,
         prompts: PromptCollection | None = None,
-        settings: LoopSettings | None = None,
         logger: ConversationLogger | None = None,
         printer: MessagePrinter | None = None,
         conversation: Conversation | None = None,
@@ -283,11 +284,7 @@ class Loop:
         else:
             self.prompts = prompts
 
-        if settings is None:
-            self.settings = LoopSettings()
-        else:
-            self.settings = settings
-
+        self.settings = settings
         self.problem = problem
         self.endpoint = endpoint
         self.logger = logger
@@ -676,7 +673,7 @@ class Loop:
 
     def _generate_id(self) -> str:
         randchars = "".join(f"{b:02x}" for b in randbytes(4))
-        id = "{}_{}".format(self.problem.get_description().format(), randchars)
+        id = "{}_{}_{}".format(self.settings.name, self.problem.get_description().format(), randchars)
         return id
 
     def _complete(self) -> AssistantMessage:
