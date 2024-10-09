@@ -36,9 +36,6 @@ class State(str, Enum):
     # Applies to: UserMsg with experiment result.
     EXPERIMENT_RESULTS_GIVEN = "experiment_results_given"
 
-    # The LLM has finished debugging and is ready to write the test.
-    # FINISHED_DEBUGGING = "finished_debugging"
-
     # Instructions for writing the unit test have been stated.
     # Applies to: UserMsg with test instructions.
     TEST_INSTRUCTIONS_GIVEN = "test_instructions_given"
