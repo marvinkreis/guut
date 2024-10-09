@@ -6,10 +6,10 @@ from typing import Dict
 
 import click
 import yaml
-from baseline_loop import BaselineLoop
 from loguru import logger
 from openai import OpenAI
 
+from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
 from guut.cosmic_ray import CosmicRayProblem, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
@@ -33,10 +33,10 @@ SETTINGS_PRESETS: Dict[str, Preset] = {
     "debugging_one_shot": Preset(Loop, LoopSettings(name="debugging_one_shot", include_example=True)),
     "debugging_zero_shot": Preset(Loop, LoopSettings(name="debugging_zero_shot", include_example=False)),
     "baseline_with_iterations": Preset(
-        BaselineLoop, LoopSettings(name="baseline_with_iterations", max_retries_for_invalid_test=9)
+        BaselineLoop, BaselineSettings(name="baseline_with_iterations", max_retries_for_invalid_test=9)
     ),
     "baseline_without_iterations": Preset(
-        BaselineLoop, LoopSettings("baseline_without_iterations", max_retries_for_invalid_test=0)
+        BaselineLoop, BaselineSettings("baseline_without_iterations", max_retries_for_invalid_test=0)
     ),
 }
 SETTINGS_PRESETS_KEYS = list(SETTINGS_PRESETS.keys())
