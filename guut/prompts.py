@@ -136,7 +136,7 @@ class PromptCollection:
 
 default_prompts = PromptCollection(
     system_prompt=SystemPrompt("system_prompt.md"),
-    debug_prompt=DebugPrompt("debug_prompt_new.md"),
+    debug_prompt=DebugPrompt("debug_prompt.md"),
     test_prompt=TestPrompt("test_prompt.md"),
     baseline_prompt=BaselinePrompt("baseline_prompt.md"),
     example=Example("debug_prompt_example.md"),
