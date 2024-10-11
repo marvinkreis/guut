@@ -26,10 +26,6 @@ debugger_script = f"""```pdb
 ```"""
 
 
-def observation(*text):
-    return f"## Observation\n{"\n\n".join(text)}"
-
-
 def experiment(*text):
     return f"## Experiment\n{"\n\n".join(text)}"
 
@@ -40,15 +36,6 @@ def _test(*text):
 
 Loop = partial(Loop, printer=None, logger=None, settings=LoopSettings())
 Baseline = partial(BaselineLoop, printer=None, logger=None, settings=BaselineSettings())
-
-
-def test__observation_with_only_debugger_script_leads_to_incomple_response():
-    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
-    endpoint = ReplayLLMEndpoint.from_raw_messages([observation(debugger_script)])
-    loop = Loop(endpoint=endpoint, conversation=conversation, problem=DummyProblem())
-
-    loop.perform_next_step()
-    assert loop.get_state() == State.INCOMPLETE_RESPONSE
 
 
 def test__experiment_with_code_and_debugger_script_gets_detected():
@@ -120,36 +107,6 @@ def test__test_with_only_debugger_script_leads_to_incomple_response():
 
     loop.perform_next_step()
     assert loop.get_state() == State.INCOMPLETE_RESPONSE
-
-
-def test__experiment_is_preferred_over_observation_when_first():
-    conversation = Conversation(
-        [
-            AssistantMessage("", tag=State.INITIAL),
-        ]
-    )
-    endpoint = ReplayLLMEndpoint.from_raw_messages([f"{experiment(code)}\n\n{observation(code)}\n\n{experiment(code)}"])
-    loop = Loop(
-        endpoint=endpoint,
-        conversation=conversation,
-        problem=DummyProblem(),
-    )
-
-    loop.perform_next_step()
-    assert loop.get_state() == State.EXPERIMENT_STATED
-
-
-def test__test_is_preferred_over_experiment_if_no_header_is_present_and_test_instructions_werent_given_yet():
-    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
-    endpoint = ReplayLLMEndpoint.from_raw_messages([f"{experiment(code)}\n\n{_test(code)}"])
-    loop = Loop(
-        endpoint=endpoint,
-        conversation=conversation,
-        problem=DummyProblem(),
-    )
-
-    loop.perform_next_step()
-    assert loop.get_state() == State.TEST_STATED
 
 
 def test__test_is_preferred_over_experiment_if_no_header_is_present_and_test_instructions_were_already_given():
@@ -478,7 +435,6 @@ def test__response_when_successful_test():
 @pytest.mark.parametrize(
     argnames=["section_name", "expected_state"],
     argvalues=[
-        ("Observation", State.EXPERIMENT_STATED),
         ("Experiment", State.EXPERIMENT_STATED),
         ("Test", State.TEST_STATED),
     ],
@@ -513,7 +469,6 @@ bla bla bla
 @pytest.mark.parametrize(
     argnames=["section_name", "expected_state"],
     argvalues=[
-        ("Observation", State.EXPERIMENT_STATED),
         ("Experiment", State.EXPERIMENT_STATED),
         ("Test", State.TEST_STATED),
     ],
