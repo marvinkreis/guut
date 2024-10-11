@@ -1,31 +1,39 @@
 ### Experiment Results
 
 ### Running Experiment on Baseline
-{% with result=result.test_correct, name="experiment", is_debugger=False, show_exit=True %}
-{% include "execution_result_template.md"%}
-{% endwith %}
+```
+{{ result.test_correct | format_test_result }}
+```
+{% if result.test_correct.timeout %}
+Your code resulted in a timeout and exited with exit code {{ result.test_correct.exitcode }}.
+{% elif result.test_correct.exitcode != 0 %}
+Your code exited with exit code {{ result.test_correct.exitcode }}.
+{% endif %}
 {% if result.debug_correct %}
 
 Debugger Output:
-
-{% with result=result.debug_correct, name="experiment", is_debugger=True %}
-{% include "execution_result_template.md"%}
-{% endwith %}
+```
+{{ result.debug_correct | format_debugger_result }}
+```
 {% endif %}
 
 ### Running Experiment on Mutant
-{% with result=result.test_mutant, name="experiment", is_debugger=False %}
-{% include "execution_result_template.md"%}
-{% endwith %}
-{% if result.debug_correct %}
+```
+{{ result.test_mutant | format_test_result }}
+```
+{% if result.test_mutant.timeout %}
+Your code resulted in a timeout and exited with exit code {{ result.test_mutant.exitcode }}.
+{% elif result.test_mutant.exitcode != 0 %}
+Your code exited with exit code {{ result.test_mutant.exitcode }}.
+{% endif %}
+{% if result.debug_mutant %}
 
 Debugger Output:
-
-{% with result=result.debug_mutant, name="experiment", is_debugger=True %}
-{% include "execution_result_template.md"%}
-{% endwith %}
+```
+{{ result.debug_mutant | format_debugger_result }}
+```
 {% endif %}
 {% if (result.test_correct.exitcode == 0) and (result.test_mutant.exitcode == 1) %}
 
-Your experiment resulted in exitcode 0 for the **Baseline** and exitcode 1 for the **Mutant**. This means that your experiment can successfully kill the mutant. Next, you should create a test from your experiment.
+Your experiment resulted in exitcode 0 for the **Baseline** and exitcode 1 for the **Mutant**. This means that your experiment can successfully kill the mutant. Next, you should write a conclusion and create a test from your experiment.
 {% endif %}
