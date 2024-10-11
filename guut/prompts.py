@@ -49,13 +49,13 @@ class ProblemTemplate(Template):
 
 
 class ExperimentDoesntCompileTemplate(Template):
-    def render(self, result: ValidationResult, name: str) -> UserMessage:
-        return UserMessage(self.template.render(result=result, name=name).strip() + "\n")
+    def render(self, result: ValidationResult) -> UserMessage:
+        return UserMessage(self.template.render(result=result).strip() + "\n")
 
 
 class ExperimentResultsTemplate(Template):
-    def render(self, result: ExperimentResult, name: str) -> UserMessage:
-        return UserMessage(self.template.render(result=result, name=name).strip() + "\n")
+    def render(self, result: ExperimentResult) -> UserMessage:
+        return UserMessage(self.template.render(result=result).strip() + "\n")
 
 
 class TestPrompt(Template):

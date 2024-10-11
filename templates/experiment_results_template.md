@@ -1,27 +1,27 @@
-### {{ name }} Results
+### Experiment Results
 
-### Running {{ name }} on Baseline
-{% with result=result.test_correct, name=name.lower(), is_debugger=False, show_exit=True %}
+### Running Experiment on Baseline
+{% with result=result.test_correct, name="experiment", is_debugger=False, show_exit=True %}
 {% include "execution_result_template.md"%}
 {% endwith %}
 {% if result.debug_correct %}
 
 Debugger Output:
 
-{% with result=result.debug_correct, name=name.lower(), is_debugger=True %}
+{% with result=result.debug_correct, name="experiment", is_debugger=True %}
 {% include "execution_result_template.md"%}
 {% endwith %}
 {% endif %}
 
-### Running {{ name }} on Mutant
-{% with result=result.test_mutant, name=name.lower(), is_debugger=False %}
+### Running Experiment on Mutant
+{% with result=result.test_mutant, name="experiment", is_debugger=False %}
 {% include "execution_result_template.md"%}
 {% endwith %}
 {% if result.debug_correct %}
 
 Debugger Output:
 
-{% with result=result.debug_mutant, name=name.lower(), is_debugger=True %}
+{% with result=result.debug_mutant, name="experiment", is_debugger=True %}
 {% include "execution_result_template.md"%}
 {% endwith %}
 {% endif %}

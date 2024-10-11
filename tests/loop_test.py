@@ -42,35 +42,6 @@ Loop = partial(Loop, printer=None, logger=None, settings=LoopSettings())
 Baseline = partial(BaselineLoop, printer=None, logger=None, settings=BaselineSettings())
 
 
-def test__observation_with_code_and_debugger_script_gets_detected():
-    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
-    endpoint = ReplayLLMEndpoint.from_raw_messages([observation(code, debugger_script)])
-    loop = Loop(endpoint=endpoint, conversation=conversation, problem=DummyProblem())
-
-    loop.perform_next_step()
-    assert loop.get_state() == State.EXPERIMENT_STATED
-    loop.perform_next_step()
-    assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].kind == "observation"
-    assert code_raw in loop.experiments[0].code
-    assert loop.experiments[0].debugger_script is not None
-    assert debugger_script_raw in loop.experiments[0].debugger_script
-
-
-def test__observation_with_just_code_gets_detected():
-    conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
-    endpoint = ReplayLLMEndpoint.from_raw_messages([observation(code)])
-    loop = Loop(endpoint=endpoint, conversation=conversation, problem=DummyProblem())
-
-    loop.perform_next_step()
-    assert loop.get_state() == State.EXPERIMENT_STATED
-    loop.perform_next_step()
-    assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].kind == "observation"
-    assert code_raw in loop.experiments[0].code
-    assert loop.experiments[0].debugger_script is None
-
-
 def test__observation_with_only_debugger_script_leads_to_incomple_response():
     conversation = Conversation([AssistantMessage("", tag=State.INITIAL)])
     endpoint = ReplayLLMEndpoint.from_raw_messages([observation(debugger_script)])
@@ -89,7 +60,6 @@ def test__experiment_with_code_and_debugger_script_gets_detected():
     assert loop.get_state() == State.EXPERIMENT_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].kind == "experiment"
     assert code_raw in loop.experiments[0].code
     assert loop.experiments[0].debugger_script is not None
     assert debugger_script_raw in loop.experiments[0].debugger_script
@@ -104,7 +74,6 @@ def test__experiment_with_just_code_gets_detected():
     assert loop.get_state() == State.EXPERIMENT_STATED
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_RESULTS_GIVEN
-    assert loop.experiments[0].kind == "experiment"
     assert code_raw in loop.experiments[0].code
     assert loop.experiments[0].debugger_script is None
 
@@ -688,7 +657,7 @@ bla bla bla
     loop.perform_next_step()
     assert loop.get_state() == State.EXPERIMENT_STATED
     result = loop.get_result()
-    assert result.equivalence is not None
+    assert result.claimed_equivalent
 
 
 @pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,)])
@@ -718,7 +687,7 @@ bla bla bla
     loop.perform_next_step()
     assert loop.get_state() == State.TEST_STATED
     result = loop.get_result()
-    assert result.equivalence is not None
+    assert result.claimed_equivalent
 
 
 @pytest.mark.parametrize(argnames=["LoopCls"], argvalues=[(Loop,), (Baseline,)])
@@ -744,7 +713,7 @@ bla bla bla
     loop.perform_next_step()
     assert loop.get_state() == State.CLAIMED_EQUIVALENT
     result = loop.get_result()
-    assert result.equivalence is not None
+    assert result.claimed_equivalent
 
 
 def test__max_num_turns_after_experiment():

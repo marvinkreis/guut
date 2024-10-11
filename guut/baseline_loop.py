@@ -1,16 +1,14 @@
-from typing import Tuple, override
+from typing import override
 
 from guut.llm import AssistantMessage
 from guut.loop import (
-    EquivalenceClaim,
-    ExperimentDescription,
+    Action,
     InvalidStateException,
     Loop,
     LoopSettings,
-    Response,
+    ParsedResponse,
     Result,
     State,
-    TestDescription,
 )
 
 
@@ -38,23 +36,25 @@ class BaselineSettings(LoopSettings):
         )
 
 
-class BaselineReponse(Response):
-    def __init__(self, response: Response):
+class BaselineParsedReponse(ParsedResponse):
+    def __init__(self, response: ParsedResponse):
         self.text = response.text
         self.sections = response.sections
 
     @override
-    def guess_action(self) -> Tuple[ExperimentDescription | TestDescription | None, EquivalenceClaim | None]:
+    def guess_action(self) -> Action | None:
         claim = None
         equivalence_sections = [section for section in self.sections if section.kind == "equivalence"]
         if equivalence_sections:
-            claim = EquivalenceClaim(text=equivalence_sections[0].text)
+            claim = Action(kind="equivalence", text=equivalence_sections[0].text, claims_equivalent=True)
 
         for section in reversed(self.sections):
             if section.code_blocks:
-                return TestDescription(text=section.text, code=section.code_blocks[-1]), claim
+                return Action(
+                    kind="test", text=section.text, code=section.code_blocks[-1], claims_equivalent=(claim is not None)
+                )
 
-        return None, claim
+        return claim
 
 
 class BaselineLoop(Loop):
@@ -101,9 +101,9 @@ class BaselineLoop(Loop):
         self.add_msg(self.prompts.problem_template.render(self.problem, is_baseline=True), State.INITIAL)
 
     @override
-    def _parse_response(self, text: str) -> Response:
+    def _parse_response(self, text: str) -> ParsedResponse:
         response = super()._parse_response(text)
-        return BaselineReponse(response)
+        return BaselineParsedReponse(response)
 
     @override
     def _complete(self) -> AssistantMessage:

@@ -1,5 +1,5 @@
 import re
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from itertools import dropwhile
@@ -81,26 +81,16 @@ class State(str, Enum):
     INVALID = "invalid"
 
 
-ActionKind = Literal["observation", "experiment", "test", "equivalence", "none"]
+ActionKind = Literal["experiment", "test", "equivalence", "none"]
 
 
 @dataclass
-class ExperimentDescription:
+class Action:
+    kind: ActionKind
     text: str
-    code: str
-    debugger_script: str | None
-    kind: Literal["observation", "experiment", "none"]
-
-
-@dataclass
-class TestDescription:
-    text: str
-    code: str
-
-
-@dataclass
-class EquivalenceClaim:
-    text: str
+    code: str | None = None
+    debugger_script: str | None = None
+    claims_equivalent: bool = False
 
 
 @dataclass
@@ -112,7 +102,7 @@ class ResponseSection:
 
 
 @dataclass
-class Response:
+class ParsedResponse:
     text: str
     sections: List[ResponseSection]
 
@@ -132,100 +122,76 @@ class Response:
             section.debugger_blocks[-1] if section.debugger_blocks else None,
         )
 
-    def guess_action(self) -> Tuple[ExperimentDescription | TestDescription | None, EquivalenceClaim | None]:
+    def guess_action(self) -> Action | None:
         claim = None
         if section := self._guess_section("equivalence"):
-            claim = EquivalenceClaim(text=section.text)
+            claim = Action(kind="equivalence", text=section.text, claims_equivalent=True)
 
         if (section := self._guess_section("test")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
-                return TestDescription(text=section.text, code=code), claim
+                return Action(kind="test", text=section.text, code=code, claims_equivalent=(claim is not None))
         elif (section := self._guess_section("experiment")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
-                return ExperimentDescription(
+                return Action(
                     kind="experiment",
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
-                ), claim
-        elif (section := self._guess_section("observation")) and section.code_blocks:
-            code, debugger_script = self._guess_code_blocks(section)
-            if code:
-                return ExperimentDescription(
-                    kind="observation",
-                    text=section.text,
-                    code=code,
-                    debugger_script=debugger_script,
-                ), claim
+                    claims_equivalent=(claim is not None),
+                )
         elif (section := self._guess_section("none")) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
-                return ExperimentDescription(
+                return Action(
                     kind="none",
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
-                ), claim
+                    claims_equivalent=(claim is not None),
+                )
 
-        return None, claim
+        return claim
 
-    def guess_experiment(self) -> ExperimentDescription | None:
-        action, claim = self.guess_action()
-        if isinstance(action, TestDescription):
-            return ExperimentDescription(text=action.text, code=action.code, debugger_script=None, kind="experiment")
-        if isinstance(action, EquivalenceClaim):
+    def guess_experiment(self) -> Action | None:
+        action = self.guess_action()
+        if (action is None) or (action.kind == "equivalence"):
             return None
-        return action
+        return Action(
+            kind="experiment",
+            text=action.text,
+            code=action.code,
+            debugger_script=action.debugger_script,
+            claims_equivalent=action.claims_equivalent,
+        )
 
-    def guess_test(self) -> TestDescription | None:
-        action, claim = self.guess_action()
-        if isinstance(action, ExperimentDescription):
-            return TestDescription(text=action.text, code=action.code)
-        if isinstance(action, EquivalenceClaim):
+    def guess_test(self) -> Action | None:
+        action = self.guess_action()
+        if (action is None) or (action.kind == "equivalence"):
             return None
-        return action
+        return Action(
+            kind="test",
+            text=action.text,
+            code=action.code,
+            claims_equivalent=action.claims_equivalent,
+        )
 
 
 @dataclass
-class Test(TestDescription):
+class Test:
+    code: str
     validation_result: ValidationResult
     result: TestResult | None
     kills_mutant: bool
 
-    @staticmethod
-    def with_description(
-        description: TestDescription, validation_result: ValidationResult, result: TestResult | None, kills_mutant: bool
-    ) -> "Test":
-        return Test(
-            text=description.text,
-            code=description.code,
-            validation_result=validation_result,
-            result=result,
-            kills_mutant=kills_mutant,
-        )
-
 
 @dataclass
-class Experiment(ExperimentDescription):
+class Experiment:
+    code: str
+    debugger_script: str | None
     validation_result: ValidationResult
     result: ExperimentResult | None
-
-    @staticmethod
-    def with_description(
-        description: ExperimentDescription,
-        validation_result: ValidationResult,
-        result: ExperimentResult | None,
-    ) -> "Experiment":
-        return Experiment(
-            text=description.text,
-            code=description.code,
-            debugger_script=description.debugger_script,
-            kind=description.kind,
-            validation_result=validation_result,
-            result=result,
-        )
 
 
 @dataclass
@@ -247,7 +213,7 @@ class Result:
     experiments: List[Experiment]
     conversation: Conversation
     mutant_killed: bool
-    equivalence: EquivalenceClaim | None
+    claimed_equivalent: bool
 
     # extra info
     timestamp: datetime
@@ -297,7 +263,7 @@ class Loop:
 
         self.experiments: List[Experiment] = []
         self.tests: List[Test] = []
-        self.equivalence: EquivalenceClaim | None = None
+        self.actions: List[Action] = []
         self.id = self._generate_id()
 
     def perform_next_step(self):
@@ -376,7 +342,7 @@ class Loop:
             prompts=self.prompts,
             settings=self.settings,
             mutant_killed=killing_test_found,
-            equivalence=self.equivalence,
+            claimed_equivalent=any(action.claims_equivalent for action in self.actions),
             id=self.id,
             implementation="loop",
         )
@@ -400,70 +366,64 @@ class Loop:
         response = self._clean_response(response)
 
         relevant_text = self._concat_incomplete_responses(include_message=response)
-        raw_experiment = self._parse_response(relevant_text)
-        action, claim = raw_experiment.guess_action()
-
-        test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
-
-        if claim:
-            self.equivalence = claim
+        raw_response = self._parse_response(relevant_text)
+        action = raw_response.guess_action()
 
         if action is None:
-            if claim is not None:
-                self.add_msg(response, State.CLAIMED_EQUIVALENT)
-                return
-            else:
-                self.add_msg(response, State.INCOMPLETE_RESPONSE)
-                return
-
-        if isinstance(action, TestDescription):
-            self.add_msg(response, State.TEST_STATED)
+            self.add_msg(response, State.INCOMPLETE_RESPONSE)
             return
 
-        if isinstance(action, ExperimentDescription):
-            if action.kind == "experiment":
-                self.add_msg(response, State.EXPERIMENT_STATED)
-                return
-            elif action.kind == "observation":
-                self.add_msg(response, State.EXPERIMENT_STATED)
-                return
-            elif action.kind == "none" and test_instructions_stated:
+        self.actions.append(action)
+        test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
+
+        if action.kind == "equivalence":
+            self.add_msg(response, State.CLAIMED_EQUIVALENT)
+        elif action.kind == "test":
+            self.add_msg(response, State.TEST_STATED)
+        elif action.kind == "experiment":
+            self.add_msg(response, State.EXPERIMENT_STATED)
+        elif action.kind == "none":
+            if test_instructions_stated:
                 self.add_msg(response, State.TEST_STATED)
-                return
-            elif action.kind == "none" and not test_instructions_stated:
+            else:
                 self.add_msg(response, State.EXPERIMENT_STATED)
-                return
 
     def _run_experiment(self):
         relevant_text = self._concat_incomplete_responses()
         raw_experiment = self._parse_response(relevant_text)
-        experiment = raw_experiment.guess_experiment()
+        action = raw_experiment.guess_experiment()
 
-        if not isinstance(experiment, ExperimentDescription):
+        if (action is None) or (action.kind != "experiment") or (action.code is None):
             raise InvalidStateException(
                 State.EXPERIMENT_STATED, f"No experiment present but state is {State.EXPERIMENT_STATED.value}."
             )
 
-        name = "Observation" if experiment.kind == "observation" else "Experiment"
-        validation_result = self.problem.validate_code(experiment.code)
+        validation_result = self.problem.validate_code(action.code)
+
         if not validation_result.valid:
-            new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result, name=name)
+            new_message = self.prompts.experiment_doesnt_compile_template.render(result=validation_result)
             self.add_msg(new_message, State.EXPERIMENT_DOESNT_COMPILE)
             self.experiments.append(
-                Experiment.with_description(experiment, validation_result=validation_result, result=None)
+                Experiment(
+                    code=action.code,
+                    debugger_script=action.debugger_script,
+                    validation_result=validation_result,
+                    result=None,
+                )
             )
         else:
-            experiment_result = self.problem.run_experiment(
-                experiment.code, experiment.debugger_script, collect_coverage=True
-            )
+            experiment_result = self.problem.run_experiment(action.code, action.debugger_script, collect_coverage=True)
             new_message = self.prompts.experiment_results_template.render(
                 result=experiment_result,
-                name=name,
             )
             self.add_msg(new_message, State.EXPERIMENT_RESULTS_GIVEN)
-            experiment = replace(experiment, kind="observation" if experiment.kind == "observation" else "experiment")
             self.experiments.append(
-                Experiment.with_description(experiment, validation_result=validation_result, result=experiment_result)
+                Experiment(
+                    code=action.code,
+                    debugger_script=action.debugger_script,
+                    validation_result=validation_result,
+                    result=experiment_result,
+                )
             )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
@@ -495,41 +455,41 @@ class Loop:
     def _run_test(self):
         relevant_text = self._concat_incomplete_responses()
         raw_experiment = self._parse_response(relevant_text)
-        test = raw_experiment.guess_test()
+        action = raw_experiment.guess_test()
 
-        if not isinstance(test, TestDescription):
+        if (action is None) or (action.kind != "test") or (action.code is None):
             raise InvalidStateException(State.TEST_STATED, f"No test present but state is {State.TEST_STATED.value}.")
 
-        validation_result = self.problem.validate_code(test.code)
+        validation_result = self.problem.validate_code(action.code)
         if not validation_result.valid:
             new_message = self.prompts.test_doesnt_compile_template.render(
                 result=validation_result,
             )
             self.add_msg(new_message, State.TEST_DOESNT_COMPILE)
             self.tests.append(
-                Test.with_description(test, validation_result=validation_result, result=None, kills_mutant=False)
+                Test(code=action.code, validation_result=validation_result, result=None, kills_mutant=False)
             )
         else:
-            result = self.problem.run_test(test.code, collect_coverage=True)
+            result = self.problem.run_test(action.code, collect_coverage=True)
 
             if result.correct.exitcode == 0 and result.mutant.exitcode != 0:
                 new_message = self.prompts.results_template.render_for_test(
-                    test=test.code, result=result, problem=self.problem
+                    test=action.code, result=result, problem=self.problem
                 )
                 self.add_msg(new_message, State.DONE)
 
                 self.tests.append(
-                    Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=True)
+                    Test(code=action.code, validation_result=validation_result, result=result, kills_mutant=True)
                 )
                 return
             else:
-                no_asserts = "assert" not in test.code
+                no_asserts = "assert" not in action.code
                 new_message = self.prompts.test_doesnt_detect_mutant_template.render(
                     result=result, baseline=self.settings.is_baseline, no_asserts=no_asserts
                 )
                 self.add_msg(new_message, State.TEST_DOESNT_DETECT_MUTANT)
                 self.tests.append(
-                    Test.with_description(test, validation_result=validation_result, result=result, kills_mutant=False)
+                    Test(code=action.code, validation_result=validation_result, result=result, kills_mutant=False)
                 )
 
         num_experiments = len([msg for msg in self.conversation if msg.tag == State.EXPERIMENT_STATED])
@@ -611,7 +571,7 @@ class Loop:
         relevant_text = "\n".join(msg.content for msg in relevant_messages)
         return relevant_text
 
-    def _parse_response(self, text: str) -> Response:
+    def _parse_response(self, text: str) -> ParsedResponse:
         sections = []
 
         section_kind = "none"
@@ -630,9 +590,6 @@ class Loop:
                 level = len(match.group(1))
             elif match := re.match(EXPERIMENT_HEADLINE_REGEX, line):
                 kind = "experiment"
-                level = len(match.group(1))
-            elif match := re.match(OBSERVATION_HEADLINE_REGEX, line):
-                kind = "observation"
                 level = len(match.group(1))
             elif match := re.match(EQUIVALENCE_HEADLINE_REGEX, line):
                 kind = "equivalence"
@@ -656,7 +613,7 @@ class Loop:
             if section := self._parse_response_section("\n".join(section_lines), kind=section_kind):
                 sections.append(section)
 
-        return Response(text=text, sections=sections)
+        return ParsedResponse(text=text, sections=sections)
 
     def _parse_response_section(self, text: str, kind: ActionKind) -> ResponseSection | None:
         markdown_blocks = extract_markdown_code_blocks(text)
