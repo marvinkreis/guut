@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import Enum
 from itertools import dropwhile
 from random import randbytes
-from typing import List, Literal, LiteralString, Tuple
+from typing import List, LiteralString, Tuple
 
 from loguru import logger
 
@@ -81,7 +81,11 @@ class State(str, Enum):
     INVALID = "invalid"
 
 
-ActionKind = Literal["experiment", "test", "equivalence", "none"]
+class ActionKind(str, Enum):
+    EXPERIMENT = "experiment"
+    TEST = "test"
+    EQUIVALENCE = "equivalence"
+    NONE = "none"
 
 
 @dataclass
@@ -124,28 +128,28 @@ class ParsedResponse:
 
     def guess_action(self) -> Action | None:
         claim = None
-        if section := self._guess_section("equivalence"):
-            claim = Action(kind="equivalence", text=section.text, claims_equivalent=True)
+        if section := self._guess_section(ActionKind.EQUIVALENCE):
+            claim = Action(kind=ActionKind.EQUIVALENCE, text=section.text, claims_equivalent=True)
 
-        if (section := self._guess_section("test")) and section.code_blocks:
+        if (section := self._guess_section(ActionKind.TEST)) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
-                return Action(kind="test", text=section.text, code=code, claims_equivalent=(claim is not None))
-        elif (section := self._guess_section("experiment")) and section.code_blocks:
+                return Action(kind=ActionKind.TEST, text=section.text, code=code, claims_equivalent=(claim is not None))
+        elif (section := self._guess_section(ActionKind.EXPERIMENT)) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
                 return Action(
-                    kind="experiment",
+                    kind=ActionKind.EXPERIMENT,
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
                     claims_equivalent=(claim is not None),
                 )
-        elif (section := self._guess_section("none")) and section.code_blocks:
+        elif (section := self._guess_section(ActionKind.NONE)) and section.code_blocks:
             code, debugger_script = self._guess_code_blocks(section)
             if code:
                 return Action(
-                    kind="none",
+                    kind=ActionKind.NONE,
                     text=section.text,
                     code=code,
                     debugger_script=debugger_script,
@@ -156,10 +160,10 @@ class ParsedResponse:
 
     def guess_experiment(self) -> Action | None:
         action = self.guess_action()
-        if (action is None) or (action.kind == "equivalence"):
+        if (action is None) or (action.kind == ActionKind.EQUIVALENCE):
             return None
         return Action(
-            kind="experiment",
+            kind=ActionKind.EXPERIMENT,
             text=action.text,
             code=action.code,
             debugger_script=action.debugger_script,
@@ -168,10 +172,10 @@ class ParsedResponse:
 
     def guess_test(self) -> Action | None:
         action = self.guess_action()
-        if (action is None) or (action.kind == "equivalence"):
+        if (action is None) or (action.kind == ActionKind.EQUIVALENCE):
             return None
         return Action(
-            kind="test",
+            kind=ActionKind.TEST,
             text=action.text,
             code=action.code,
             claims_equivalent=action.claims_equivalent,
@@ -389,13 +393,13 @@ class Loop:
         self.actions.append(action)
         test_instructions_stated = any(msg.tag == State.TEST_INSTRUCTIONS_GIVEN for msg in self.conversation)
 
-        if action.kind == "equivalence":
+        if action.kind == ActionKind.EQUIVALENCE:
             self.add_msg(response, State.CLAIMED_EQUIVALENT)
-        elif action.kind == "test":
+        elif action.kind == ActionKind.TEST:
             self.add_msg(response, State.TEST_STATED)
-        elif action.kind == "experiment":
+        elif action.kind == ActionKind.EXPERIMENT:
             self.add_msg(response, State.EXPERIMENT_STATED)
-        elif action.kind == "none":
+        elif action.kind == ActionKind.NONE:
             if test_instructions_stated:
                 self.add_msg(response, State.TEST_STATED)
             else:
@@ -406,7 +410,7 @@ class Loop:
         raw_experiment = self._parse_response(relevant_text)
         action = raw_experiment.guess_experiment()
 
-        if (action is None) or (action.kind != "experiment") or (action.code is None):
+        if (action is None) or (action.kind != ActionKind.EXPERIMENT) or (action.code is None):
             raise InvalidStateException(
                 State.EXPERIMENT_STATED, f"No experiment present but state is {State.EXPERIMENT_STATED.value}."
             )
@@ -467,7 +471,7 @@ class Loop:
         raw_experiment = self._parse_response(relevant_text)
         action = raw_experiment.guess_test()
 
-        if (action is None) or (action.kind != "test") or (action.code is None):
+        if (action is None) or (action.kind != ActionKind.TEST) or (action.code is None):
             raise InvalidStateException(State.TEST_STATED, f"No test present but state is {State.TEST_STATED.value}.")
 
         validation_result = self.problem.validate_code(action.code)
@@ -576,7 +580,7 @@ class Loop:
     def _parse_response(self, text: str) -> ParsedResponse:
         sections = []
 
-        section_kind = "none"
+        section_kind: ActionKind = ActionKind.NONE
         section_level = 0
         section_lines = []
 
@@ -585,19 +589,19 @@ class Loop:
                 section_lines.append(line)
                 continue
 
-            kind: ActionKind = "none"
+            kind: ActionKind = ActionKind.NONE
             level = 99
             if match := re.match(TEST_HEADLINE_REGEX, line):
-                kind = "test"
+                kind = ActionKind.TEST
                 level = len(match.group(1))
             elif match := re.match(EXPERIMENT_HEADLINE_REGEX, line):
-                kind = "experiment"
+                kind = ActionKind.EXPERIMENT
                 level = len(match.group(1))
             elif match := re.match(EQUIVALENCE_HEADLINE_REGEX, line):
-                kind = "equivalence"
+                kind = ActionKind.EQUIVALENCE
                 level = 1
 
-            if kind == "none":
+            if kind == ActionKind.NONE:
                 section_lines.append(line)
                 continue
 
@@ -625,7 +629,7 @@ class Loop:
         code_blocks = [block.code for block in markdown_blocks if (block.language or "") in code_langs]
         debugger_blocks = [block.code for block in markdown_blocks if (block.language or "") in dbg_langs]
 
-        if code_blocks or (kind != "none"):
+        if code_blocks or (kind != ActionKind.NONE):
             return ResponseSection(kind=kind, text=text, code_blocks=code_blocks, debugger_blocks=debugger_blocks)
         else:
             return None

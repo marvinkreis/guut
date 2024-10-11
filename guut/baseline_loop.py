@@ -3,6 +3,7 @@ from typing import override
 from guut.llm import AssistantMessage
 from guut.loop import (
     Action,
+    ActionKind,
     InvalidStateException,
     Loop,
     LoopSettings,
@@ -43,14 +44,17 @@ class BaselineParsedReponse(ParsedResponse):
     @override
     def guess_action(self) -> Action | None:
         claim = None
-        equivalence_sections = [section for section in self.sections if section.kind == "equivalence"]
+        equivalence_sections = [section for section in self.sections if section.kind == ActionKind.EQUIVALENCE]
         if equivalence_sections:
-            claim = Action(kind="equivalence", text=equivalence_sections[0].text, claims_equivalent=True)
+            claim = Action(kind=ActionKind.EQUIVALENCE, text=equivalence_sections[0].text, claims_equivalent=True)
 
         for section in reversed(self.sections):
             if section.code_blocks:
                 return Action(
-                    kind="test", text=section.text, code=section.code_blocks[-1], claims_equivalent=(claim is not None)
+                    kind=ActionKind.TEST,
+                    text=section.text,
+                    code=section.code_blocks[-1],
+                    claims_equivalent=(claim is not None),
                 )
 
         return claim
