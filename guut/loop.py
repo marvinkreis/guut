@@ -196,7 +196,7 @@ class Experiment:
 
 @dataclass
 class LoopSettings:
-    preset_name: str = "generic"
+    preset_name: str = "loop_generic"
     max_num_experiments: int = 99
     max_retries_for_invalid_test: int = 99
     max_num_incomplete_responses: int = 2

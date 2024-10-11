@@ -16,7 +16,7 @@ class BaselineSettings(LoopSettings):
     @override
     def __init__(
         self,
-        preset_name: str = "generic",
+        preset_name: str = "baseline_generic",
         max_num_experiments: int = 0,
         max_retries_for_invalid_test: int = 99,
         max_num_incomplete_responses: int = 2,
