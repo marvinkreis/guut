@@ -230,7 +230,7 @@ class Experiment(ExperimentDescription):
 
 @dataclass
 class LoopSettings:
-    name: str
+    preset_name: str = "generic"
     max_num_experiments: int = 99
     max_retries_for_invalid_test: int = 99
     max_num_incomplete_responses: int = 2
@@ -673,7 +673,7 @@ class Loop:
 
     def _generate_id(self) -> str:
         randchars = "".join(f"{b:02x}" for b in randbytes(4))
-        id = "{}_{}_{}".format(self.settings.name, self.problem.get_description().format(), randchars)
+        id = "{}_{}_{}".format(self.settings.preset_name, self.problem.get_description().format(), randchars)
         return id
 
     def _complete(self) -> AssistantMessage:

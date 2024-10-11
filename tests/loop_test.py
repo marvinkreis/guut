@@ -4,7 +4,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from guut.baseline_loop import BaselineLoop
+from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.dummy_problem import DummyProblem
 from guut.llm import AssistantMessage, Conversation, UserMessage
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
@@ -38,8 +38,8 @@ def _test(*text):
     return f"## Test\n{"\n\n".join(text)}"
 
 
-Loop = partial(Loop, printer=None, logger=None)
-Baseline = partial(BaselineLoop, printer=None, logger=None)
+Loop = partial(Loop, printer=None, logger=None, settings=LoopSettings())
+Baseline = partial(BaselineLoop, printer=None, logger=None, settings=BaselineSettings())
 
 
 def test__observation_with_code_and_debugger_script_gets_detected():
