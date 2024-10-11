@@ -230,7 +230,6 @@ class Result:
 
 TEST_HEADLINE_REGEX = re.compile(r"^(#+) +([a-zA-Z0-9]+ +)*test", re.IGNORECASE)
 EXPERIMENT_HEADLINE_REGEX = re.compile(r"^(#+) +([a-zA-Z0-9]+ +)*experiment", re.IGNORECASE)
-OBSERVATION_HEADLINE_REGEX = re.compile(r"^(#+) +([a-zA-Z0-9]+ +)*observ", re.IGNORECASE)
 EQUIVALENCE_HEADLINE_REGEX = re.compile(r"^(#+) +([a-zA-Z0-9]+ +)*equiv", re.IGNORECASE)
 
 
