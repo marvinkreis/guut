@@ -95,10 +95,10 @@ class Action:
 
 @dataclass
 class ResponseSection:
+    kind: ActionKind
     text: str
     code_blocks: List[str]
     debugger_blocks: List[str]
-    kind: ActionKind
 
 
 @dataclass
@@ -206,23 +206,32 @@ class LoopSettings:
     is_baseline: bool = False
 
 
+class AbortReason(str, Enum):
+    TOO_MANY_TURNS = "too_many_turns"
+    TOO_MANY_EXPERIMENTS = "too_many_experiments"
+    TOO_MANY_TESTS = "too_many_tests"
+    TOO_MANY_INCOMPLETE_RESPONSES = "too_many_incomplete_responses"
+
+
 @dataclass
 class Result:
     # main info
     tests: List[Test]
     experiments: List[Experiment]
     conversation: Conversation
+
+    # result info
     mutant_killed: bool
     claimed_equivalent: bool
+    aborted: bool
+    abort_reason: AbortReason | None
 
     # extra info
     timestamp: datetime
     endpoint: LLMEndpoint
-    prompts: PromptCollection
     problem: Problem
     settings: LoopSettings
     id: str
-    implementation: str
 
     def get_killing_test(self) -> Test | None:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
@@ -264,6 +273,8 @@ class Loop:
         self.tests: List[Test] = []
         self.actions: List[Action] = []
         self.id = self._generate_id()
+
+        self.abort_reason: AbortReason | None = None
 
     def perform_next_step(self):
         if self.printer:
@@ -330,7 +341,10 @@ class Loop:
         return State.INVALID
 
     def get_result(self) -> Result:
-        killing_test_found = any([test.kills_mutant for test in self.tests])
+        mutant_killed = any(test.kills_mutant for test in self.tests)
+        aborted = any(msg.tag == State.ABORTED for msg in self.conversation)
+        claimed_equivalent = any(action.claims_equivalent for action in self.actions)
+
         return Result(
             tests=self.tests,
             experiments=self.experiments,
@@ -338,12 +352,12 @@ class Loop:
             timestamp=datetime.now(),
             endpoint=self.endpoint,
             problem=self.problem,
-            prompts=self.prompts,
             settings=self.settings,
-            mutant_killed=killing_test_found,
-            claimed_equivalent=any(action.claims_equivalent for action in self.actions),
+            mutant_killed=mutant_killed,
+            claimed_equivalent=claimed_equivalent,
+            aborted=aborted,
+            abort_reason=self.abort_reason,
             id=self.id,
-            implementation="loop",
         )
 
     def add_msg(self, msg: Message, tag: State | None):
@@ -430,10 +444,8 @@ class Loop:
         num_turns = num_experiments + num_tests
 
         if num_turns >= self.settings.max_num_turns:
-            new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_turns", extra_reason="The LLM reached the allowed number of turns."
-            )
-            self.add_msg(new_message, State.ABORTED)
+            self._abort(AbortReason.TOO_MANY_TURNS, "The LLM reached the max. allowed number of turns.")
+            return
 
         elif (
             num_experiments == self.settings.max_num_experiments
@@ -444,12 +456,11 @@ class Loop:
                 num_turns_left=(self.settings.max_num_turns - num_turns),
             )
             self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
+            return
 
         elif num_experiments > self.settings.max_num_experiments:
-            new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_experiments", extra_reason="The LLM reached the allowed number of experiments."
-            )
-            self.add_msg(new_message, State.ABORTED)
+            self._abort(AbortReason.TOO_MANY_EXPERIMENTS, "The LLM reached the max. allowed number of experiments.")
+            return
 
     def _run_test(self):
         relevant_text = self._concat_incomplete_responses()
@@ -496,10 +507,7 @@ class Loop:
         num_turns = num_experiments + num_tests
 
         if num_turns >= self.settings.max_num_turns:
-            new_message = self.prompts.conversation_aborted_template.render(
-                reason="too_many_turns", extra_reason="The LLM reached the allowed number of turns."
-            )
-            self.add_msg(new_message, State.ABORTED)
+            self._abort(AbortReason.TOO_MANY_TURNS, "The LLM reached the max. allowed number of turns.")
             return
 
         elif num_turns == self.settings.test_inctructions_after_turn:
@@ -510,18 +518,13 @@ class Loop:
             self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
 
         if num_tests >= self.settings.max_num_tests:
-            new_message = self.prompts.conversation_aborted_template.render(
-                reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
-            )
-            self.add_msg(new_message, State.ABORTED)
+            self._abort(AbortReason.TOO_MANY_TESTS, "The LLM reached the max. number of tests.")
+            return
 
     def _handle_incomplete_response(self):
         num_tries = len([msg for msg in self.conversation if msg.tag == State.INCOMPLETE_RESPONSE])
         if num_tries > self.settings.max_num_incomplete_responses:
-            new_message = self.prompts.conversation_aborted_template.render(
-                reason="incomplete_response", extra_reason="The LLM has given too many incomplete responses."
-            )
-            self.add_msg(new_message, State.ABORTED)
+            self._abort(AbortReason.TOO_MANY_INCOMPLETE_RESPONSES, "The LLM has given too many incomplete responses.")
             return
 
         self.add_msg(self.prompts.incomplete_response_template.render(), State.INCOMPLETE_RESPONSE_INSTRUCTIONS_GIVEN)
@@ -634,6 +637,11 @@ class Loop:
 
     def _complete(self) -> AssistantMessage:
         return self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)
+
+    def _abort(self, reason: AbortReason, extra_reason: str | None):
+        self.abort_reason = reason
+        new_message = self.prompts.conversation_aborted_template.render(reason=reason.value, extra_reason=extra_reason)
+        self.add_msg(new_message, State.ABORTED)
 
 
 class InvalidStateException(Exception):
