@@ -198,7 +198,7 @@ class Experiment:
 class LoopSettings:
     preset_name: str = "loop_generic"
     max_num_experiments: int = 99
-    max_retries_for_invalid_test: int = 99
+    max_num_tests: int = 99
     max_num_incomplete_responses: int = 2
     max_num_turns: int = 10
     test_inctructions_after_turn: int = 8
@@ -509,7 +509,7 @@ class Loop:
             )
             self.add_msg(new_message, State.TEST_INSTRUCTIONS_GIVEN)
 
-        if num_tests > self.settings.max_retries_for_invalid_test:
+        if num_tests >= self.settings.max_num_tests:
             new_message = self.prompts.conversation_aborted_template.render(
                 reason="max_invalid_tests", extra_reason="The LLM has reached the maximum number of invalid tests."
             )

@@ -30,13 +30,13 @@ problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
 
 Preset = namedtuple("Preset", ["loop_cls", "loop_settings"])
 SETTINGS_PRESETS: Dict[str, Preset] = {
-    "debugging_one_shot": Preset(Loop, LoopSettings(name="debugging_one_shot", include_example=True)),
-    "debugging_zero_shot": Preset(Loop, LoopSettings(name="debugging_zero_shot", include_example=False)),
+    "debugging_one_shot": Preset(Loop, LoopSettings(preset_name="debugging_one_shot", include_example=True)),
+    "debugging_zero_shot": Preset(Loop, LoopSettings(preset_name="debugging_zero_shot", include_example=False)),
     "baseline_with_iterations": Preset(
-        BaselineLoop, BaselineSettings(name="baseline_with_iterations", max_retries_for_invalid_test=9)
+        BaselineLoop, BaselineSettings(preset_name="baseline_with_iterations", max_num_tests=10, max_num_turns=10)
     ),
     "baseline_without_iterations": Preset(
-        BaselineLoop, BaselineSettings("baseline_without_iterations", max_retries_for_invalid_test=0)
+        BaselineLoop, BaselineSettings(preset_name="baseline_without_iterations", max_num_tests=1, max_num_turns=1)
     ),
 }
 SETTINGS_PRESETS_KEYS = list(SETTINGS_PRESETS.keys())

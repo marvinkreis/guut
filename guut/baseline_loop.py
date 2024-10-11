@@ -18,7 +18,7 @@ class BaselineSettings(LoopSettings):
         self,
         preset_name: str = "baseline_generic",
         max_num_experiments: int = 0,
-        max_retries_for_invalid_test: int = 99,
+        max_num_tests: int = 99,
         max_num_incomplete_responses: int = 2,
         max_num_turns: int = 10,
         test_inctructions_after_turn: int = 99,
@@ -27,7 +27,7 @@ class BaselineSettings(LoopSettings):
         super().__init__(
             preset_name=preset_name,
             max_num_experiments=0,
-            max_retries_for_invalid_test=max_retries_for_invalid_test,
+            max_num_tests=max_num_tests,
             max_num_incomplete_responses=max_num_incomplete_responses,
             max_num_turns=max_num_turns,
             test_inctructions_after_turn=test_inctructions_after_turn,

@@ -332,7 +332,7 @@ def test__conversation_is_aborted_if_a_test_beyond_the_max_is_submitted():
         endpoint=endpoint,
         conversation=conversation,
         problem=DummyProblem(),
-        settings=LoopSettings(max_retries_for_invalid_test=2),
+        settings=LoopSettings(max_num_tests=3),
     )
 
     loop.perform_next_step()
