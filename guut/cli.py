@@ -15,13 +15,13 @@ from guut.cosmic_ray import CosmicRayProblem, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
 from guut.emse_benchmark import src_paths as emse_src_paths
 from guut.formatting import format_problem
-from guut.llm import Conversation
+from guut.llm import Conversation, LLMEndpoint
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
 from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
-from guut.loop import Loop, LoopSettings
-from guut.output import CustomJSONEncoder, write_cosmic_ray_runner_result_dir, write_result_dir
+from guut.loop import Loop, LoopSettings, Result
+from guut.output import StatusHelper, write_cosmic_ray_runner_result_dir, write_result_dir
 from guut.problem import Problem
 from guut.quixbugs import QuixbugsProblem
 from guut.quixbugs import list_problems as list_quixbugs_problems
@@ -266,12 +266,53 @@ def run_cosmic_ray(
     run_problem(problem, ctx, outdir)
 
 
+def _run_problem(
+    problem: Problem,
+    outdir: str | Path,
+    conversation: Conversation | None,
+    nologs: bool,
+    silent: bool,
+    raw: bool,
+    endpoint: LLMEndpoint,
+    preset_name: str,
+    unsafe: bool,
+) -> Result:
+    preset = SETTINGS_PRESETS[preset_name]
+    loop_cls = preset.loop_cls
+    loop_settings = preset.loop_settings
+
+    if not unsafe:
+        endpoint = SafeguardLLMEndpoint(endpoint)
+
+    conversation_logger = ConversationLogger() if not nologs else None
+    message_printer = MessagePrinter(print_raw=raw) if not silent else None
+
+    # TODO: solve this better
+    prompts = problem.get_default_prompts()
+
+    loop = loop_cls(
+        problem=problem,
+        endpoint=endpoint,
+        prompts=prompts,
+        printer=message_printer,
+        logger=conversation_logger,
+        conversation=conversation,
+        settings=loop_settings,
+    )
+
+    result = loop.iterate()
+    logger.info(f"Stopped with state {loop.get_state()}")
+    write_result_dir(result, out_dir=outdir)
+    return result
+
+
 def run_problem(problem: Problem, ctx: click.Context, outdir: str | Path):
     replay = ctx.obj["replay"]
     resume = ctx.obj["resume"]
     unsafe = ctx.obj["unsafe"]
     silent = ctx.obj["silent"]
     nologs = ctx.obj["nologs"]
+    preset = ctx.obj["preset"]
     raw = ctx.obj["raw"]
 
     endpoint = None
@@ -301,29 +342,17 @@ def run_problem(problem: Problem, ctx: click.Context, outdir: str | Path):
         else:
             raise Exception("Unknown filetype for resume conversation.")
 
-    conversation_logger = ConversationLogger() if not nologs else None
-    message_printer = MessagePrinter(print_raw=raw) if not silent else None
-
-    preset = SETTINGS_PRESETS[ctx.obj["preset"]]
-    LoopCls = preset.loop_cls
-    settings = preset.loop_settings
-
-    # TODO: solve this better
-    prompts = problem.get_default_prompts()
-
-    loop = LoopCls(
+    _run_problem(
         problem=problem,
-        endpoint=endpoint,
-        prompts=prompts,
-        printer=message_printer,
-        logger=conversation_logger,
+        outdir=outdir,
         conversation=conversation,
-        settings=settings,
+        nologs=nologs,
+        silent=silent,
+        raw=raw,
+        endpoint=endpoint,
+        preset_name=preset,
+        unsafe=unsafe,
     )
-
-    result = loop.iterate()
-    logger.info(f"Stopped with state {loop.get_state()}")
-    write_result_dir(result, out_dir=outdir)
 
 
 @run.command("cosmic-ray-all-mutants")
@@ -356,7 +385,6 @@ def cosmic_ray_all_mutants(
         Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else config.python_interpreter
     )
 
-    endpoint = None
     endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
     if not unsafe:
         silent = False
@@ -366,7 +394,7 @@ def cosmic_ray_all_mutants(
     message_printer = MessagePrinter(print_raw=raw) if not silent else None
 
     preset_ = SETTINGS_PRESETS[preset]
-    LoopCls = preset_.loop_cls
+    loop_cls = preset_.loop_cls
     settings = preset_.loop_settings
 
     mutant_specs = list_mutants(Path(session_file))
@@ -381,27 +409,26 @@ def cosmic_ray_all_mutants(
     loops_dir = out_path / "loops"
     loops_dir.mkdir(exist_ok=True)
 
+    status_helper = StatusHelper(id)
     runner = CosmicRayRunner(
         mutant_specs=mutant_specs,
         module_path=Path(module_path),
         python_interpreter=Path(py),
         endpoint=endpoint,
-        loop_cls=LoopCls,
+        loop_cls=loop_cls,
         conversation_logger=conversation_logger,
         message_printer=message_printer,
         loop_settings=settings,
     )
 
-    import json
-
-    Path("/tmp/guut").mkdir(exist_ok=True)
-
-    for result in runner.generate_tests():
-        Path("/tmp/guut/status.txt").write_text(
-            f"total: {len(runner.mutants)}\nqueued: {len(runner.mutant_queue)}\nalive: {len(runner.alive_mutants)}\nkilled: {len(runner.killed_mutants)}"
+    for result in runner.generate_tests(status_helper.write_problem_info):
+        status_helper.write_status(
+            num_mutants=len(runner.mutants),
+            num_queued=len(runner.mutant_queue),
+            num_alive=len(runner.alive_mutants),
+            num_killed=len(runner.killed_mutants),
         )
-        with Path("/tmp/guut/queue.json").open("w") as f:
-            json.dump(runner.mutant_queue, f, cls=CustomJSONEncoder)
+        status_helper.write_queue(queue=runner.mutant_queue)
         write_result_dir(result, out_dir=loops_dir)
 
     write_cosmic_ray_runner_result_dir(runner.get_result(), out_path)
@@ -488,7 +515,14 @@ def emse_project(
     loops_dir.mkdir(exist_ok=True)
 
     mutants = list_mutants(Path(session_file))
-    for mutant in mutants:
+    endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
+
+    status_helper = StatusHelper(id)
+    queue = mutants
+    killed_mutants = []
+    alive_mutants = []
+    while queue:
+        mutant = queue.pop()
         problem = CosmicRayProblem(
             module_path=Path(module_path),
             target_path=mutant.target_path,
@@ -497,4 +531,29 @@ def emse_project(
             python_interpreter=python_interpreter,
         )
         problem.validate_self()
-        run_problem(problem, ctx, loops_dir)
+        status_helper.write_problem_info(problem=problem)
+
+        result = _run_problem(
+            problem=problem,
+            outdir=outdir,
+            conversation=None,
+            nologs=ctx.obj["nologs"],
+            silent=ctx.obj["silent"],
+            raw=ctx.obj["raw"],
+            endpoint=endpoint,
+            preset_name=ctx.obj["preset"],
+            unsafe=ctx.obj["unsafe"],
+        )
+
+        if result.mutant_killed:
+            killed_mutants.append(mutant)
+        else:
+            alive_mutants.append(mutant)
+
+        status_helper.write_status(
+            num_mutants=len(mutants),
+            num_queued=len(queue),
+            num_alive=len(alive_mutants),
+            num_killed=len(killed_mutants),
+        )
+        status_helper.write_queue(queue=queue)

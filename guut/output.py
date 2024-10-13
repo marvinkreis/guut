@@ -5,9 +5,11 @@ import re
 from datetime import datetime
 from json import JSONEncoder
 from pathlib import Path
+from typing import List
 
 from cosmic_ray_runner import CosmicRayRunnerResult
 
+from guut.cosmic_ray import MutantSpec
 from guut.formatting import format_conversation_pretty
 from guut.llm import Conversation, LLMEndpoint, Message
 from guut.loop import Result
@@ -104,3 +106,23 @@ class CustomJSONEncoder(JSONEncoder):
             return json
         else:
             return super().default(o)
+
+
+class StatusHelper:
+    def __init__(self, name: str):
+        self.name = name
+        self.dir = Path("/tmp/guut") / name
+        self.dir.mkdir(exist_ok=True, parents=True)
+
+    def write_status(self, num_mutants: int, num_queued: int, num_alive: int, num_killed: int):
+        (self.dir / "status.txt").write_text(
+            f"total: {num_mutants}\nqueued: {num_queued}\nalive: {num_alive}\nkilled: {num_killed}"
+        )
+
+    def write_queue(self, queue: List[MutantSpec]):
+        with (self.dir / "status.txt").open("w") as f:
+            json.dump(queue, f, cls=CustomJSONEncoder)
+
+    def write_problem_info(self, problem: Problem):
+        (self.dir / "current_cut.py").write_text(problem.class_under_test().content)
+        (self.dir / "current_diff.diff").write_text(problem.mutant_diff())

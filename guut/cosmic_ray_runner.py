@@ -1,7 +1,7 @@
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Type
+from typing import Callable, List, Type
 
 from llm import LLMEndpoint
 from loguru import logger
@@ -9,7 +9,7 @@ from loop import Loop, LoopSettings, Result, Test
 
 from guut.cosmic_ray import CosmicRayProblem, MutantSpec
 from guut.logging import ConversationLogger, MessagePrinter
-from guut.problem import Coverage, TestResult
+from guut.problem import Coverage, Problem, TestResult
 
 
 @dataclass
@@ -124,7 +124,7 @@ class CosmicRayRunner:
         else:
             return False
 
-    def generate_tests(self):
+    def generate_tests(self, problem_cb: Callable[[Problem], None]):
         while self.mutant_queue:
             mutant = self.next_mutant()
             problem = CosmicRayProblem(
@@ -134,8 +134,8 @@ class CosmicRayRunner:
                 occurrence=mutant.occurrence,
                 python_interpreter=self.python_interpreter,
             )
-            Path("/tmp/guut/current_cut.py").write_text(problem.class_under_test().content)
-            Path("/tmp/guut/current_diff.diff").write_text(problem.mutant_diff())
+            problem.validate_self()
+            problem_cb(problem)
 
             # TODO: solve this better
             prompts = problem.get_default_prompts()
