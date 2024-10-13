@@ -13,6 +13,7 @@ from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
 from guut.cosmic_ray import CosmicRayProblem, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
+from guut.emse_benchmark import src_paths as emse_src_paths
 from guut.formatting import format_problem
 from guut.llm import Conversation
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
@@ -430,6 +431,49 @@ def cosmic_ray_individual_mutants(
             mutant_op_name=mutant.mutant_op,
             occurrence=mutant.occurrence,
             python_interpreter=ctx.obj["python_interpreter"],
+        )
+        problem.validate_self()
+        run_problem(problem, ctx, loops_dir)
+
+
+@run.command("emse-project-individual-mutants")
+@click.argument(
+    "project_name",
+    nargs=1,
+    type=str,
+    required=True,
+)
+@click.pass_context
+def emse_project(
+    ctx: click.Context,
+    project_name: str,
+):
+    if project_name not in emse_src_paths:
+        raise Exception("Unknown emse project name.")
+
+    project_path = config.emse_projects_path / project_name
+    module_path = project_path / emse_src_paths[project_name]
+    session_file = config.emse_projects_path / f"{project_name}.sqlite"
+
+    py = project_path / ".venv" / "bin" / "python"
+
+    randchars = "".join(f"{b:02x}" for b in randbytes(4))
+    id = "{}_{}".format(project_name, randchars)
+
+    out_path = Path(ctx.obj["outdir"]) / id
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    loops_dir = out_path / "loops"
+    loops_dir.mkdir(exist_ok=True)
+
+    mutants = list_mutants(Path(session_file))
+    for mutant in mutants:
+        problem = CosmicRayProblem(
+            module_path=Path(module_path),
+            target_path=mutant.target_path,
+            mutant_op_name=mutant.mutant_op,
+            occurrence=mutant.occurrence,
+            python_interpreter=py,
         )
         problem.validate_self()
         run_problem(problem, ctx, loops_dir)
