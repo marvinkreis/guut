@@ -421,6 +421,14 @@ def cosmic_ray_all_mutants(
         loop_settings=settings,
     )
 
+    status_helper.write_status(
+        num_mutants=len(runner.mutants),
+        num_queued=len(runner.mutant_queue),
+        num_alive=len(runner.alive_mutants),
+        num_killed=len(runner.killed_mutants),
+    )
+    status_helper.write_queue(queue=runner.mutant_queue)
+
     for result in runner.generate_tests(status_helper.write_problem_info):
         status_helper.write_status(
             num_mutants=len(runner.mutants),
@@ -432,6 +440,58 @@ def cosmic_ray_all_mutants(
         write_result_dir(result, out_dir=loops_dir)
 
     write_cosmic_ray_runner_result_dir(runner.get_result(), out_path)
+
+
+def run_cosmic_ray_individual_mutants(
+    ctx: click.Context, outdir: Path, python_interpreter: Path, module_path: Path, session_file: Path, id: str
+):
+    out_path = outdir / id
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    loops_dir = out_path / "loops"
+    loops_dir.mkdir(exist_ok=True)
+
+    mutants = list_mutants(Path(session_file))
+    endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
+
+    status_helper = StatusHelper(id)
+    queue = mutants
+    killed_mutants = []
+    alive_mutants = []
+
+    status_helper.write_status(len(mutants), len(queue), len(alive_mutants), len(killed_mutants))
+    status_helper.write_queue(queue=queue)
+
+    while queue:
+        mutant = queue.pop()
+        problem = CosmicRayProblem(
+            module_path=Path(module_path),
+            target_path=mutant.target_path,
+            mutant_op_name=mutant.mutant_op,
+            occurrence=mutant.occurrence,
+            python_interpreter=python_interpreter,
+        )
+        problem.validate_self()
+        status_helper.write_problem_info(problem=problem)
+
+        result = _run_problem(
+            problem=problem,
+            outdir=outdir,
+            conversation=None,
+            nologs=ctx.obj["nologs"],
+            silent=ctx.obj["silent"],
+            raw=ctx.obj["raw"],
+            endpoint=endpoint,
+            preset_name=ctx.obj["preset"],
+            unsafe=ctx.obj["unsafe"],
+        )
+
+        if result.mutant_killed:
+            killed_mutants.append(mutant)
+        else:
+            alive_mutants.append(mutant)
+
+        status_helper.write_status(len(mutants), len(queue), len(alive_mutants), len(killed_mutants))
 
 
 @run.command("cosmic-ray-individual-mutants")
@@ -461,23 +521,14 @@ def cosmic_ray_individual_mutants(
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}".format(Path(module_path).stem, randchars)
 
-    out_path = outdir / id
-    out_path.mkdir(parents=True, exist_ok=True)
-
-    loops_dir = out_path / "loops"
-    loops_dir.mkdir(exist_ok=True)
-
-    mutants = list_mutants(Path(session_file))
-    for mutant in mutants:
-        problem = CosmicRayProblem(
-            module_path=Path(module_path),
-            target_path=mutant.target_path,
-            mutant_op_name=mutant.mutant_op,
-            occurrence=mutant.occurrence,
-            python_interpreter=python_interpreter,
-        )
-        problem.validate_self()
-        run_problem(problem, ctx, loops_dir)
+    run_cosmic_ray_individual_mutants(
+        ctx=ctx,
+        outdir=outdir,
+        python_interpreter=python_interpreter,
+        module_path=Path(module_path),
+        session_file=Path(session_file),
+        id=id,
+    )
 
 
 @run.command("emse-project-individual-mutants")
@@ -508,52 +559,11 @@ def emse_project(
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}".format(project_name, randchars)
 
-    out_path = outdir / id
-    out_path.mkdir(parents=True, exist_ok=True)
-
-    loops_dir = out_path / "loops"
-    loops_dir.mkdir(exist_ok=True)
-
-    mutants = list_mutants(Path(session_file))
-    endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
-
-    status_helper = StatusHelper(id)
-    queue = mutants
-    killed_mutants = []
-    alive_mutants = []
-    while queue:
-        mutant = queue.pop()
-        problem = CosmicRayProblem(
-            module_path=Path(module_path),
-            target_path=mutant.target_path,
-            mutant_op_name=mutant.mutant_op,
-            occurrence=mutant.occurrence,
-            python_interpreter=python_interpreter,
-        )
-        problem.validate_self()
-        status_helper.write_problem_info(problem=problem)
-
-        result = _run_problem(
-            problem=problem,
-            outdir=outdir,
-            conversation=None,
-            nologs=ctx.obj["nologs"],
-            silent=ctx.obj["silent"],
-            raw=ctx.obj["raw"],
-            endpoint=endpoint,
-            preset_name=ctx.obj["preset"],
-            unsafe=ctx.obj["unsafe"],
-        )
-
-        if result.mutant_killed:
-            killed_mutants.append(mutant)
-        else:
-            alive_mutants.append(mutant)
-
-        status_helper.write_status(
-            num_mutants=len(mutants),
-            num_queued=len(queue),
-            num_alive=len(alive_mutants),
-            num_killed=len(killed_mutants),
-        )
-        status_helper.write_queue(queue=queue)
+    run_cosmic_ray_individual_mutants(
+        ctx=ctx,
+        outdir=outdir,
+        python_interpreter=python_interpreter,
+        module_path=Path(module_path),
+        session_file=Path(session_file),
+        id=id,
+    )
