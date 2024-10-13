@@ -29,14 +29,14 @@ class ResultWithKilledMutants(Result):
             experiments=result.experiments,
             conversation=result.conversation,
             mutant_killed=result.mutant_killed,
-            equivalence=result.equivalence,
+            claimed_equivalent=result.claimed_equivalent,
             timestamp=result.timestamp,
             endpoint=result.endpoint,
-            prompts=result.prompts,
             problem=result.problem,
             settings=result.settings,
             id=result.id,
-            implementation=result.implementation,
+            aborted=result.aborted,
+            abort_reason=result.abort_reason,
             killed_mutants=killed_mutants,
         )
 
