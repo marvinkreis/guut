@@ -85,6 +85,10 @@ def clean_filename(name: str) -> str:
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, o):
+        if isinstance(o, CosmicRayRunnerResult):
+            # Avoid large json files
+            o = dataclasses.replace(o, loops=[])
+
         if isinstance(o, Problem):
             return o.get_description()
         elif isinstance(o, LLMEndpoint):
