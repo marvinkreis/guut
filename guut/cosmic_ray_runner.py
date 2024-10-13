@@ -1,21 +1,15 @@
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable, List, Type
+from typing import Callable, List, Tuple, Type
 
 from llm import LLMEndpoint
 from loguru import logger
 from loop import Loop, LoopSettings, Result, Test
 
-from guut.cosmic_ray import CosmicRayProblem, MutantSpec
+from guut.cosmic_ray import CosmicRayProblem, KilledMutant, MultipleMutantsResult, MutantSpec
 from guut.logging import ConversationLogger, MessagePrinter
-from guut.problem import Coverage, Problem, TestResult
-
-
-@dataclass
-class KilledMutant:
-    spec: MutantSpec
-    test_result: TestResult | None
+from guut.problem import Coverage, Problem
 
 
 @dataclass
@@ -42,14 +36,6 @@ class ResultWithKilledMutants(Result):
         )
 
 
-@dataclass
-class CosmicRayRunnerResult:
-    loops: List[ResultWithKilledMutants]
-    mutants: List[MutantSpec]
-    alive_mutants: List[MutantSpec]
-    killed_mutants: List[KilledMutant]
-
-
 class CosmicRayRunner:
     def __init__(
         self,
@@ -73,7 +59,7 @@ class CosmicRayRunner:
         self.conversation_logger = conversation_logger
         self.message_printer = message_printer
         self.loop_settings = loop_settings
-        self.loops = []
+        self.tests: List[Tuple[str, Test]] = []
 
     def next_mutant(self) -> MutantSpec:
         mutant = random.choice(self.mutant_queue)
@@ -162,14 +148,14 @@ class CosmicRayRunner:
                 killed_mutants += self.run_against_alive_mutants(test)
                 logger.info(f"Test killed {len(killed_mutants) - 1} additional mutants.")
                 logger.info(f"Remaining mutants: {len(self.alive_mutants)}")
+                self.tests.append((result.long_id, test))
             else:
                 logger.info("Loop failed to create a killing test.")
 
             result = ResultWithKilledMutants.create(result, killed_mutants)
-            self.loops.append(result)
             yield result
 
     def get_result(self):
-        return CosmicRayRunnerResult(
-            loops=self.loops, mutants=self.mutants, alive_mutants=self.alive_mutants, killed_mutants=self.killed_mutants
+        return MultipleMutantsResult(
+            mutants=self.mutants, alive_mutants=self.alive_mutants, killed_mutants=self.killed_mutants, tests=self.tests
         )

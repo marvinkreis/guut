@@ -7,10 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from subprocess import run
 from tempfile import TemporaryDirectory
-from typing import Any, Iterable, List, Literal, override
+from typing import Any, Iterable, List, Literal, Tuple, override
 
 from cosmic_ray.mutating import apply_mutation, mutate_code
 from cosmic_ray.plugins import get_operator
+from loop import Test
 
 from guut.config import config
 from guut.execution import PythonExecutor
@@ -252,3 +253,17 @@ def list_mutants(session_file: Path) -> List[MutantSpec]:
     cursor = conn.cursor()
     cursor.execute("select module_path, operator_name, occurrence, start_pos_row, end_pos_row from mutation_specs;")
     return [MutantSpec(*args) for args in cursor.fetchall()]
+
+
+@dataclass
+class KilledMutant:
+    spec: MutantSpec
+    test_result: TestResult | None
+
+
+@dataclass
+class MultipleMutantsResult:
+    mutants: List[MutantSpec]
+    alive_mutants: List[MutantSpec]
+    killed_mutants: List[KilledMutant]
+    tests: List[Tuple[str, Test]]

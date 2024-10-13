@@ -60,6 +60,22 @@ class ProblemDescription:
         return self.type
 
 
+@dataclass
+class Test:
+    code: str
+    validation_result: ValidationResult
+    result: TestResult | None
+    kills_mutant: bool
+
+
+@dataclass
+class Experiment:
+    code: str
+    debugger_script: str | None
+    validation_result: ValidationResult
+    result: ExperimentResult | None
+
+
 class Problem(ABC):
     @abstractmethod
     def class_under_test(self) -> TextFile:

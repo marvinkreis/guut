@@ -11,7 +11,7 @@ from openai import OpenAI
 
 from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
-from guut.cosmic_ray import CosmicRayProblem, list_mutants
+from guut.cosmic_ray import CosmicRayProblem, MultipleMutantsResult, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
 from guut.emse_benchmark import src_paths as emse_src_paths
 from guut.formatting import format_problem
@@ -21,7 +21,7 @@ from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings, Result
-from guut.output import StatusHelper, write_cosmic_ray_runner_result_dir, write_result_dir
+from guut.output import StatusHelper, write_multiple_mutants_result_dir, write_result_dir
 from guut.problem import Problem
 from guut.quixbugs import QuixbugsProblem
 from guut.quixbugs import list_problems as list_quixbugs_problems
@@ -439,7 +439,7 @@ def cosmic_ray_all_mutants(
         status_helper.write_queue(queue=runner.mutant_queue)
         write_result_dir(result, out_dir=loops_dir)
 
-    write_cosmic_ray_runner_result_dir(runner.get_result(), out_path)
+    write_multiple_mutants_result_dir(runner.get_result(), out_path)
 
 
 def run_cosmic_ray_individual_mutants(
@@ -458,6 +458,7 @@ def run_cosmic_ray_individual_mutants(
     queue = mutants
     killed_mutants = []
     alive_mutants = []
+    tests = []
 
     status_helper.write_status(len(mutants), len(queue), len(alive_mutants), len(killed_mutants))
     status_helper.write_queue(queue=queue)
@@ -488,10 +489,16 @@ def run_cosmic_ray_individual_mutants(
 
         if result.mutant_killed:
             killed_mutants.append(mutant)
+            tests.append((result.long_id, result.get_killing_test()))
         else:
             alive_mutants.append(mutant)
 
         status_helper.write_status(len(mutants), len(queue), len(alive_mutants), len(killed_mutants))
+
+    write_multiple_mutants_result_dir(
+        MultipleMutantsResult(mutants=mutants, alive_mutants=alive_mutants, killed_mutants=killed_mutants, tests=tests),
+        out_path,
+    )
 
 
 @run.command("cosmic-ray-individual-mutants")

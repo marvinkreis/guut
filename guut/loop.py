@@ -11,7 +11,7 @@ from loguru import logger
 from guut.llm import AssistantMessage, Conversation, LLMEndpoint, Message
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.parsing import detect_markdown_code_blocks, extract_markdown_code_blocks
-from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
+from guut.problem import Experiment, Problem, Test
 from guut.prompts import PromptCollection
 
 
@@ -180,22 +180,6 @@ class ParsedResponse:
             code=action.code,
             claims_equivalent=action.claims_equivalent,
         )
-
-
-@dataclass
-class Test:
-    code: str
-    validation_result: ValidationResult
-    result: TestResult | None
-    kills_mutant: bool
-
-
-@dataclass
-class Experiment:
-    code: str
-    debugger_script: str | None
-    validation_result: ValidationResult
-    result: ExperimentResult | None
 
 
 @dataclass

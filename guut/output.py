@@ -7,9 +7,7 @@ from json import JSONEncoder
 from pathlib import Path
 from typing import List
 
-from cosmic_ray_runner import CosmicRayRunnerResult
-
-from guut.cosmic_ray import MutantSpec
+from guut.cosmic_ray import MultipleMutantsResult, MutantSpec
 from guut.formatting import format_conversation_pretty
 from guut.llm import Conversation, LLMEndpoint, Message
 from guut.loop import Result
@@ -33,7 +31,7 @@ def write_result_dir(result: Result, out_dir: Path | str | None = None):
     write_conversation(result.conversation, out_dir=result_dir)
 
 
-def write_cosmic_ray_runner_result_dir(result: CosmicRayRunnerResult, out_dir: Path):
+def write_multiple_mutants_result_dir(result: MultipleMutantsResult, out_dir: Path):
     if not out_dir:
         out_dir = os.getcwd()
 
@@ -43,9 +41,8 @@ def write_cosmic_ray_runner_result_dir(result: CosmicRayRunnerResult, out_dir: P
 
     tests_path = Path(out_dir) / "tests"
     tests_path.mkdir()
-    for loop_result in result.loops:
-        if test := loop_result.get_killing_test():
-            write_test(test.code, out_dir=tests_path, test_name=f"{clean_filename(loop_result.id)}.py")
+    for name, test in result.tests:
+        write_test(test.code, out_dir=tests_path, test_name=f"{clean_filename(name)}.py")
 
 
 def write_result(result: Result, out_dir: Path | str | None = None):
@@ -85,10 +82,6 @@ def clean_filename(name: str) -> str:
 
 class CustomJSONEncoder(JSONEncoder):
     def default(self, o):
-        if isinstance(o, CosmicRayRunnerResult):
-            # Avoid large json files
-            o = dataclasses.replace(o, loops=[])
-
         if isinstance(o, Problem):
             return o.get_description()
         elif isinstance(o, LLMEndpoint):
