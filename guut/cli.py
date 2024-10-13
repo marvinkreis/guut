@@ -126,7 +126,7 @@ def run(
 
     ctx.ensure_object(dict)
     ctx.obj["preset"] = preset
-    ctx.obj["outdir"] = outdir
+    ctx.obj["outdir"] = outdir if outdir else config.output_path
     ctx.obj["replay"] = replay
     ctx.obj["resume"] = resume
     ctx.obj["unsafe"] = unsafe
@@ -157,7 +157,7 @@ def show_quixbugs(name: str):
 def run_quixbugs(ctx: click.Context, name: str):
     problem = QuixbugsProblem(name, python_interpreter=ctx.obj["python_interpreter"])
     problem.validate_self()
-    run_problem(problem, ctx)
+    run_problem(problem, ctx, ctx.obj["outdir"])
 
 
 @list.command("cosmic-ray")
@@ -253,11 +253,10 @@ def run_cosmic_ray(
         python_interpreter=ctx.obj["python_interpreter"],
     )
     problem.validate_self()
-    run_problem(problem, ctx)
+    run_problem(problem, ctx, ctx.obj["outdir"])
 
 
-def run_problem(problem: Problem, ctx: click.Context):
-    outdir = ctx.obj["outdir"]
+def run_problem(problem: Problem, ctx: click.Context, outdir: str | Path):
     replay = ctx.obj["replay"]
     resume = ctx.obj["resume"]
     unsafe = ctx.obj["unsafe"]
@@ -314,7 +313,7 @@ def run_problem(problem: Problem, ctx: click.Context):
 
     result = loop.iterate()
     logger.info(f"Stopped with state {loop.get_state()}")
-    write_result_dir(result, out_dir=outdir or config.output_path)
+    write_result_dir(result, out_dir=outdir)
 
 
 @run.command("cosmic-ray-all-mutants")
@@ -331,7 +330,7 @@ def run_problem(problem: Problem, ctx: click.Context):
     required=True,
 )
 @click.pass_context
-def cosmic_ray_runner(
+def cosmic_ray_all_mutants(
     ctx: click.Context,
     session_file: str,
     module_path: str,
@@ -360,12 +359,10 @@ def cosmic_ray_runner(
     mutant_specs = list_mutants(Path(session_file))
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
 
-    out_path = Path(outdir) if outdir else config.output_path
-
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}".format(Path(module_path).stem, randchars)
 
-    out_path = out_path / id
+    out_path = Path(outdir) / id
     out_path.mkdir(parents=True, exist_ok=True)
 
     loops_dir = out_path / "loops"
@@ -395,3 +392,44 @@ def cosmic_ray_runner(
         write_result_dir(result, out_dir=loops_dir)
 
     write_cosmic_ray_runner_result_dir(runner.get_result(), out_path)
+
+
+@run.command("cosmic-ray-individual-mutants")
+@click.argument(
+    "session_file",
+    nargs=1,
+    type=click.Path(exists=True, dir_okay=False),
+    required=True,
+)
+@click.argument(
+    "module_path",
+    nargs=1,
+    type=click.Path(exists=True, file_okay=False),
+    required=True,
+)
+@click.pass_context
+def cosmic_ray_individual_mutants(
+    ctx: click.Context,
+    session_file: str,
+    module_path: str,
+):
+    randchars = "".join(f"{b:02x}" for b in randbytes(4))
+    id = "{}_{}".format(Path(module_path).stem, randchars)
+
+    out_path = Path(ctx.obj["outdir"]) / id
+    out_path.mkdir(parents=True, exist_ok=True)
+
+    loops_dir = out_path / "loops"
+    loops_dir.mkdir(exist_ok=True)
+
+    mutants = list_mutants(Path(session_file))
+    for mutant in mutants:
+        problem = CosmicRayProblem(
+            module_path=Path(module_path),
+            target_path=mutant.target_path,
+            mutant_op_name=mutant.mutant_op,
+            occurrence=mutant.occurrence,
+            python_interpreter=ctx.obj["python_interpreter"],
+        )
+        problem.validate_self()
+        run_problem(problem, ctx, loops_dir)
