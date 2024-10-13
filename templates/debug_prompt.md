@@ -81,6 +81,8 @@ We also do not provide a `mutant` module, so imports like `from mutant.sieve imp
 
 Our system also cannot respond to instructive comments like `# Please run this with the mutant:`. The system executes *your entire experiment/test* with the **Baseline**, then executes *your entire experiment/test* with the **Mutant**. Leaving instructions in comments won't change this, and will instead make your test case useless.
 
+Your code will be executed with a timeout of 5 seconds. If this time is exceeded, the execution will be stopped and we will inform you about the timeout.
+
 # Scientific Debugging
 
 Scientific debugging is a systematic debugging approach based on the scientific method. The process follows a loop of:

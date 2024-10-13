@@ -6,10 +6,10 @@
 {{ result.correct | format_test_result }}
 ```
 {% if result.correct.timeout %}
-The test was canceled due to a timeout.
+Your test resulted in a timeout (5s) and exited with exit code {{ result.test_correct.exitcode }}.
 {% endif %}
 {% if result.correct.exitcode != 0 %}
-The test exited with exit code {{ result.correct.exitcode }}.
+Your test exited with exit code {{ result.test_correct.exitcode }}.
 {% endif %}
 
 {% if result.correct.exitcode != 0 %}
@@ -22,10 +22,10 @@ Your test needs to pass when executed with the baseline. Adjust the part of your
 {{ result.mutant | format_test_result }}
 ```
 {% if result.mutant.timeout %}
-The test was canceled due to a timeout.
+Your test resulted in a timeout (5s) and exited with exit code {{ result.test_correct.exitcode }}.
 {% endif %}
 {% if result.mutant.exitcode != 0 %}
-The test exited with exit code {{ result.mutant.exitcode }}.
+Your test exited with exit code {{ result.test_correct.exitcode }}.
 {% endif %}
 
 {% if no_asserts and (result.correct.exitcode == 0) and (result.mutant.exitcode == 0) %}

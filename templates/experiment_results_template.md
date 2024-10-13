@@ -5,7 +5,7 @@
 {{ result.test_correct | format_test_result }}
 ```
 {% if result.test_correct.timeout %}
-Your code resulted in a timeout and exited with exit code {{ result.test_correct.exitcode }}.
+Your code resulted in a timeout (5s) and exited with exit code {{ result.test_correct.exitcode }}.
 {% elif result.test_correct.exitcode != 0 %}
 Your code exited with exit code {{ result.test_correct.exitcode }}.
 {% endif %}
@@ -22,7 +22,7 @@ Debugger Output:
 {{ result.test_mutant | format_test_result }}
 ```
 {% if result.test_mutant.timeout %}
-Your code resulted in a timeout and exited with exit code {{ result.test_mutant.exitcode }}.
+Your code resulted in a timeout (5s) and exited with exit code {{ result.test_mutant.exitcode }}.
 {% elif result.test_mutant.exitcode != 0 %}
 Your code exited with exit code {{ result.test_mutant.exitcode }}.
 {% endif %}
