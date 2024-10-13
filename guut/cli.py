@@ -475,6 +475,7 @@ def run_cosmic_ray_individual_mutants(
         problem.validate_self()
         status_helper.write_problem_info(problem=problem)
 
+        logger.info(f"Starting loop for {mutant}")
         result = _run_problem(
             problem=problem,
             outdir=outdir,
@@ -488,9 +489,11 @@ def run_cosmic_ray_individual_mutants(
         )
 
         if result.mutant_killed:
+            logger.info(f"Loop killed mutant {mutant}")
             killed_mutants.append(mutant)
             tests.append((result.long_id, result.get_killing_test()))
         else:
+            logger.info(f"Loop failed to kill mutant {mutant}")
             alive_mutants.append(mutant)
 
         status_helper.write_status(len(mutants), len(queue), len(alive_mutants), len(killed_mutants))

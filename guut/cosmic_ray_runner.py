@@ -135,7 +135,7 @@ class CosmicRayRunner:
                 settings=self.loop_settings,
             )
 
-            logger.info(f"Starting loop {loop.id}")
+            logger.info(f"Starting loop for {mutant}")
             result = loop.iterate()
             killed_mutants = []
             if test := result.get_killing_test():
