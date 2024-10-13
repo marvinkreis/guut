@@ -127,15 +127,14 @@ def run(
 
     ctx.ensure_object(dict)
     ctx.obj["preset"] = preset
-    ctx.obj["outdir"] = outdir if outdir else config.output_path
+    ctx.obj["outdir"] = outdir
     ctx.obj["replay"] = replay
     ctx.obj["resume"] = resume
     ctx.obj["unsafe"] = unsafe
     ctx.obj["silent"] = silent
     ctx.obj["nologs"] = nologs
     ctx.obj["raw"] = raw
-    py = Path(python_interpreter) if python_interpreter else config.python_interpreter
-    ctx.obj["python_interpreter"] = py
+    ctx.obj["python_interpreter"] = python_interpreter
 
 
 @list.command("quixbugs")
@@ -156,9 +155,14 @@ def show_quixbugs(name: str):
 @click.argument("name", nargs=1, type=str, required=True)
 @click.pass_context
 def run_quixbugs(ctx: click.Context, name: str):
-    problem = QuixbugsProblem(name, python_interpreter=ctx.obj["python_interpreter"])
+    outdir = Path(ctx.obj["outdir"]) if ctx.obj["outdir"] else config.output_path
+    python_interpreter = (
+        Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else config.python_interpreter
+    )
+
+    problem = QuixbugsProblem(name, python_interpreter=python_interpreter)
     problem.validate_self()
-    run_problem(problem, ctx, ctx.obj["outdir"])
+    run_problem(problem, ctx, outdir)
 
 
 @list.command("cosmic-ray")
@@ -246,15 +250,20 @@ def run_cosmic_ray(
     mutant_op: str,
     occurrence: int,
 ):
+    outdir = Path(ctx.obj["outdir"]) if ctx.obj["outdir"] else config.output_path
+    python_interpreter = (
+        Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else config.python_interpreter
+    )
+
     problem = CosmicRayProblem(
         module_path=Path(module_path),
         target_path=target_path,
         mutant_op_name=mutant_op,
         occurrence=occurrence,
-        python_interpreter=ctx.obj["python_interpreter"],
+        python_interpreter=python_interpreter,
     )
     problem.validate_self()
-    run_problem(problem, ctx, ctx.obj["outdir"])
+    run_problem(problem, ctx, outdir)
 
 
 def run_problem(problem: Problem, ctx: click.Context, outdir: str | Path):
@@ -336,13 +345,16 @@ def cosmic_ray_all_mutants(
     session_file: str,
     module_path: str,
 ):
-    outdir = ctx.obj["outdir"]
     unsafe = ctx.obj["unsafe"]
     silent = ctx.obj["silent"]
     nologs = ctx.obj["nologs"]
     raw = ctx.obj["raw"]
     preset = ctx.obj["preset"]
-    python_interpreter = ctx.obj["python_interpreter"]
+
+    outdir = Path(ctx.obj["outdir"]) if ctx.obj["outdir"] else config.output_path
+    python_interpreter = (
+        Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else config.python_interpreter
+    )
 
     endpoint = None
     endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
@@ -414,10 +426,15 @@ def cosmic_ray_individual_mutants(
     session_file: str,
     module_path: str,
 ):
+    outdir = Path(ctx.obj["outdir"]) if ctx.obj["outdir"] else config.output_path
+    python_interpreter = (
+        Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else config.python_interpreter
+    )
+
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}".format(Path(module_path).stem, randchars)
 
-    out_path = Path(ctx.obj["outdir"]) / id
+    out_path = outdir / id
     out_path.mkdir(parents=True, exist_ok=True)
 
     loops_dir = out_path / "loops"
@@ -430,7 +447,7 @@ def cosmic_ray_individual_mutants(
             target_path=mutant.target_path,
             mutant_op_name=mutant.mutant_op,
             occurrence=mutant.occurrence,
-            python_interpreter=ctx.obj["python_interpreter"],
+            python_interpreter=python_interpreter,
         )
         problem.validate_self()
         run_problem(problem, ctx, loops_dir)
@@ -448,6 +465,9 @@ def emse_project(
     ctx: click.Context,
     project_name: str,
 ):
+    outdir = Path(ctx.obj["outdir"]) if ctx.obj["outdir"] else config.output_path
+    python_interpreter = Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else None
+
     if project_name not in emse_src_paths:
         raise Exception("Unknown emse project name.")
 
@@ -455,12 +475,13 @@ def emse_project(
     module_path = project_path / emse_src_paths[project_name]
     session_file = config.emse_projects_path / f"{project_name}.sqlite"
 
-    py = project_path / ".venv" / "bin" / "python"
+    if python_interpreter is None:
+        python_interpreter = project_path / ".venv" / "bin" / "python"
 
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}".format(project_name, randchars)
 
-    out_path = Path(ctx.obj["outdir"]) / id
+    out_path = outdir / id
     out_path.mkdir(parents=True, exist_ok=True)
 
     loops_dir = out_path / "loops"
@@ -473,7 +494,7 @@ def emse_project(
             target_path=mutant.target_path,
             mutant_op_name=mutant.mutant_op,
             occurrence=mutant.occurrence,
-            python_interpreter=py,
+            python_interpreter=python_interpreter,
         )
         problem.validate_self()
         run_problem(problem, ctx, loops_dir)
