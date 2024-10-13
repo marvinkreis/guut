@@ -33,12 +33,12 @@ GPT_MODEL = "gpt-4o-mini"
 
 Preset = namedtuple("Preset", ["loop_cls", "loop_settings"])
 SETTINGS_PRESETS: Dict[str, Preset] = {
-    "debugging_one_shot": Preset(Loop, LoopSettings(preset_name="debugging_one_shot", include_example=True)),
-    "debugging_zero_shot": Preset(Loop, LoopSettings(preset_name="debugging_zero_shot", include_example=False)),
-    "baseline_with_iterations": Preset(
+    "debugging-one-shot": Preset(Loop, LoopSettings(preset_name="debugging_one_shot", include_example=True)),
+    "debugging-zero-shot": Preset(Loop, LoopSettings(preset_name="debugging_zero_shot", include_example=False)),
+    "baseline-with-iterations": Preset(
         BaselineLoop, BaselineSettings(preset_name="baseline_with_iterations", max_num_tests=10, max_num_turns=10)
     ),
-    "baseline_without_iterations": Preset(
+    "baseline-without-iterations": Preset(
         BaselineLoop, BaselineSettings(preset_name="baseline_without_iterations", max_num_tests=1, max_num_turns=1)
     ),
 }
