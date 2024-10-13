@@ -27,6 +27,8 @@ from guut.quixbugs import list_problems as list_quixbugs_problems
 
 problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
 
+GPT_MODEL = "gpt-4o-mini"
+
 
 Preset = namedtuple("Preset", ["loop_cls", "loop_settings"])
 SETTINGS_PRESETS: Dict[str, Preset] = {
@@ -153,7 +155,7 @@ def show_quixbugs(name: str):
 @click.argument("name", nargs=1, type=str, required=True)
 @click.pass_context
 def run_quixbugs(ctx: click.Context, name: str):
-    problem = QuixbugsProblem(name)
+    problem = QuixbugsProblem(name, python_interpreter=ctx.obj["python_interpreter"])
     problem.validate_self()
     run_problem(problem, ctx)
 
@@ -276,7 +278,7 @@ def run_problem(problem: Problem, ctx: click.Context):
             raise Exception("Unknown filetype for replay conversation.")
     else:
         endpoint = OpenAIEndpoint(
-            OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), "gpt-4o-mini"
+            OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL
         )
         if not unsafe:
             silent = False
@@ -315,8 +317,7 @@ def run_problem(problem: Problem, ctx: click.Context):
     write_result_dir(result, out_dir=outdir or config.output_path)
 
 
-# TODO: add python interpreter
-@cli.command()
+@run.command("cosmic-ray-all-mutants")
 @click.argument(
     "session_file",
     nargs=1,
@@ -329,54 +330,22 @@ def run_problem(problem: Problem, ctx: click.Context):
     type=click.Path(exists=True, file_okay=False),
     required=True,
 )
-@click.option(
-    "--outdir",
-    nargs=1,
-    type=click.Path(exists=True, file_okay=False),
-    required=False,
-    help="Write results to the given directory. Otherwise the working directory is used.",
-)
-@click.option(
-    "-y",
-    "--yes",
-    "unsafe",
-    is_flag=True,
-    default=False,
-    help="Request completions without confirmation. Implies no -s.",
-)
-@click.option("--silent", "-s", is_flag=True, default=False, help="Disable the printing of new messages.")
-@click.option("--nologs", "-n", is_flag=True, default=False, help="Disable the logging of conversations.")
-@click.option("--raw", is_flag=True, default=False, help="Print messages as raw text.")
-@click.option(
-    "--python-interpreter",
-    "--py",
-    nargs=1,
-    type=click.Path(exists=True, dir_okay=False),
-    required=False,
-    help="The python interpreter to use for testing.",
-)
-@click.option(
-    "--preset",
-    nargs=1,
-    type=click.Choice(SETTINGS_PRESETS_KEYS),
-    required=True,
-    help="The preset to use.",
-)
+@click.pass_context
 def cosmic_ray_runner(
+    ctx: click.Context,
     session_file: str,
     module_path: str,
-    preset: str,
-    outdir: str | None,
-    python_interpreter: str | None,
-    unsafe: bool = False,
-    silent: bool = False,
-    nologs: bool = False,
-    raw: bool = False,
 ):
+    outdir = ctx.obj["outdir"]
+    unsafe = ctx.obj["unsafe"]
+    silent = ctx.obj["silent"]
+    nologs = ctx.obj["nologs"]
+    raw = ctx.obj["raw"]
+    preset = ctx.obj["preset"]
+    python_interpreter = ctx.obj["python_interpreter"]
+
     endpoint = None
-    endpoint = OpenAIEndpoint(
-        OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), "gpt-4o-mini"
-    )
+    endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
     if not unsafe:
         silent = False
         endpoint = SafeguardLLMEndpoint(endpoint)
