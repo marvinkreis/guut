@@ -81,14 +81,6 @@ def show():
     help="Continue a conversation from a .json log file.",
 )
 @click.option(
-    "--index",
-    "-n",
-    nargs=1,
-    type=int,
-    required=False,
-    help="Use with --continue. Selects the number of messages to pick from the conversation (including messages of all roles). Use negative numbers to exclude messages starting from the end.",
-)
-@click.option(
     "-y",
     "--yes",
     "unsafe",
@@ -121,7 +113,6 @@ def run(
     outdir: str | None,
     replay: str | None,
     resume: str | None,
-    index: int | None,
     python_interpreter: str | None,
     unsafe: bool = False,
     silent: bool = False,
@@ -130,15 +121,12 @@ def run(
 ):
     if replay and resume:
         raise Exception("Cannot use --replay and --continue together.")
-    if index and not resume:
-        raise Exception("Cannot use --index without --continue.")
 
     ctx.ensure_object(dict)
     ctx.obj["preset"] = preset
     ctx.obj["outdir"] = outdir
     ctx.obj["replay"] = replay
     ctx.obj["resume"] = resume
-    ctx.obj["index"] = index
     ctx.obj["unsafe"] = unsafe
     ctx.obj["silent"] = silent
     ctx.obj["nologs"] = nologs
@@ -270,7 +258,6 @@ def run_problem(problem: Problem, ctx: click.Context):
     outdir = ctx.obj["outdir"]
     replay = ctx.obj["replay"]
     resume = ctx.obj["resume"]
-    index = ctx.obj["index"]
     unsafe = ctx.obj["unsafe"]
     silent = ctx.obj["silent"]
     nologs = ctx.obj["nologs"]
@@ -302,8 +289,6 @@ def run_problem(problem: Problem, ctx: click.Context):
             conversation = Conversation.from_json(json_data)
         else:
             raise Exception("Unknown filetype for resume conversation.")
-        if index:
-            conversation = Conversation(conversation[:index])
 
     conversation_logger = ConversationLogger() if not nologs else None
     message_printer = MessagePrinter(print_raw=raw) if not silent else None
