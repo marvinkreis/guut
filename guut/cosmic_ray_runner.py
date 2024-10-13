@@ -35,6 +35,7 @@ class ResultWithKilledMutants(Result):
             problem=result.problem,
             settings=result.settings,
             id=result.id,
+            long_id=result.long_id,
             aborted=result.aborted,
             abort_reason=result.abort_reason,
             killed_mutants=killed_mutants,

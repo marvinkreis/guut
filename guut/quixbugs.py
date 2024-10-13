@@ -28,7 +28,7 @@ from guut.prompts import PromptCollection, default_prompts
 class QuixbugsProblemDescription(ProblemDescription):
     name: str
 
-    def format(self):
+    def format(self) -> str:
         return f"{self.type}_{self.name}"
 
 

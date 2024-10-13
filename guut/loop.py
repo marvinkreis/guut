@@ -236,6 +236,7 @@ class Result:
     problem: Problem
     settings: LoopSettings
     id: str
+    long_id: str
 
     def get_killing_test(self) -> Test | None:
         return next(filter(lambda test: test.kills_mutant, self.tests), None)
@@ -276,7 +277,7 @@ class Loop:
         self.experiments: List[Experiment] = []
         self.tests: List[Test] = []
         self.actions: List[Action] = []
-        self.id = self._generate_id()
+        self.id, self.long_id = self._generate_id()
 
         self.abort_reason: AbortReason | None = None
 
@@ -362,6 +363,7 @@ class Loop:
             aborted=aborted,
             abort_reason=self.abort_reason,
             id=self.id,
+            long_id=self.id,
         )
 
     def add_msg(self, msg: Message, tag: State | None):
@@ -634,10 +636,10 @@ class Loop:
         else:
             return None
 
-    def _generate_id(self) -> str:
-        randchars = "".join(f"{b:02x}" for b in randbytes(4))
-        id = "{}_{}_{}".format(self.settings.preset_name, self.problem.get_description().format(), randchars)
-        return id
+    def _generate_id(self) -> Tuple[str, str]:
+        id = "".join(f"{b:02x}" for b in randbytes(4))
+        long_id = "{}_{}_{}".format(self.settings.preset_name, self.problem.get_description().format(), id)
+        return id, long_id
 
     def _complete(self) -> AssistantMessage:
         return self.endpoint.complete(self.conversation, stop=self.prompts.stop_words)

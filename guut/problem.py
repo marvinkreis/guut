@@ -56,7 +56,7 @@ class TestResult:
 class ProblemDescription:
     type: str
 
-    def format(self):
+    def format(self) -> str:
         return self.type
 
 
