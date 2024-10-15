@@ -8,7 +8,7 @@ import guut.formatting as formatting
 from guut.llm import SystemMessage, UserMessage
 from guut.problem import ExperimentResult, Problem, TestResult, ValidationResult
 
-templates_path = Path(__file__).parent.parent / "templates"
+templates_path = Path(__file__).parent / "templates"
 jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), trim_blocks=True)
 jinja_env.filters["format_test_result"] = formatting.format_execution_result
 jinja_env.filters["format_debugger_result"] = formatting.format_execution_result
