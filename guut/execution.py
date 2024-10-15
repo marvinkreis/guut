@@ -24,11 +24,12 @@ class PythonExecutor:
     ) -> ExecutionResult:
         if not python_interpreter:
             python_interpreter = self.python_interpreter
+        cwd = cwd or target.parent
 
         # run python with unbuffered output, so it can be reliably captured on timeout
-        command = [str(python_interpreter.absolute()), "-u", str(target)]
+        command = [str(python_interpreter.absolute()), "-u", str(target.relative_to(cwd))]
 
-        return run(command=command, cwd=cwd or target.parent, target=target, timeout_secs=timeout_secs)
+        return run(command=command, cwd=cwd, target=target, timeout_secs=timeout_secs)
 
     def run_debugger(
         self,
@@ -40,12 +41,18 @@ class PythonExecutor:
     ) -> ExecutionResult:
         if not python_interpreter:
             python_interpreter = self.python_interpreter
+        cwd = cwd or target.parent
 
         # run python with unbuffered output, so it can be reliably captured on timeout
-        command = [str(python_interpreter.absolute()), "-u", inspect.getfile(debugger_wrapper), str(target)]
+        command = [
+            str(python_interpreter.absolute()),
+            "-u",
+            inspect.getfile(debugger_wrapper),
+            str(target.relative_to(cwd)),
+        ]
         stdin = debugger_script if debugger_script.endswith("\n") else debugger_script + "\n"
 
-        return run(command=command, cwd=cwd or target.parent, target=target, stdin=stdin, timeout_secs=timeout_secs)
+        return run(command=command, cwd=cwd, target=target, stdin=stdin, timeout_secs=timeout_secs)
 
     def run_script_with_coverage(
         self,
@@ -60,7 +67,15 @@ class PythonExecutor:
         cwd = cwd or target.parent
 
         # run python with unbuffered output, so it can be reliably captured on timeout
-        exec_command = [str(python_interpreter.absolute()), "-u", "-m", "coverage", "run", "--branch", str(target)]
+        exec_command = [
+            str(python_interpreter.absolute()),
+            "-u",
+            "-m",
+            "coverage",
+            "run",
+            "--branch",
+            str(target.relative_to(cwd)),
+        ]
         exec_result = run(command=exec_command, cwd=cwd, target=target, timeout_secs=timeout_secs)
 
         report_command = [str(python_interpreter.absolute()), "-m", "coverage", "json"] + (
