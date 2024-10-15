@@ -21,7 +21,7 @@ def write_result_dir(result: Result, out_dir: Path | str | None = None):
     if not out_dir:
         out_dir = os.getcwd()
 
-    result_dir = Path(out_dir) / clean_filename(result.id)
+    result_dir = Path(out_dir) / clean_filename(result.long_id)
     result_dir.mkdir(exist_ok=True, parents=True)
     write_result(result, out_dir=result_dir)
 

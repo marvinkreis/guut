@@ -278,7 +278,7 @@ class Loop:
             self.printer.print_new_messages(self.conversation)
 
         if self.logger:
-            self.logger.log_conversation(self.conversation, name=self.id)
+            self.logger.log_conversation(self.conversation, name=self.long_id)
 
     def _perform_next_step(self, state: State):
         if state == State.EMPTY:

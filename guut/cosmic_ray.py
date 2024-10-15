@@ -129,7 +129,7 @@ class CosmicRayProblem(Problem):
         if not self.module_path.is_dir():
             raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.module_path))
         if not self.full_module_path().is_file():
-            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.module_path))
+            raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), str(self.full_module_path()))
 
     @staticmethod
     @override
