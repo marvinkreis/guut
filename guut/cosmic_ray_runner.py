@@ -3,13 +3,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, List, Tuple, Type
 
-from llm import LLMEndpoint
 from loguru import logger
-from loop import Loop, LoopSettings, Result, Test
 
 from guut.cosmic_ray import CosmicRayProblem, KilledMutant, MultipleMutantsResult, MutantSpec
+from guut.llm import LLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
-from guut.problem import Coverage, Problem
+from guut.loop import Loop, LoopSettings, Result
+from guut.problem import Coverage, Problem, Test
 
 
 @dataclass

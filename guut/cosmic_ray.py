@@ -11,7 +11,6 @@ from typing import Any, Iterable, List, Literal, Tuple, override
 
 from cosmic_ray.mutating import apply_mutation, mutate_code
 from cosmic_ray.plugins import get_operator
-from loop import Test
 
 from guut.config import config
 from guut.execution import PythonExecutor
@@ -21,6 +20,7 @@ from guut.problem import (
     ExperimentResult,
     Problem,
     ProblemDescription,
+    Test,
     TestResult,
     TextFile,
     ValidationResult,
