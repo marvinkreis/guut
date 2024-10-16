@@ -171,7 +171,7 @@ The test kills the mutant if, and only if, the test passes when executed with th
 
 This means that you have to include relevant assertions in your test, unless the mutant raises an exception or results in a timeout. If the mutant raises an exception or error, do not use a `try-except` block to catch it. Adding a `try-except` block that handles the exception means that the exception will not make the test case fail.
 
-Include a relevant docstring comment with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions.
+Include a relevant docstring comment with a summary of your findings. The comment should explain what the test checks for and why. Include relevant findings from your conclusions. The comment should be understandable even without the context of this conversation.
 
 Here is an example test for a `rpn_eval` function that evaluates expressions in Reverse Polish notation:
 
