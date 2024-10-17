@@ -21,7 +21,7 @@ from guut.llm_endpoints.replay_endpoint import ReplayLLMEndpoint
 from guut.llm_endpoints.safeguard_endpoint import SafeguardLLMEndpoint
 from guut.logging import ConversationLogger, MessagePrinter
 from guut.loop import Loop, LoopSettings, Result
-from guut.output import StatusHelper, write_multiple_mutants_result_dir, write_result_dir
+from guut.output import StatusHelper, clean_filename, write_multiple_mutants_result_dir, write_result_dir
 from guut.problem import Problem
 from guut.quixbugs import QuixbugsProblem
 from guut.quixbugs import list_problems as list_quixbugs_problems
@@ -398,9 +398,9 @@ def cosmic_ray_all_mutants(
     py = Path(python_interpreter) if python_interpreter else config.python_interpreter
 
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
-    id = "{}_{}".format(Path(module_path).stem, randchars)
+    id = "{}_{}_{}".format(preset, Path(module_path).stem, randchars)
 
-    out_path = Path(outdir) / id
+    out_path = Path(outdir) / clean_filename(id)
     out_path.mkdir(parents=True, exist_ok=True)
 
     loops_dir = out_path / "loops"
@@ -442,7 +442,7 @@ def cosmic_ray_all_mutants(
 def run_cosmic_ray_individual_mutants(
     ctx: click.Context, outdir: Path, python_interpreter: Path, module_path: Path, session_file: Path, id: str
 ):
-    out_path = outdir / id
+    out_path = outdir / clean_filename(id)
     out_path.mkdir(parents=True, exist_ok=True)
 
     loops_dir = out_path / "loops"
@@ -526,7 +526,7 @@ def cosmic_ray_individual_mutants(
     )
 
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
-    id = "{}_{}".format(Path(module_path).stem, randchars)
+    id = "{}_{}_{}".format(ctx.obj["preset"], Path(module_path).stem, randchars)
 
     run_cosmic_ray_individual_mutants(
         ctx=ctx,
@@ -564,7 +564,7 @@ def emse_project(
         python_interpreter = project_path / ".venv" / "bin" / "python"
 
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
-    id = "{}_{}".format(project_name, randchars)
+    id = "{}_{}_{}".format(ctx.obj["preset"], project_name, randchars)
 
     run_cosmic_ray_individual_mutants(
         ctx=ctx,

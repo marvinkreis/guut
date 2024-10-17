@@ -108,7 +108,7 @@ class CustomJSONEncoder(JSONEncoder):
 class StatusHelper:
     def __init__(self, name: str):
         self.name = name
-        self.dir = Path("/tmp/guut") / name
+        self.dir = Path("/tmp/guut") / clean_filename(name)
         self.dir.mkdir(exist_ok=True, parents=True)
 
     def write_status(self, num_mutants: int, num_queued: int, num_alive: int, num_killed: int):
