@@ -117,7 +117,7 @@ class StatusHelper:
         )
 
     def write_queue(self, queue: List[MutantSpec]):
-        with (self.dir / "status.txt").open("w") as f:
+        with (self.dir / "queue.json").open("w") as f:
             json.dump(queue, f, cls=CustomJSONEncoder)
 
     def write_problem_info(self, problem: Problem):
