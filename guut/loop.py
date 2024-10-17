@@ -347,7 +347,7 @@ class Loop:
             aborted=aborted,
             abort_reason=self.abort_reason,
             id=self.id,
-            long_id=self.id,
+            long_id=self.long_id,
         )
 
     def add_msg(self, msg: Message, tag: State | None):

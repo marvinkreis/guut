@@ -330,9 +330,6 @@ def run_problem(problem: Problem, ctx: click.Context, outdir: str | Path):
         endpoint = OpenAIEndpoint(
             OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL
         )
-        if not unsafe:
-            silent = False
-            endpoint = SafeguardLLMEndpoint(endpoint)
 
     conversation = None
     if resume:
@@ -478,7 +475,7 @@ def run_cosmic_ray_individual_mutants(
         logger.info(f"Starting loop for {mutant}")
         result = _run_problem(
             problem=problem,
-            outdir=outdir,
+            outdir=loops_dir,
             conversation=None,
             nologs=ctx.obj["nologs"],
             silent=ctx.obj["silent"],
