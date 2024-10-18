@@ -27,12 +27,14 @@ class Usage:
     prompt_tokens: int
     completion_tokens: int
     total_tokens: int
+    cached_tokens: int = 0
 
     def to_json(self):
         return {
             "prompt_tokens": self.prompt_tokens,
             "completion_tokens": self.completion_tokens,
             "total_tokens": self.total_tokens,
+            "cached_tokens": self.cached_tokens,
         }
 
     @staticmethod
@@ -41,6 +43,7 @@ class Usage:
             prompt_tokens=json["prompt_tokens"],
             completion_tokens=json["completion_tokens"],
             total_tokens=json["total_tokens"],
+            cached_tokens=json["cached_tokens"],
         )
 
 

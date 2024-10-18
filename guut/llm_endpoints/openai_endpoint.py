@@ -71,14 +71,22 @@ def msg_from_response(response: ChatCompletion) -> AssistantMessage:
     except Exception:
         content = ""
 
-    usage = (
-        Usage(
-            completion_tokens=response.usage.completion_tokens,
-            prompt_tokens=response.usage.prompt_tokens,
-            total_tokens=response.usage.total_tokens,
+    usage = None
+    if response.usage is not None:
+        if response.usage.prompt_tokens_details is not None:
+            cached_tokens = response.usage.prompt_tokens_details.cached_tokens or 0
+        else:
+            cached_tokens = 0
+
+        usage = (
+            Usage(
+                completion_tokens=response.usage.completion_tokens,
+                prompt_tokens=response.usage.prompt_tokens,
+                total_tokens=response.usage.total_tokens,
+                cached_tokens=cached_tokens,
+            )
+            if response.usage
+            else None
         )
-        if response.usage
-        else None
-    )
 
     return AssistantMessage(content=content, response=response.to_dict(), usage=usage, id=response.id)
