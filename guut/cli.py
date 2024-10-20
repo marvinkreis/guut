@@ -462,6 +462,7 @@ def run_cosmic_ray_individual_mutants(
 
     while queue:
         mutant = queue.pop()
+        logger.info(f"Preparing for {mutant}")
         problem = CosmicRayProblem(
             module_path=Path(module_path),
             target_path=mutant.target_path,
