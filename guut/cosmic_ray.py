@@ -221,6 +221,18 @@ class CosmicRayProblem(Problem):
                     occurrence=self.occurrence,
                 )
 
+            # hack to make the benchmark on black work
+            if self.module_name == "black":
+                for pkg in ["black_primer", "blackd", "blib2to3"]:
+                    shutil.copytree(
+                        self.module_path / ".." / pkg,
+                        temp_path / pkg,
+                        dirs_exist_ok=True,
+                        symlinks=True,
+                    )
+                (temp_path / "_black_version.py").write_text('version="20.8.b1"')
+                breakpoint()
+
             # create mutant directory if requested
             if use_mutant == "insert":
                 mutant_module_path.mkdir(parents=True, exist_ok=True)
