@@ -2,7 +2,7 @@
 
 {% set cut = problem.class_under_test() %}
 ```{{ cut.language }} {{ cut.name }}
-{{ cut.content | rtrim | add_line_numbers }}
+{{ problem | format_cut }}
 ```
 {% for dep in problem.dependencies() %}
 

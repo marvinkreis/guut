@@ -1,7 +1,10 @@
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Iterable, List, Literal
+
+DIFF_LINE_REGEX = re.compile(r"^@@ -?\+?([0-9]+)", re.MULTILINE)
 
 
 @dataclass
@@ -145,3 +148,10 @@ class Problem(ABC):
     @abstractmethod
     def get_type() -> str:
         pass
+
+    def get_mutant_line(self) -> int | None:
+        diff = self.mutant_diff()
+        if match := DIFF_LINE_REGEX.search(diff):
+            return int(match.group(1))
+        else:
+            return None

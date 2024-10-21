@@ -13,6 +13,7 @@ jinja_env = jinja2.Environment(loader=jinja2.FileSystemLoader(templates_path), t
 jinja_env.filters["format_test_result"] = formatting.format_execution_result
 jinja_env.filters["format_debugger_result"] = formatting.format_execution_result
 jinja_env.filters["format_validation_result"] = formatting.format_validation_result
+jinja_env.filters["format_cut"] = formatting.format_cut
 jinja_env.filters["add_line_numbers"] = formatting.add_line_numbers
 jinja_env.filters["rtrim"] = lambda s: s.rstrip()
 jinja_env.filters["limit_text"] = formatting.limit_text

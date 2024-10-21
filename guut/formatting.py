@@ -13,7 +13,10 @@ from guut.problem import ExecutionResult, Problem, TextFile, ValidationResult
 
 def format_problem(problem: Problem) -> str:
     cut = problem.class_under_test()
-    cut_formatted = format_markdown_code_block(cut.content, language=cut.language, name=cut.name, show_linenos=True)
+    limited_numbered_cut = format_cut(problem)
+    cut_formatted = format_markdown_code_block(
+        limited_numbered_cut, language=cut.language, name=cut.name, show_linenos=False
+    )
     deps_formatted = [
         format_markdown_code_block(snippet.content, language=snippet.language, name=snippet.name, show_linenos=False)
         for snippet in problem.dependencies()
@@ -195,3 +198,36 @@ def get_module_name(cut: TextFile) -> str:
     if path.name in ["__init__.py", "__main__.py"] and path.parent.name:
         return path.parent.name
     return path.stem
+
+
+def format_cut(problem: Problem) -> str:
+    cut = problem.class_under_test()
+    numbered_cut = add_line_numbers(cut.content)
+    mutant_line = problem.get_mutant_line()
+    return limit_cut(numbered_cut, mutant_line or 0)
+
+
+def limit_cut(content: str, around_line: int) -> str:
+    """
+    first 100 lines
+    ...
+    450 lines before the mutant
+    mutant line
+    449 lines after the mutant
+    ...
+    """
+    lines = content.splitlines()
+    num_lines = len(lines)
+
+    if num_lines <= 1000:
+        return content
+
+    if around_line <= 551:
+        return "\n".join(lines[:1000] + ["<truncated>"])
+
+    elif around_line > num_lines - 450:
+        return "\n".join(lines[:100] + ["<truncated>"] + lines[-900:])
+    else:
+        start_line = around_line - 450
+        end_line = around_line + 449
+        return "\n".join(lines[:100] + ["<truncated>"] + lines[(start_line - 1) : end_line] + ["<truncated>"])
