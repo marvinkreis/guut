@@ -13,7 +13,6 @@ from guut.baseline_loop import BaselineLoop, BaselineSettings
 from guut.config import config
 from guut.cosmic_ray import CosmicRayProblem, MultipleMutantsResult, list_mutants
 from guut.cosmic_ray_runner import CosmicRayRunner
-from guut.emse_benchmark import src_paths as emse_src_paths
 from guut.formatting import format_problem
 from guut.llm import Conversation, LLMEndpoint
 from guut.llm_endpoints.openai_endpoint import OpenAIEndpoint
@@ -528,44 +527,6 @@ def cosmic_ray_individual_mutants(
 
     randchars = "".join(f"{b:02x}" for b in randbytes(4))
     id = "{}_{}_{}".format(ctx.obj["preset"], Path(module_path).stem, randchars)
-
-    run_cosmic_ray_individual_mutants(
-        ctx=ctx,
-        outdir=outdir,
-        python_interpreter=python_interpreter,
-        module_path=Path(module_path),
-        session_file=Path(session_file),
-        id=id,
-    )
-
-
-@run.command("emse-project-individual-mutants")
-@click.argument(
-    "project_name",
-    nargs=1,
-    type=str,
-    required=True,
-)
-@click.pass_context
-def emse_project(
-    ctx: click.Context,
-    project_name: str,
-):
-    outdir = Path(ctx.obj["outdir"]) if ctx.obj["outdir"] else config.output_path
-    python_interpreter = Path(ctx.obj["python_interpreter"]) if ctx.obj["python_interpreter"] else None
-
-    if project_name not in emse_src_paths:
-        raise Exception("Unknown emse project name.")
-
-    project_path = config.emse_projects_path / project_name
-    module_path = project_path / emse_src_paths[project_name]
-    session_file = config.emse_projects_path / f"{project_name}.sqlite"
-
-    if python_interpreter is None:
-        python_interpreter = project_path / ".venv" / "bin" / "python"
-
-    randchars = "".join(f"{b:02x}" for b in randbytes(4))
-    id = "{}_{}_{}".format(ctx.obj["preset"], project_name, randchars)
 
     run_cosmic_ray_individual_mutants(
         ctx=ctx,

@@ -17,7 +17,6 @@ class Config:
     _openai_api_key: str = UNSET
     _openai_organization: str = UNSET
     _quixbugs_path: str = UNSET
-    _emse_projects_path: str = UNSET
     _python_interpreter: str = UNSET
 
     @property
@@ -39,10 +38,6 @@ class Config:
     @property
     def quixbugs_path(self) -> Path:
         return self._validate_path("quixbugs_path", self._quixbugs_path)
-
-    @property
-    def emse_projects_path(self) -> Path:
-        return self._validate_path("emse_projects_path", self._emse_projects_path)
 
     @property
     def python_interpreter(self) -> Path:
