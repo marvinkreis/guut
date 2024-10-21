@@ -23,13 +23,20 @@ if $only_total; then
         completion_tokens=$(( completion_tokens + b ))
     done
 
-    prompt_tokens_price="$(bc <<< "$prompt_tokens * .00000015")"
+    cached_tokens=0;
+    for b in $(jq 'map(.usage.cached_tokens) | add // 0' "$@"); do
+        cached_tokens=$(( cached_tokens + b ))
+    done
+
+    prompt_tokens_price="$(bc <<< "($prompt_tokens - $cached_tokens) * .00000015")"
     completion_tokens_price="$(bc <<< "$completion_tokens * .0000006")"
-    total_tokens_price="$(bc <<< "($prompt_tokens * .00000015) + ($completion_tokens * .0000006)")"
+    cached_tokens_price="$(bc <<< "$cached_tokens * .000000075")"
+    total_tokens_price="$(bc <<< "( ($prompt_tokens - $cached_tokens) * .00000015) + ($completion_tokens * .0000006) + ($cached_tokens * .000000075)")"
 
     echo 'Total'
     printf "  prompt:      %-9d %.4f$\n" "$prompt_tokens" "$prompt_tokens_price"
     printf "  completion:  %-9d %.4f$\n" "$completion_tokens" "$completion_tokens_price"
+    printf "  cached:      %-9d %.4f$\n" "$cached_tokens" "$cached_tokens_price"
     printf "  total:       %-9d %.4f$\n" "$(( prompt_tokens + completion_tokens ))" "$total_tokens_price"
 
 else
