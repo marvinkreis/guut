@@ -113,7 +113,7 @@ class StatusHelper:
 
     def write_status(self, num_mutants: int, num_queued: int, num_alive: int, num_killed: int):
         (self.dir / "status.txt").write_text(
-            f"total: {num_mutants}\nqueued: {num_queued}\nalive: {num_alive}\nkilled: {num_killed}"
+            f"total: {num_mutants}\nqueued: {num_queued}\nalive: {num_alive}\nkilled: {num_killed}\n"
         )
 
     def write_queue(self, queue: List[MutantSpec]):
