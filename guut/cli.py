@@ -452,7 +452,7 @@ def run_cosmic_ray_individual_mutants(
     endpoint = OpenAIEndpoint(OpenAI(api_key=config.openai_api_key, organization=config.openai_organization), GPT_MODEL)
 
     status_helper = StatusHelper(id)
-    queue = mutants
+    queue = mutants[:]
     killed_mutants = []
     alive_mutants = []
     tests = []
