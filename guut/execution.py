@@ -11,6 +11,14 @@ import guut.debugger_wrapper as debugger_wrapper
 from guut.problem import Coverage, ExecutionResult
 
 
+def decode_output(output: bytes):
+    try:
+        return output.decode()
+    except UnicodeDecodeError:
+        logger.warning("Process output isn't valid unicode.")
+        return "<text encoding error>"
+
+
 class PythonExecutor:
     def __init__(self, python_interpreter: Path):
         self.python_interpreter = python_interpreter
@@ -106,7 +114,7 @@ def run(
             target=target,
             cwd=cwd,
             input=process_input,
-            output=output.decode(),
+            output=decode_output(output),
             exitcode=process.returncode,
         )
     except TimeoutExpired as timeout:
@@ -116,7 +124,7 @@ def run(
             target=target,
             cwd=cwd,
             input=process_input,
-            output=output.decode(),
+            output=decode_output(output),
             exitcode=1,
             timeout=True,
         )
