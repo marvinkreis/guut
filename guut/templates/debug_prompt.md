@@ -99,7 +99,7 @@ Each hypothesis should describe an assumption you have about the code. Hypothese
 - Don't repeat hypotheses you have already made.
 - Don't base hypotheses on untested assumptions.
 
-Predict exactly what will happen. Avoid broad predictions like "Under any of the given inputs, the mutant will behave differently". Instead, write predictions like "The input [input] will satisfy [conditions]
+Predict exactly what will happen. Avoid broad predictions like "Under any of the given inputs, the mutant will behave differently". Instead, write predictions like "The input [input] will satisfy [conditions]."
 
 Hypotheses loosely follow this template: Given [observations], I hypothesize that [assumption] holds when [given inputs]. I predict that [assumed result] and I will verify this by [more explanation and experiment description].
 
