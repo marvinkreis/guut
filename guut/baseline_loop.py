@@ -100,7 +100,10 @@ class BaselineLoop(Loop):
         """it's hard to do sometimes"""
         if self.prompts.system_prompt:
             self.add_msg(self.prompts.system_prompt.render(), tag=None)
-            self.add_msg(self.prompts.baseline_prompt.render(self.problem), tag=None)
+            if self.settings.max_num_tests == 1:
+                self.add_msg(self.prompts.baseline_without_iterations_prompt.render(self.problem), tag=None)
+            else:
+                self.add_msg(self.prompts.baseline_prompt.render(self.problem), tag=None)
         self.add_msg(self.prompts.problem_template.render(self.problem, is_baseline=True), State.INITIAL)
 
     @override

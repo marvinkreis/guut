@@ -96,7 +96,7 @@ def shorten_stack_trace(stack_trace: str, path_to_include: str | Path) -> str:
 
 def limit_text(text: str, char_limit: int = 2000) -> str:
     if len(text) > char_limit:
-        return text[:2000] + "<truncated>"
+        return text[:char_limit] + "<truncated>"
     else:
         return text
 

@@ -115,6 +115,7 @@ class PromptCollection:
     debug_prompt: DebugPrompt
     test_prompt: TestPrompt
     baseline_prompt: BaselinePrompt
+    baseline_without_iterations_prompt: BaselinePrompt
     example: Example
 
     stop_words: List[str]
@@ -140,6 +141,7 @@ default_prompts = PromptCollection(
     debug_prompt=DebugPrompt("debug_prompt.md"),
     test_prompt=TestPrompt("test_prompt.md"),
     baseline_prompt=BaselinePrompt("baseline_prompt.md"),
+    baseline_without_iterations_prompt=BaselinePrompt("baseline_prompt_no_iterations.md"),
     example=Example("debug_prompt_example.md"),
     #
     stop_words=["# Experiment Result", "# Test Result", "# Observation Result"],

@@ -27,7 +27,7 @@ from guut.quixbugs import list_problems as list_quixbugs_problems
 
 problem_types = {QuixbugsProblem.get_type(): QuixbugsProblem}
 
-GPT_MODEL = "gpt-4o-mini"
+GPT_MODEL = "gpt-4o-mini-2024-07-18"
 
 
 Preset = namedtuple("Preset", ["loop_cls", "loop_settings"])
