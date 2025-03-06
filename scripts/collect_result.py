@@ -2,6 +2,14 @@ import json
 import sys
 from pathlib import Path
 
+"""
+Creates a run summary JSON.
+This is useful in case a run crashes and the JSON result file is not generated.
+
+Usage: ./script dir
+- dir: result directory from guut
+"""
+
 results_dir = Path(sys.argv[1])
 
 collected_data = {

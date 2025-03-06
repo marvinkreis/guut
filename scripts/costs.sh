@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Calculates the costs of a conversation.json file
+# Usage: ./script conversation_file [conversation_file...]
+
 # Strict bash
 set -euo pipefail
 IFS=$'\n\t'

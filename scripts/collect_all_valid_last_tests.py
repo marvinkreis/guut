@@ -4,6 +4,17 @@ from pathlib import Path
 
 import click
 
+
+"""
+Collects all final tests (and experiments) from a run,
+that passed on the PUT.
+
+Usage: ./script in_dir out_dir
+- in_dir: result directory from guut
+- out_dir: directory to be populated with the tests
+"""
+
+
 FILENAME_REPLACEMENET_REGEX = r"[^0-9a-zA-Z]+"
 
 
@@ -27,7 +38,7 @@ def collect_all_valid_tests(in_dir: str, out_dir: str):
                 result = test["result"]["correct"]
                 exitcode = result["exitcode"]
                 if exitcode == 0:
-                    filename = clean_filename(f"{data["id"]}") + ".py"
+                    filename = clean_filename(f"{data['id']}") + ".py"
                     Path(out_path / filename).write_text(test["code"])
                     break
 

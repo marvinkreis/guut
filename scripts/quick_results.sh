@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Summarized the results of a run in text form.
+# Usage: ./script run_dir [run_dir...]
+
 # Strict bash
 set -euo pipefail
 IFS=$'\n\t'

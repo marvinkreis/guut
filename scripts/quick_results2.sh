@@ -1,5 +1,8 @@
 #!/bin/sh
 
+# Summarized the results of a run in CSV form.
+# Usage: ./script run_dir [run_dir...]
+
 echo project,preset,alive,killed
 for d in *; do
     project=$(echo $d | rg '.*?_.*?_.*?_(.*)_[a-z0-9]{8}' -r '$1')

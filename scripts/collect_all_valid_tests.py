@@ -4,6 +4,17 @@ from pathlib import Path
 
 import click
 
+
+"""
+Collects all tests (and experiments) from a run,
+that passed on the PUT.
+
+Usage: ./script in_dir out_dir
+- in_dir: result directory from guut
+- out_dir: directory to be populated with the tests
+"""
+
+
 FILENAME_REPLACEMENET_REGEX = r"[^0-9a-zA-Z]+"
 
 
