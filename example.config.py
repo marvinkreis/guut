@@ -13,5 +13,5 @@ openai_organization = ""
 # Path to the QuixBugs GitHub repo. This is only needed for the "quixbugs" command, and can be omitted if not needed.
 quixbugs_path = ""
 
-# Path to the default python interpreter that is used tests. Should have the "coverage" package installed.
+# Path to the default python interpreter that is used for tests. Should have the "coverage" package installed.
 python_interpreter = ""
